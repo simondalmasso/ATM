@@ -6,9 +6,11 @@ on:
     paths:
       - '.github/workflows/order010-sg2-simon-gate.yml'
       - 'src/atm_core/simon_gate.py'
-      - 'src/atm_core/effect_boundary.py'
+      - 'src/atm_core/human_gate.py'
       - 'scripts/order010_simon_gate.py'
+      - 'scripts/order021_sg2_human_gate.py'
       - 'tests/test_order010_simon_gate.py'
+      - 'tests/test_order021_sg2_bridge.py'
       - 'src/atm_core/superteam_agent.py'
       - 'tests/test_superteam_agent.py'
   schedule:
@@ -33,8 +35,6 @@ jobs:
       ORDER010_HEAD: ${{ github.sha }}
       ATM_RADAR_BOT_API_KEY: ${{ secrets.ATM_RADAR_BOT_API_KEY }}
       ATM_TELEGRAM_CHAT_ID: ${{ vars.ATM_TELEGRAM_CHAT_ID }}
-      ATM_GURU_ACTIVATED: ${{ vars.ATM_GURU_ACTIVATED }}
-      SIMON_GATE_LAST_NOTIFIED_ID: ${{ vars.SIMON_GATE_LAST_NOTIFIED_ID }}
       ATM_TELEGRAM_EFFECT_LOCK: ${{ vars.ATM_TELEGRAM_EFFECT_LOCK }}
       GITHUB_TOKEN: ${{ github.token }}
       SUPERTEAM_AGENT_API_KEY: ${{ secrets.SUPERTEAM_AGENT_API_KEY }}
@@ -61,20 +61,20 @@ jobs:
           assert cfg['outgoing_spend_usd'] == 0
           assert cfg['zero_cost_models']['paid_fallback'] is False
           print('ORDER010_SG2_EXACT_HEAD=PASS')
-          print('SIMON_GATE_PARALLEL_TO_AUTONOMOUS=PASS')
+          print('ONE_HUMAN_GATE_TRUTH=ORDER021')
           print('OUTGOING_SPEND_USD=0')
           PY
 
       - name: Install ATM package
         run: python -m pip install --disable-pip-version-check -e .
 
-      - name: SG2 and Superteam credential-boundary tests
+      - name: SG2 canonical bridge and Superteam boundary tests
         run: |
           python -m unittest tests.test_order010_simon_gate -v
+          python -m unittest tests.test_order021_sg2_bridge -v
           python -m unittest tests.test_superteam_agent -v
 
       - name: Prove Superteam LIST auth does not require claimCode
-        id: superteam
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -82,53 +82,39 @@ jobs:
           import json, os
           from pathlib import Path
           from atm_core.superteam_agent import SuperteamAgentApi
-          out={
-              'api_key_present': bool(os.environ.get('SUPERTEAM_AGENT_API_KEY','').strip()),
-              'agent_id': os.environ['SUPERTEAM_AGENT_ID'],
-              'claim_code_required_by_runtime': False,
-              'new_agent_registration_allowed': False,
-          }
+          out={'api_key_present':bool(os.environ.get('SUPERTEAM_AGENT_API_KEY','').strip()),'agent_id':os.environ['SUPERTEAM_AGENT_ID'],'claim_code_required_by_runtime':False,'new_agent_registration_allowed':False}
           if not out['api_key_present']:
               out['state']='AUTH_REQUIRED_API_KEY_ONLY'
           else:
               try:
-                  data=SuperteamAgentApi().live_agent_eligible(take=50)
-                  rows=data.get('listings') or data.get('data') or []
-                  out['state']='LIVE_AUTH_PASS'
-                  out['returned_count']=len(rows) if isinstance(rows,list) else 'UNKNOWN'
-                  if isinstance(rows,list):
-                      out['agent_only_count']=sum(1 for x in rows if isinstance(x,dict) and str(x.get('agentAccess') or '').upper()=='AGENT_ONLY')
-                      out['agent_allowed_count']=sum(1 for x in rows if isinstance(x,dict) and str(x.get('agentAccess') or '').upper()=='AGENT_ALLOWED')
+                  data=SuperteamAgentApi().live_agent_eligible(take=50); rows=data.get('listings') or data.get('data') or []
+                  out['state']='LIVE_AUTH_PASS'; out['returned_count']=len(rows) if isinstance(rows,list) else 'UNKNOWN'
               except Exception as exc:
-                  out['state']='LIVE_AUTH_FAIL'
-                  out['error_type']=type(exc).__name__
+                  out['state']='LIVE_AUTH_FAIL'; out['error_type']=type(exc).__name__
           Path('order010-superteam-runtime.json').write_text(json.dumps(out,sort_keys=True,indent=2)+'\n')
           print(json.dumps(out,sort_keys=True))
           PY
 
-      - name: Execute credentialless public radar and Telegram JIT gate
-        id: sg2
+      - name: Execute SG2 discovery and qualification only
         run: python scripts/order010_simon_gate.py
 
-      - name: Merge sanitized Superteam evidence into SG2 receipt
+      - name: Persist canonical HumanGateRequest then optional Telegram
+        run: python scripts/order021_sg2_human_gate.py
+
+      - name: Merge sanitized Superteam evidence into diagnostic SG2 receipt
         if: always()
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          receipt_path=Path('order010-simon-gate-receipt.json')
-          receipt=json.loads(receipt_path.read_text()) if receipt_path.exists() else {
-              'schema':'ATM_ORDER010_SG2_SIMON_GATE_V1',
-              'head':'UNKNOWN',
-              'state':'RECEIPT_MISSING',
-              'outgoing_spend_usd':'0',
-          }
+          p=Path('order010-simon-gate-receipt.json')
+          receipt=json.loads(p.read_text()) if p.exists() else {'schema':'ATM_ORDER010_SG2_SIMON_GATE_V1','state':'RECEIPT_MISSING','outgoing_spend_usd':'0'}
           st=Path('order010-superteam-runtime.json')
           if st.exists(): receipt['superteam_runtime']=json.loads(st.read_text())
-          receipt_path.write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          p.write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
           PY
 
-      - name: Publish sanitized durable SG2 receipt
+      - name: Publish Issue 38 diagnostic history only
         if: always()
         shell: bash
         run: |
@@ -136,32 +122,13 @@ jobs:
           python - <<'PY'
           import json, os, urllib.request
           from pathlib import Path
-          path=Path('order010-simon-gate-receipt.json')
-          receipt=json.loads(path.read_text()) if path.exists() else {
-              'schema':'ATM_ORDER010_SG2_SIMON_GATE_V1',
-              'head':os.environ['GITHUB_SHA'],
-              'state':'RECEIPT_MISSING',
-              'outgoing_spend_usd':'0',
-          }
-          receipt['run_id']=os.environ['GITHUB_RUN_ID']
-          receipt['run_attempt']=os.environ['GITHUB_RUN_ATTEMPT']
-          receipt['run_url']=f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          p=Path('order010-simon-gate-receipt.json')
+          receipt=json.loads(p.read_text()) if p.exists() else {'schema':'ATM_ORDER010_SG2_SIMON_GATE_V1','state':'RECEIPT_MISSING','outgoing_spend_usd':'0'}
+          receipt['run_id']=os.environ['GITHUB_RUN_ID']; receipt['run_attempt']=os.environ['GITHUB_RUN_ATTEMPT']; receipt['diagnostic_only']=True; receipt['owner_gate_truth']='ORDER021_HUMAN_GATE_ONLY'
           body='ATM ORDER010 SG2 SIMON GATE STATE\n```json\n'+json.dumps(receipt,sort_keys=True)+'\n```'
-          req=urllib.request.Request(
-              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/38/comments",
-              data=json.dumps({'body':body}).encode(),
-              method='POST',
-              headers={
-                  'Authorization':f"Bearer {os.environ['GITHUB_TOKEN']}",
-                  'Accept':'application/vnd.github+json',
-                  'Content-Type':'application/json',
-                  'User-Agent':'ATM-SimonGate/1.0',
-              },
-          )
-          with urllib.request.urlopen(req,timeout=20) as response:
-              posted=json.loads(response.read().decode())
-          print('ORDER010_SG2_RECEIPT='+str(posted.get('html_url')))
-          print('SIMON_GATE_STATE='+str(receipt.get('state','UNKNOWN')))
-          print('TELEGRAM_STATE='+str(receipt.get('telegram_state','UNKNOWN')))
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/38/comments",data=json.dumps({'body':body}).encode(),method='POST',headers={'Authorization':f"Bearer {os.environ['GITHUB_TOKEN']}",'Accept':'application/vnd.github+json','Content-Type':'application/json','User-Agent':'ATM-SimonGate/1.0'})
+          with urllib.request.urlopen(req,timeout=20) as response: posted=json.loads(response.read().decode())
+          print('ORDER010_SG2_DIAGNOSTIC='+str(posted.get('html_url')))
+          print('OWNER_GATE_TRUTH=ORDER021_HUMAN_GATE_ONLY')
           print('OUTGOING_SPEND_USD=0')
           PY
