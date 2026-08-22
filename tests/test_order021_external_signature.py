@@ -41,12 +41,12 @@ console.log(JSON.stringify({review:true,tamper:true,opaque:true,digest:true}));
 
     def test_runtime_signature_to_readback_to_resume_with_same_code(self):
         script = r'''
-import {createHmac} from "node:crypto";
+import {createHash,createHmac} from "node:crypto";
 import {CANONICAL_OWNER} from "./worker/src/human-gate-crypto.js";
 import {externalSignatureFixture,handleExternalSignature} from "./worker/src/order021-external-signature.js";
 const secret="fixture-session-secret", now=Date.now(), gate=externalSignatureFixture(now);
 let rows=[{id:1,user:{login:"github-actions[bot]"},author_association:"NONE",body:"ATM HUMAN GATE REQUEST\n```json\n"+JSON.stringify(gate)+"\n```"}], recovered=CANONICAL_OWNER;
-const b64url=x=>Buffer.from(JSON.stringify(x)).toString("base64url"); const body=b64url({wallet:CANONICAL_OWNER.toLowerCase(),exp:Math.floor(now/1000)+300}); const sig=createHmac("sha256",secret).update(body).digest("hex"); const token=body+"."+sig;
+const b64url=x=>Buffer.from(JSON.stringify(x)).toString("base64url"); const body=b64url({wallet:CANONICAL_OWNER.toLowerCase(),exp:Math.floor(now/1000)+300}); const mac=createHmac("sha256",secret).update(body).digest(); const sig=createHash("sha256").update(mac).digest("hex"); const token=body+"."+sig;
 globalThis.fetch=async(url,opts={})=>{url=String(url);if(url==="https://mainnet.base.org"){const addr=recovered.toLowerCase().replace(/^0x/,"").padStart(64,"0");return new Response(JSON.stringify({jsonrpc:"2.0",id:22,result:"0x"+addr}),{status:200,headers:{"content-type":"application/json"}})}if(url.endsWith("/issues/49"))return new Response(JSON.stringify({comments:rows.length}),{status:200,headers:{"content-type":"application/json"}});if(url.includes("/issues/49/comments?")&&(!opts.method||opts.method==="GET"))return new Response(JSON.stringify(rows),{status:200,headers:{"content-type":"application/json"}});if(url.endsWith("/issues/49/comments")&&opts.method==="POST"){const req=JSON.parse(opts.body),row={id:rows.length+1,user:{login:"github-actions[bot]"},author_association:"NONE",body:req.body};rows.push(row);return new Response(JSON.stringify({html_url:"https://github.com/example/comment/"+row.id}),{status:201,headers:{"content-type":"application/json"}})}throw Error("unexpected_fetch:"+url)};
 const env={ATM_GITHUB_DISPATCH_TOKEN:secret,ATM_GIT_SHA:"11".repeat(20)}; const headers={authorization:"Bearer "+token};
 let rr=await handleExternalSignature(new Request("https://atm.simondalmasso44.workers.dev/api/human-gates/"+gate.request_id+"/signature-review",{headers}),env); if(rr.status!==200)throw Error("review_http"); const review=await rr.json();
