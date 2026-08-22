@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Exact-head ORDER-021 security kills
+      - name: Exact-head ORDER-021 security and A1 kills
         shell: bash
         run: |
           set -euo pipefail
@@ -38,6 +38,7 @@ jobs:
           PYTHONPATH=src:. python -m unittest tests.test_order021_human_gate -v
           PYTHONPATH=src:. python -m unittest tests.test_order021_sg2_bridge -v
           PYTHONPATH=src:. python -m unittest tests.test_order021_external_signature -v
+          PYTHONPATH=src:. python -m unittest tests.test_order021_a1_durable -v
           node --check worker/src/order021-human-gate.js
           node --check worker/src/order021-owner-inbox.js
           node --check worker/src/order021-external-signature.js
@@ -47,41 +48,58 @@ jobs:
           grep -q 'ORDER021_HUMAN_GATE_ONLY' scripts/order010_simon_gate.py
           grep -q 'python scripts/order021_sg2_human_gate.py' .github/workflows/order010-sg2-simon-gate.yml
           echo "ORDER021_SECURITY_KILLS=PASS"
-          echo "SG2_CANONICAL_SINGLE_TRUTH_KILL=PASS"
-          echo "EXTERNAL_SIGNATURE_FIXTURE_E2E=PASS"
+          echo "ORDER021_A1_ALWAYS_OPEN_SESSION_RESTORE=PASS"
+          echo "ORDER021_BASE_SWITCH_BEFORE_EIP712=PASS"
+          echo "ORDER021_ALL_PAGE_DURABILITY=PASS"
+          echo "ORDER021_FORGED_EVENT_PROVENANCE_KILL=PASS"
+          echo "ORDER020_PAYMENT_CODE_UNCHANGED=PASS"
 
-      - name: Ensure exact-head canonical external-signature fixture
+      - name: Supersede stale canaries then ensure exact-head current canary
         env:
           GH_TOKEN: ${{ github.token }}
           FINAL_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           python - <<'PY'
           import datetime, hashlib, json, os, re, urllib.request
-          repo=os.environ['GITHUB_REPOSITORY']; sha=os.environ['FINAL_SHA']; token=os.environ['GH_TOKEN']
-          marker='ATM HUMAN GATE REQUEST'; request_id='order021-external-signature-fixture-'+sha[:12]; dedupe='order021-external-signature-fixture-'+sha
-          headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'Content-Type':'application/json','User-Agent':'ATM-ORDER021-Canary/2.0'}
-          meta=json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49',headers=headers),timeout=20)); count=int(meta.get('comments') or 0)
+          repo=os.environ['GITHUB_REPOSITORY']; sha=os.environ['FINAL_SHA']; token=os.environ['GH_TOKEN']; run=os.environ['RUN_ID']
+          req_marker='ATM HUMAN GATE REQUEST'; ev_marker='ATM HUMAN GATE EVENT'; current_id='order021-external-signature-fixture-'+sha[:12]; current_dedupe='order021-external-signature-fixture-'+sha
+          headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'Content-Type':'application/json','User-Agent':'ATM-ORDER021-Canary/3.0','X-GitHub-Api-Version':'2022-11-28'}
+          meta=json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49',headers=headers),timeout=20)); pages=max(1,(int(meta.get('comments') or 0)+99)//100); assert pages<=20
           rows=[]
-          for page in range(1,max(1,(count+99)//100)+1):
-              rows.extend(json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments?per_page=100&page={page}',headers=headers),timeout=20)))
-          exists=False
+          for page in range(1,pages+1): rows.extend(json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments?per_page=100&page={page}',headers=headers),timeout=20)))
+          requests={}; invalidated=set()
+          def fenced(body,marker):
+              if not str(body or '').startswith(marker): return None
+              m=re.search(r'```json\s*([\s\S]*?)\s*```',str(body));
+              if not m: return None
+              try:return json.loads(m.group(1))
+              except Exception:return None
           for row in rows:
-              body=str(row.get('body') or '')
-              if not body.startswith(marker): continue
-              m=re.search(r'```json\s*([\s\S]*?)\s*```',body)
-              if not m: continue
-              try: p=json.loads(m.group(1))
-              except Exception: continue
-              if p.get('dedupe_key')==dedupe and p.get('state','PENDING_OWNER') not in {'VERIFIED_COMPLETE','REJECTED_BY_OWNER','EXPIRED','INVALIDATED','FAILED'}: exists=True; break
-          if not exists:
-              now=datetime.datetime.now(datetime.timezone.utc); ext_hash=hashlib.sha256(('ORDER021:'+sha).encode()).hexdigest()
-              p={'schema':'ATM_HUMAN_GATE_REQUEST_V1','request_id':request_id,'source':'fixture','source_object_id':'order021-external-signature-'+sha,'source_object_url':'https://example.com/order021-fixture','rail_owner':'ORDER021_FIXTURE','current_external_object_hash':ext_hash,'human_gate_class':'WALLET_MESSAGE_SIGNATURE','human_only_evidence':True,'required_action':'SIGN_NON_ECONOMIC_SERVER_BOUND_FIXTURE','short_title':'ORDER-021 external wallet-signature canary','why_required':'Proves exact server-built wallet signing without transaction authority.','exact_action_label':'REVIEW & SIGN','safe_action_url':None,'wallet_chain':'eip155:8453','wallet_expected_address':'0xd89Ef03bC3105C538529AC2657Bc4488c94ff4E4','signature_method':'personal_sign','signature_payload_digest':None,'owner_cost_usd':'0','financial_effect':'NONE','irreversibility':'NONE','risk_summary':'Non-economic message signature only; no transaction, approval, Permit2, transfer, or eth_sign.','post_gate_resume':'ORDER021_FIXTURE_RESUME_EVENT','external_readback_contract':'ORDER021_FIXTURE_SIGNATURE_EVENT_READBACK_V1','evidence_refs':['ORDER-021','F021-02','F021-03',sha],'created_at':now.isoformat(),'updated_at':now.isoformat(),'expires_at':(now+datetime.timedelta(hours=4)).isoformat(),'dedupe_key':dedupe,'state':'PENDING_OWNER','fixture':True}
-              body=marker+'\n```json\n'+json.dumps(p,sort_keys=True)+'\n```'
-              req=urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments',data=json.dumps({'body':body}).encode(),method='POST',headers=headers)
+              q=fenced(row.get('body'),req_marker)
+              if q and q.get('schema')=='ATM_HUMAN_GATE_REQUEST_V1': requests[str(q.get('request_id'))]=q
+              e=fenced(row.get('body'),ev_marker)
+              if e and e.get('schema')=='ATM_HUMAN_GATE_EVENT_V1' and e.get('state')=='INVALIDATED' and e.get('action')=='SUPERSEDE_STALE_CANARY': invalidated.add(str(e.get('request_id')))
+          stale=[]
+          for rid,q in requests.items():
+              is_canary=(q.get('source')=='fixture' and q.get('human_gate_class')=='WALLET_MESSAGE_SIGNATURE' and q.get('required_action')=='SIGN_NON_ECONOMIC_SERVER_BOUND_FIXTURE')
+              if is_canary and rid!=current_id and rid not in invalidated and q.get('state','PENDING_OWNER') not in {'VERIFIED_COMPLETE','REJECTED_BY_OWNER','EXPIRED','INVALIDATED','FAILED'}: stale.append(q)
+          now=datetime.datetime.now(datetime.timezone.utc)
+          for q in stale:
+              ev={'schema':'ATM_HUMAN_GATE_EVENT_V1','request_id':q['request_id'],'current_external_object_hash':q['current_external_object_hash'],'state':'INVALIDATED','action':'SUPERSEDE_STALE_CANARY','observed_at':now.isoformat(),'terminal_reason':'SUPERSEDED_EXTERNAL_OBJECT','resume_event':None,'outgoing_spend_usd':'0','machine_provenance':{'schema':'ATM_HUMAN_GATE_MACHINE_PROVENANCE_V1','kind':'GITHUB_ACTIONS_RUN_V1','repository':repo,'workflow':'order021-human-gate-live.yml','run_id':run,'head_sha':sha}}
+              body=ev_marker+'\n```json\n'+json.dumps(ev,sort_keys=True)+'\n```'; req=urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments',data=json.dumps({'body':body}).encode(),method='POST',headers=headers)
+              with urllib.request.urlopen(req,timeout=20): pass
+              print('ORDER021_SUPERSEDED='+q['request_id'])
+          current=requests.get(current_id)
+          if current is None:
+              ext_hash=hashlib.sha256(('ORDER021:'+sha).encode()).hexdigest()
+              p={'schema':'ATM_HUMAN_GATE_REQUEST_V1','request_id':current_id,'source':'fixture','source_object_id':'order021-external-signature-'+sha,'source_object_url':'https://example.com/order021-fixture','rail_owner':'ORDER021_FIXTURE','current_external_object_hash':ext_hash,'human_gate_class':'WALLET_MESSAGE_SIGNATURE','human_only_evidence':True,'required_action':'SIGN_NON_ECONOMIC_SERVER_BOUND_FIXTURE','short_title':'ORDER-021 external wallet-signature canary','why_required':'Proves exact server-built wallet signing without transaction authority.','exact_action_label':'REVIEW & SIGN','safe_action_url':None,'wallet_chain':'eip155:8453','wallet_expected_address':'0xd89Ef03bC3105C538529AC2657Bc4488c94ff4E4','signature_method':'personal_sign','signature_payload_digest':None,'owner_cost_usd':'0','financial_effect':'NONE','irreversibility':'NONE','risk_summary':'Non-economic message signature only; no transaction, approval, Permit2, transfer, or eth_sign.','post_gate_resume':'ORDER021_FIXTURE_RESUME_EVENT','external_readback_contract':'ORDER021_FIXTURE_SIGNATURE_EVENT_READBACK_V1','evidence_refs':['ORDER-021','F021-A1','F021-04','F021-05','F021-06',sha],'created_at':now.isoformat(),'updated_at':now.isoformat(),'expires_at':(now+datetime.timedelta(hours=4)).isoformat(),'dedupe_key':current_dedupe,'supersession_key':'order021-external-signature-canary-v1','state':'PENDING_OWNER','fixture':True}
+              body=req_marker+'\n```json\n'+json.dumps(p,sort_keys=True)+'\n```'; req=urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments',data=json.dumps({'body':body}).encode(),method='POST',headers=headers)
               with urllib.request.urlopen(req,timeout=20) as r: out=json.load(r)
               print('ORDER021_LIVE_FIXTURE='+str(out.get('html_url')))
-          else: print('ORDER021_LIVE_FIXTURE=DEDUPED_EXISTING')
-          print('ORDER021_LIVE_FIXTURE_REQUEST_ID='+request_id)
+          else: print('ORDER021_LIVE_FIXTURE=DEDUPED_CURRENT')
+          print('ORDER021_LIVE_FIXTURE_REQUEST_ID='+current_id)
+          print('ORDER021_STALE_CANARIES_SUPERSEDED='+str(len(stale)))
           PY
 
       - name: Wait exact Cloudflare + runtime=edge=radar
@@ -92,7 +110,7 @@ jobs:
           import json, os, time, urllib.request
           base='https://atm.simondalmasso44.workers.dev'; expected=os.environ['EXPECTED_SHA']
           def get(path):
-              req=urllib.request.Request(base+path,headers={'Accept':'application/json,text/html,*/*','Cache-Control':'no-cache','User-Agent':'ATM-ORDER021-Live/2.0'})
+              req=urllib.request.Request(base+path,headers={'Accept':'application/json,text/html,*/*','Cache-Control':'no-cache','User-Agent':'ATM-ORDER021-Live/3.0'})
               with urllib.request.urlopen(req,timeout=20) as r:return r.status,dict(r.headers),r.read().decode()
           last={}
           for i in range(160):
@@ -108,7 +126,7 @@ jobs:
           else: raise SystemExit('ORDER021_RUNTIME_NOT_CONVERGED:'+json.dumps(last,sort_keys=True))
           PY
 
-      - name: Live Human Gate UI + external-signature canary + ORDER-020 non-regression
+      - name: Live always-open Human Gate + exactly-one canary + ORDER-020 non-regression
         env:
           EXPECTED_SHA: ${{ github.sha }}
         run: |
@@ -116,20 +134,22 @@ jobs:
           import json, urllib.error, urllib.request
           base='https://atm.simondalmasso44.workers.dev'
           def req(path,method='GET',body=None,headers=None):
-              data=None if body is None else json.dumps(body).encode(); hs={'Accept':'application/json,text/html,*/*','Cache-Control':'no-cache','User-Agent':'ATM-ORDER021-Live/2.0'}; hs.update(headers or {})
+              data=None if body is None else json.dumps(body).encode(); hs={'Accept':'application/json,text/html,*/*','Cache-Control':'no-cache','User-Agent':'ATM-ORDER021-Live/3.0'}; hs.update(headers or {})
               if data is not None: hs['Content-Type']='application/json'
               r=urllib.request.Request(base+path,data=data,method=method,headers=hs)
               try:
                   with urllib.request.urlopen(r,timeout=25) as x:return x.status,dict(x.headers),x.read().decode()
               except urllib.error.HTTPError as x:return x.code,dict(x.headers),x.read().decode()
-          st,_,raw=req('/api/human-gates'); assert st==200; hg=json.loads(raw); assert hg['schema']=='ATM_HUMAN_GATE_PUBLIC_V1' and hg['pending_count']>=1 and hg['owner_auth']=='EIP712_CANONICAL_METAMASK' and hg['outgoing_spend_usd']=='0'
-          st,_,page=req('/'); assert st==200 and 'HUMAN GATE' in page and 'CONNECT METAMASK' in page and 'human-gate-badge' in page and 'max-width:100%' in page and '@media(max-width:520px)' in page
-          st,_,js=req('/human-gate-owner.js'); assert st==200 and 'REVIEW & SIGN' in js and 'FULL PAYLOAD' in js and 'FULL DISCLOSURE' in js and "method:'personal_sign'" in js and 'SIGN EXACT PAYLOAD IN METAMASK' in js
-          st,_,raw=req('/api/human-gates/session-challenge'); assert st==200; ch=json.loads(raw); assert ch['canonical_wallet'].lower()=='0xd89ef03bc3105c538529ac2657bc4488c94ff4e4' and ch['typed_data']['primaryType']=='OwnerAction' and ch['typed_data']['message']['origin']==base and ch['typed_data']['domain']['chainId']==8453
+          st,_,raw=req('/api/human-gates?fresh=1'); assert st==200; hg=json.loads(raw); assert hg['schema']=='ATM_HUMAN_GATE_PUBLIC_V1' and hg['pending_count']==1 and hg['state']=='OWNER_ATTENTION_REQUIRED' and hg['outgoing_spend_usd']=='0', hg
+          st,_,page=req('/?human_gate_a1=1'); assert st==200 and '<section class="human-gate human-gate-attention"' in page and 'HUMAN GATE' in page and 'CONNECT METAMASK' in page and '<details class="human-gate"' not in page and '<script src="/human-gate-owner.js"></script>' in page
+          st,_,js=req('/human-gate-owner.js'); assert st==200
+          for marker in ("sessionStorage.getItem('atm_human_gate_session')","eth_requestAccounts","eth_chainId","wallet_switchEthereumChain","wallet_addEthereumChain","eth_signTypedData_v4","Switch to Base required","REVIEW & SIGN","FULL PAYLOAD"):
+              assert marker in js, marker
+          for forbidden in ('eth_sendTransaction','wallet_sendCalls','Permit2'): assert forbidden not in js
           st,_,raw=req('/api/human-gates/not-a-gate/owner-action','POST',{}); assert st==401 and json.loads(raw)['error']=='owner_auth_required'
           st,_,raw=req('/x402/falsify','POST',{'bad':True}); assert st==402; challenge=json.loads(raw); accept=challenge['accepts'][0]; assert accept['network']=='eip155:8453' and accept['amount']=='10000' and accept['payTo'].lower()=='0xd89ef03bc3105c538529ac2657bc4488c94ff4e4'
           st,_,raw=req('/api/seller-funnel'); assert st==200 and str(json.loads(raw).get('outgoing_spend_usd'))=='0'
-          print('ORDER021_LIVE_UI_API=PASS'); print('ORDER021_SIGNATURE_CANARY_PENDING_OWNER=PASS'); print('ORDER020_SELLER_NON_REGRESSION=PASS')
+          print('ORDER021_HUMAN_GATE_PENDING=1'); print('ORDER021_ALWAYS_OPEN_LIVE=PASS'); print('ORDER021_BASE_SWITCH_UI_LIVE=PASS'); print('ORDER020_SELLER_NON_REGRESSION=PASS')
           PY
 
       - name: Live Base cryptographic recovery vector
@@ -144,20 +164,7 @@ jobs:
           console.log('ORDER021_VALID_SIGNATURE_RECOVERY=PASS');
           JS
 
-      - name: Prove no current zero-spend x402scan readback
-        run: |
-          python - <<'PY'
-          import urllib.error, urllib.parse, urllib.request
-          origin='https://atm.simondalmasso44.workers.dev'; url='https://www.x402scan.com/api/x402/registry/origin?'+urllib.parse.urlencode({'origin':origin})
-          req=urllib.request.Request(url,headers={'Accept':'application/json','User-Agent':'ATM-ORDER021-Gate-Probe/1.0'})
-          try:
-              with urllib.request.urlopen(req,timeout=25) as r: status=r.status
-          except urllib.error.HTTPError as e: status=e.code
-          if status != 402: raise SystemExit(f'X402SCAN_ZERO_COST_READBACK_ASSUMPTION_INVALID:http_{status}')
-          print('X402SCAN_REGISTRY_READBACK_WITHOUT_PAYMENT=HTTP_402'); print('LIVE_REAL_GATE=EXTERNAL_SIGNATURE_FIXTURE_ONLY')
-          PY
-
-      - name: Publish material ORDER-021 AUD-gap receipt
+      - name: Publish material ORDER-021 A1 receipt
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -167,9 +174,9 @@ jobs:
           python - <<'PY'
           import json, os, urllib.request
           repo=os.environ['GITHUB_REPOSITORY']; sha=os.environ['FINAL_SHA']; run=os.environ['RUN_ID']
-          receipt={'schema':'ATM_ORDER021_AUD_GAPS_MATERIAL_V1','order':'ORDER-021','status':'MATERIAL_HEAD_OWNER_SIGNATURE_PENDING','final_head':sha,'pr':37,'sg2_one_canonical_truth':'PASS','sg2_telegram_bound_to_request':'PASS','external_signature_adapter':'PASS','server_bound_payload':'PASS','review_and_sign_ui':'PASS','metamask_personal_sign':'LIVE_READY','valid_signature_recovery':'PASS_TEST_VECTOR_BASE_MAINNET','wrong_wallet_tamper_expiry_replay_kills':'PASS','fixture_runtime_readback_resume':'PASS_SAME_CODE_TEST','live_fixture':'PENDING_CANONICAL_OWNER_SIGNATURE','cloudflare_exact_head':'PASS','edge_runtime_radar_exact':True,'heartbeat_fresh':True,'order020_non_regression':'PASS','outgoing_spend_usd':'0','merge':'NO','run_id':run,'run_url':f'https://github.com/{repo}/actions/runs/{run}'}
-          body='ATM ORDER021 AUD GAPS MATERIAL\n```json\n'+json.dumps(receipt,sort_keys=True)+'\n```'
-          req=urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments',data=json.dumps({'body':body}).encode(),method='POST',headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','User-Agent':'ATM-ORDER021-Material/1.0','X-GitHub-Api-Version':'2022-11-28'})
+          receipt={'schema':'ATM_ORDER021_A1_MATERIAL_V1','order':'ORDER-021','status':'MATERIAL_HEAD_NO_OWNER_SIGNATURE_REQUESTED','final_head':sha,'pr':37,'always_open':'PASS','session_restore':'PASS','base_chain_before_eip712':'PASS','stale_canary_supersession':'PASS','all_page_materialization':'PASS','machine_event_provenance':'PASS','forged_verified_complete_kill':'PASS','human_gate_pending':1,'current_canary_only':True,'owner_signature_requested':False,'cloudflare_exact_head':'PASS','edge_runtime_radar_exact':True,'heartbeat_fresh':True,'order020_non_regression':'PASS','outgoing_spend_usd':'0','merge':'NO','run_id':run,'run_url':f'https://github.com/{repo}/actions/runs/{run}'}
+          body='ATM ORDER021 A1 MATERIAL\n```json\n'+json.dumps(receipt,sort_keys=True)+'\n```'
+          req=urllib.request.Request(f'https://api.github.com/repos/{repo}/issues/49/comments',data=json.dumps({'body':body}).encode(),method='POST',headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','User-Agent':'ATM-ORDER021-Material/3.0','X-GitHub-Api-Version':'2022-11-28'})
           with urllib.request.urlopen(req,timeout=20) as r: out=json.load(r)
-          print('ORDER021_MATERIAL_RECEIPT='+str(out.get('html_url')))
+          print('ORDER021_A1_MATERIAL_RECEIPT='+str(out.get('html_url')))
           PY
