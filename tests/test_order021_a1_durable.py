@@ -35,9 +35,8 @@ rows.push(wrap(event(forged),102,"simonkey888","OWNER"));
 let gates=await materializeHumanGates(rows,Date.parse("2026-08-22T20:02:00Z"),env); let a=gates.find(x=>x.request_id==="canary-a"),b=gates.find(x=>x.request_id==="canary-b");
 if(a.state!=="INVALIDATED"||b.state!=="PENDING_OWNER"||publicHumanGateSummary(gates).pending_count!==1)throw Error("supersession_or_forgery_failed");
 const valid=await sealMachineEvent(env,{...forged,state:"OWNER_ACTION_RETURNED",action:"EXTERNAL_WALLET_SIGNATURE",resume_event:null});rows.push(wrap(event(valid),103,"simonkey888","OWNER"));gates=await materializeHumanGates(rows,Date.parse("2026-08-22T20:02:00Z"),env);b=gates.find(x=>x.request_id==="canary-b");if(b.state!=="OWNER_ACTION_RETURNED")throw Error("authenticated_event_not_applied");
-// Prove runtimeHumanGates reads page 1 AND page 2 when issue has >100 comments.
 const page1=[wrap(fenced(old),1),...Array.from({length:99},(_,i)=>wrap("noise",i+2,"someone","NONE"))],page2=[wrap(fenced(cur),101),wrap(event(valid),103,"simonkey888","OWNER")];
-globalThis.fetch=async url=>{url=String(url);if(url.endsWith('/issues/49'))return new Response(JSON.stringify({comments:102}),{status:200});if(url.includes('page=1'))return new Response(JSON.stringify(page1),{status:200});if(url.includes('page=2'))return new Response(JSON.stringify(page2),{status:200});throw Error('unexpected:'+url)};
+globalThis.fetch=async raw=>{const url=new URL(String(raw));if(url.pathname.endsWith('/issues/49'))return new Response(JSON.stringify({comments:102}),{status:200});const page=url.searchParams.get('page');if(page==='1')return new Response(JSON.stringify(page1),{status:200});if(page==='2')return new Response(JSON.stringify(page2),{status:200});throw Error('unexpected:'+url)};
 const live=await runtimeHumanGates(env),current=live.find(x=>x.request_id==='canary-b');if(!current||current.state!=="OWNER_ACTION_RETURNED"||publicHumanGateSummary(live).pending_count!==1)throw Error("all_page_runtime_failed");
 console.log(JSON.stringify({forgedKilled:true,authenticatedApplied:true,superseded:true,allPages:true,pending:1}));
 '''
