@@ -76,7 +76,7 @@ jobs:
           grep -Fq "github.event.workflow_run.event == 'push'" "$DEPLOY_WORKFLOW"
           grep -Fq "github.event.workflow_run.head_branch == 'main'" "$DEPLOY_WORKFLOW"
 
-          mapfile -t deploy_authorities < <(grep -RIlE 'CLOUDFLARE_API_TOKEN|wrangler@[^ ]+ versions (upload|deploy)' .github/workflows | sort)
+          mapfile -t deploy_authorities < <(grep -RIlE 'CLOUDFLARE_API_TOKEN|wrangler@[^ ]+ versions (upload|deploy)' .github/workflows --exclude=ci.yml | sort)
           test "${#deploy_authorities[@]}" -eq 1
           test "${deploy_authorities[0]}" = "$DEPLOY_WORKFLOW"
 
