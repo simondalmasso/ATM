@@ -80,7 +80,7 @@ jobs:
           test "${#deploy_authorities[@]}" -eq 1
           test "${deploy_authorities[0]}" = "$DEPLOY_WORKFLOW"
 
-          if grep -RInF 'simonkey888' .github/workflows cloudflare/order034/*.jsonc; then
+          if grep -RInF 'simonkey888' .github/workflows cloudflare/order034/*.jsonc --exclude=ci.yml; then
             echo 'STALE_GITHUB_IDENTITY_FOUND'
             exit 1
           fi
