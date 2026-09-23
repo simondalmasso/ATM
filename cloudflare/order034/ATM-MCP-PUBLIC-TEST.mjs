@@ -1,0 +1,45 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const src = fs.readFileSync(path.join(here, 'ATM-ORDER034-ACTIVE-MAIN-READONLY.js'), 'utf8');
+const checks = [];
+const check = (name, ok) => { checks.push([name, !!ok]); if (!ok) throw new Error(name); };
+
+check('PUBLIC_MCP_ROUTE', src.includes('p === "/mcp" && req.method === "POST"'));
+check('MCP_INITIALIZE', src.includes('method === "initialize"') && src.includes('ATM Universal MCP'));
+check('MCP_MODERN_DISCOVERY', src.includes('method === "server/discover"') && src.includes('MCP_MODERN_VERSION = "2026-07-28"') && src.includes('supportedVersions: [MCP_MODERN_VERSION]'));
+check('MCP_LEGACY_CURRENT', src.includes('MCP_LEGACY_VERSION = "2025-11-25"') && src.includes('method === "initialize"'));
+check('MCP_TOOLS_LIST', src.includes('method === "tools/list"') && src.includes('MCP_PUBLIC_TOOLS'));
+check('MCP_TOOLS_CALL', src.includes('method === "tools/call"') && src.includes('MCP_PUBLIC_TOOL_NAMES.has(name)'));
+check('MCP_TOOL_SCHEMA_VALIDATION', src.includes('function validateMcpPublicArgs') && src.includes('INVALID_TOOL_ARGUMENTS') && src.includes('reason: "REQUIRED"') && src.includes('reason: "UNKNOWN_FIELD"'));
+check('MCP_JSONRPC_2', src.includes('rpc.jsonrpc !== "2.0"'));
+check('MCP_CORS', src.includes('"access-control-allow-origin": "*"'));
+check('MCP_RATE_LIMIT', src.includes('"public_mcp"') && src.includes('120, 60 * 1e3'));
+check('MCP_PULSES_BUSY_STATE', src.includes('source: "PUBLIC_MCP"') && src.includes('mcp-heartbeat'));
+check('MCP_INTERNAL_CALL_VERIFIED', src.includes('"x-atm-mcp-call": "verified"') && src.includes('MCP_CALL_AUTH_REQUIRED'));
+check('MCP_READ_ONLY_SET', src.includes('"atm_status"') && src.includes('"list_opportunities"') && src.includes('"inspect_opportunity"') && src.includes('"rank_opportunities"') && src.includes('"rejected_opportunities"') && src.includes('"agentic_status"') && src.includes('"mcp_status"'));
+check('MCP_RESEARCH_ZERO_COST_TOOLS', src.includes('"research_zero_cost_catalog"') && src.includes('"research_github_readme"') && src.includes('"research_github_file"') && src.includes('"research_search_free_catalogs"'));
+check('MCP_RESEARCH_NO_PAID_BACKEND', src.includes('owner_spend_usd: 0') && src.includes('ZERO_PAID_DEPENDENCY') && !src.includes('BROWSERBASE_API_KEY') && !src.includes('OPENAI_API_KEY'));
+check('MCP_RESEARCH_RATE_LIMIT', src.includes('"public_mcp_research"') && src.includes('20, 60 * 1e3'));
+check('MCP_RESEARCH_GITHUB_ONLY', src.includes('raw.githubusercontent.com') && src.includes('INVALID_GITHUB_TARGET') && src.includes('NON_TEXT_CONTENT'));
+check('MCP_RESEARCH_TOS_REJECT', src.includes('REJECTED_TOS_CIRCUMVENTION_RISK'));
+check('MCP_FINANCE_ZERO_COST_TOOLS', src.includes('"finance_zero_cost_catalog"') && src.includes('"finance_indicator_catalog"') && !src.includes('name: "finance_public_spot_quote"') && !src.includes('name: "finance_public_spot_klines"'));
+check('MCP_FINANCE_RESEARCH_ONLY', src.includes('RESEARCH_ONLY_NO_EXECUTION') && src.includes('REFERENCE_ONLY_NOT_FINANCIAL_ADVICE') && src.includes('SOURCE_ONLY_EXECUTION_DISABLED'));
+check('MCP_BINANCE_CF_BLOCK_RECORDED', src.includes('BLOCKED_CF_403') && !src.includes('https://data-api.binance.vision') && !src.includes('X-MBX-APIKEY'));
+check('MCP_FINANCE_RATE_LIMIT', src.includes('"public_mcp_finance"') && src.includes('20, 60 * 1e3'));
+check('MCP_FINANCE_NO_EXECUTION', src.includes('REJECTED_PROJECT_POLICY') && src.includes('no real-money market interaction') && !src.includes('name: "finance_place_order"') && !src.includes('name: "finance_buy"') && !src.includes('name: "finance_sell"') && !src.includes('name: "finance_sign"') && !src.includes('name: "finance_withdraw"'));
+check('MCP_DESIGN_ZERO_COST_TOOL', src.includes('"design_zero_cost_catalog"') && src.includes('DESIGN_ZERO_COST_CATALOG'));
+check('MCP_DESIGN_SOURCE_ONLY', src.includes('emilkowalski/skills') && src.includes('cathrynlavery/diagram-design') && src.includes('K-Dense-AI/scientific-agent-skills') && src.includes('ChenLiu-1996/figures4papers'));
+check('MCP_HOST_CONNECTORS_NOT_FALSELY_MOUNTED', src.includes('CHATGPT_HOST_ONLY') && src.includes('PUBLIC_SOURCE_OR_EXPLICITLY_UNMOUNTED'));
+check('MCP_DESIGN_RATE_LIMIT', src.includes('"public_mcp_design"') && src.includes('20, 60 * 1e3'));
+check('MCP_SKILL_BROKER_TOOLS', src.includes('"skill_list"') && src.includes('"skill_route"') && src.includes('"skill_get"') && src.includes('ATM_SKILLS'));
+check('MCP_SKILL_BROKER_INSTALL_FREE', src.includes('install_required: false') && src.includes('delivery: "ON_DEMAND_CONTEXT"'));
+check('MCP_SKILL_BROKER_FETCHES_SOURCE', src.includes('fetchRawGitHub(skill.repo, skill.path') && src.includes('SKILL_NOT_FOUND'));
+check('MCP_SKILL_RATE_LIMIT', src.includes('"public_mcp_skill"') && src.includes('20, 60 * 1e3'));
+check('MCP_DISCOVERY_ADVERTISES_SKILLS', src.includes('skill_route(task) then skill_get(id)'));
+check('NO_MUTATING_MCP_TOOLS', !/MCP_PUBLIC_TOOLS[\s\S]{0,5000}name:\s*"(?:dispatch|refresh_all_sources|approve|complete|run_now|submit|claim|sign|pay)"/.test(src));
+check('MCP_NO_PUBLIC_SECRET_REQUIRED', !/p === "\/mcp"[\s\S]{0,1800}MCP_HEARTBEAT_TOKEN/.test(src));
+
+console.log(JSON.stringify({ ok: true, checks: Object.fromEntries(checks) }, null, 2));

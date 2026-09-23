@@ -1,0 +1,21 @@
+﻿import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+
+const here=path.dirname(fileURLToPath(import.meta.url));
+const src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
+const tmp=path.join(os.tmpdir(),`atm-order034-onchain-blocker-${process.pid}-${Date.now()}.mjs`);
+let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
+code+='\nexport { detectBlockers };\n';
+fs.writeFileSync(tmp,code,'utf8');
+process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
+const {detectBlockers}=await import(pathToFileURL(tmp).href+'?v='+Date.now());
+const raw={stakeRequired:false,stakeBps:0,pendingActions:[{role:'worker',action:'submit',requiresPayment:false,paymentAmount:null}]};
+const real=detectBlockers({source:'DAYDREAMS',title:'Execute one bounded onchain action through KeeperHub',description:'Execute one bounded onchain action through KeeperHub',raw});
+if(!real.includes('WALLET_SIGN_REQUIRED')) throw new Error('ONCHAIN_EXECUTION_NOT_BLOCKED:'+JSON.stringify(real));
+console.log('ONCHAIN_EXECUTION_BLOCKED=PASS');
+const harmless=detectBlockers({source:'DAYDREAMS',title:'Explain onchain transaction concepts',description:'Write a short educational explanation of onchain transaction concepts.',raw});
+if(harmless.includes('WALLET_SIGN_REQUIRED')) throw new Error('ONCHAIN_DISCUSSION_FALSE_POSITIVE');
+console.log('ONCHAIN_DISCUSSION_NOT_BLOCKED=PASS');
+console.log('PRODUCTION_MUTATION=0');

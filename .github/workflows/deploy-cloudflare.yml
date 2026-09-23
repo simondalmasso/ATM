@@ -1,83 +1,165 @@
 name: ATM Cloudflare Deploy
 
 on:
-  push:
-    branches: [main, agent/atm-v1]
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["ATM CI"]
+    types: [completed]
 
 permissions:
   contents: read
 
 concurrency:
   group: atm-cloudflare-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: '3.11'
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e .
-      - name: Compile
-        run: python -m compileall -q src tests
-      - name: Unit and contract tests
-        env:
-          PYTHONPATH: src
-        run: python -m unittest discover -s tests -v
-
   deploy:
-    if: github.event_name == 'push'
-    needs: test
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
-    environment: atm-production
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_CONFIG: cloudflare/order034/wrangler.order034.main.jsonc
+      PROD_URL: https://atm.simondalmasso44.workers.dev
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
-      - name: Require Cloudflare deployment credentials
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.16.0'
+
+      - name: Exact tested-main guard
         run: |
+          set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-      - name: Deploy exact SHA
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --var ATM_GIT_SHA:${{ github.sha }}
-      - name: Exact-SHA smoke test
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
+          git fetch --quiet origin main
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
+
+      - name: Inject exact GitHub SHA
         run: |
-          python - <<'PY'
-          import json, os, subprocess, time, urllib.parse
-          base = "https://atm.simondalmasso44.workers.dev/health"
-          expected = os.environ["EXPECTED_SHA"]
-          last = None
-          # Use curl with a normal explicit UA: workers.dev can reject the default
-          # Python urllib user-agent even while the public endpoint is healthy.
-          for attempt in range(60):
-              url = base + "?" + urllib.parse.urlencode({"sha": expected, "attempt": attempt})
-              try:
-                  raw = subprocess.check_output(
-                      ["curl", "-fsS", "--max-time", "15", "-A", "ATM-CI-Exact-SHA/1.0", "-H", "Cache-Control: no-cache", url],
-                      text=True,
-                      timeout=20,
-                  )
-                  last = json.loads(raw)
-                  if last.get("ok") is True and last.get("git_sha") == expected:
-                      print(json.dumps(last, sort_keys=True))
-                      raise SystemExit(0)
-              except Exception as exc:
-                  last = {"error": str(exc)}
-              time.sleep(3)
-          raise SystemExit(f"Cloudflare exact-SHA smoke failed: {last}")
-          PY
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = process.env.WRANGLER_CONFIG;
+          const sha = process.env.SOURCE_SHA;
+          if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('invalid SOURCE_SHA');
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (config.name !== 'atm') throw new Error('unexpected worker name');
+          if (config.vars?.EXECUTION_ENABLED !== 'true') throw new Error('execution binding changed');
+          config.vars.ATM_GIT_SHA = sha;
+          config.preview_urls = true;
+          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+          NODE
+          grep -F "\"ATM_GIT_SHA\": \"$SOURCE_SHA\"" "$WRANGLER_CONFIG"
+
+      - name: Wrangler dry-run
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.119.0 deploy --dry-run --outdir .wrangler-order051 --config "$WRANGLER_CONFIG"
+
+      - name: Capture current production version
+        id: previous
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.119.0 deployments list --json --config "$WRANGLER_CONFIG" > "$RUNNER_TEMP/deployments-before.json"
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/deployments-before.json', 'utf8'));
+          const seen = new Set();
+          const objects = [];
+          const walk = (x) => {
+            if (!x || typeof x !== 'object' || seen.has(x)) return;
+            seen.add(x); objects.push(x);
+            for (const v of Object.values(x)) walk(v);
+          };
+          walk(raw);
+          for (const obj of objects) {
+            if (Array.isArray(obj.versions)) {
+              const v = obj.versions.find((x) => Number(x?.percentage) === 100 && typeof x?.version_id === 'string');
+              if (v) { console.log('version_id=' + v.version_id); process.exit(0); }
+            }
+          }
+          throw new Error('unable to resolve current 100% production version');
+          NODE
+
+      - name: Upload candidate version without production traffic
+        id: upload
+        run: |
+          set -euo pipefail
+          ALIAS="gha-${GITHUB_RUN_ID}"
+          npx --yes wrangler@4.119.0 versions upload --config "$WRANGLER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA" --preview-alias "$ALIAS" | tee "$RUNNER_TEMP/version-upload.txt"
+          npx --yes wrangler@4.119.0 versions list --json --config "$WRANGLER_CONFIG" > "$RUNNER_TEMP/versions-after.json"
+
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const sha = process.env.SOURCE_SHA;
+          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/versions-after.json', 'utf8'));
+          const candidates = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
+          const row = candidates.find((x) => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
+          if (!row) throw new Error('uploaded version with exact SHA tag not found');
+          console.log('version_id=' + row.id);
+          NODE
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const text = fs.readFileSync(process.env.RUNNER_TEMP + '/version-upload.txt', 'utf8');
+          const match = text.match(/https:\/\/[^\s]+\.workers\.dev\/?/);
+          if (!match) throw new Error('Version URL not found in upload output');
+          console.log('version_url=' + match[0].replace(/\/$/, ''));
+          NODE
+
+      - name: Candidate exact-SHA smoke
+        env:
+          BASE_URL: ${{ steps.upload.outputs.version_url }}
+          EXPECTED_SHA: ${{ env.SOURCE_SHA }}
+        run: node scripts/order051-smoke.mjs
+
+      - name: Promote exact uploaded version
+        run: |
+          set -euo pipefail
+          NEW_VERSION="${{ steps.upload.outputs.version_id }}"
+          test -n "$NEW_VERSION"
+          npx --yes wrangler@4.119.0 versions deploy "$NEW_VERSION@100%" -y --config "$WRANGLER_CONFIG"
+
+      - name: Production exact-SHA smoke with automatic rollback
+        env:
+          BASE_URL: ${{ env.PROD_URL }}
+          EXPECTED_SHA: ${{ env.SOURCE_SHA }}
+          PREVIOUS_VERSION_ID: ${{ steps.previous.outputs.version_id }}
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/order051-smoke.mjs
+          smoke_rc=$?
+          set -e
+          if [ "$smoke_rc" -ne 0 ]; then
+            echo "POST_DEPLOY_SMOKE_FAILED=1"
+            test -n "$PREVIOUS_VERSION_ID"
+            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$WRANGLER_CONFIG"
+            echo "ROLLBACK_VERSION_ID=$PREVIOUS_VERSION_ID"
+            exit "$smoke_rc"
+          fi
+
+      - name: Deployment proof
+        run: |
+          {
+            echo "### ATM ORDER-051 deployment"
+            echo
+            echo "- source_sha: $SOURCE_SHA"
+            echo "- candidate_version: ${{ steps.upload.outputs.version_id }}"
+            echo "- previous_version: ${{ steps.previous.outputs.version_id }}"
+            echo "- candidate_smoke: PASS"
+            echo "- production_exact_sha_smoke: PASS"
+            echo "- owner_out_of_pocket_usd: 0"
+            echo "- signer_redeployed: false"
+          } >> "$GITHUB_STEP_SUMMARY"

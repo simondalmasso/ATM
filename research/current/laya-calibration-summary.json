@@ -1,0 +1,42 @@
+{
+  "schema": "ATM-ORDER047-LAYA-CALIBRATION-SUMMARY-V1",
+  "captured_at": "2026-09-22T08:34:40-03:00",
+  "raw_results_copied_to_canonical": false,
+  "typed_decisions": {
+    "model": "convaiinnovations/laya-typed-decisions",
+    "revision": "f9ab0b228f0fc0f14d873dbc99038f135c2da1b2",
+    "cases": 20,
+    "binary_hard_rule_agreement": 0.5286,
+    "decision_agreement": 0.1,
+    "blocker_agreement": 0.2,
+    "false_positive_promotion_rate": 0.7,
+    "warm_latency_ms_mean": 13692.16,
+    "rss_max_observed_bytes": 2173333504,
+    "promotion_authority": "FAIL_CLOSED",
+    "raw_path": "research\\order046\\laya-calibration-results.json",
+    "raw_sha256": "376236539f1b45237e1f545b7a60ac00f2b2672b12c23f33e07fccebab885f48"
+  },
+  "english": {
+    "model": "convaiinnovations/laya",
+    "revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "cases": 20,
+    "binary_hard_rule_agreement": 0.5857,
+    "decision_agreement": 0.05,
+    "blocker_agreement": 0.1,
+    "false_positive_promotion_rate": 0.75,
+    "warm_latency_ms_mean": 14381.48,
+    "warm_latency_ms_median": 12590.65,
+    "rss_max_observed_bytes": 1991897088,
+    "promotion_authority": "FAIL_CLOSED",
+    "raw_path": "research\\order046\\laya-english-ab-results.json",
+    "raw_sha256": "d94214f7f924e5c8ffe088b86ada21249922d90aaeb7ebdc0ba53fc8d229d9fe"
+  },
+  "decision": {
+    "direct_policy_role": "KILLED",
+    "promote_kill_authority": false,
+    "blocker_authority": false,
+    "runtime_critical_path": false,
+    "semif_replay_now": "SKIPPED_NO_LIVE_SAFE_MONEY_CANDIDATE",
+    "stagehand_fixture_now": "SKIPPED_NO_EXECUTION_BLOCKER_TO_SOLVE"
+  }
+}

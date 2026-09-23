@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "primary": {
+    "role": "OWNER_RECEIVE_ONLY_DESTINATION",
+    "network": "base",
+    "asset": "USDC",
+    "address": "0xd89Ef03bC3105C538529AC2657Bc4488c94ff4E4"
+  },
+  "rail_defaults": {
+    "taskmarket": {
+      "network": "base",
+      "asset": "USDC",
+      "settlement": "RAIL_BOUND_WORKER_WALLET",
+      "owner_destination": "PRIMARY_AFTER_OWNER_CONTROLLED_TRANSFER"
+    },
+    "agenthansa": {
+      "network": "platform",
+      "asset": "USD_EQUIVALENT",
+      "settlement": "PLATFORM_ACCOUNT"
+    }
+  },
+  "policy": {
+    "public_data": true,
+    "private_key_in_repo": false,
+    "autonomous_withdrawal": false,
+    "autonomous_transfer_between_wallets": false
+  }
+}
