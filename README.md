@@ -56,7 +56,7 @@ The dashboard is read-only. `SUBMITTED`, `ACCEPTED` and `POTENTIAL` are never re
 
 GitHub main is the canonical source authority after ORDER-051. A push to main is not production authority until ATM CI passes for that exact SHA.
 
-ATM Cloudflare Deploy is triggered only by a successful ATM CI workflow_run for main. It verifies the tested SHA is still main, injects that exact SHA into ATM_GIT_SHA on the ephemeral runner, dry-runs Wrangler, records the currently deployed version, uploads without production traffic, smoke-tests the Version URL, promotes that exact version, smoke-tests production, and automatically restores the previous version on failure.
+ATM Cloudflare Deploy is triggered only by a successful ATM CI workflow_run for main. It verifies the tested SHA is still main, injects that exact SHA into ATM_GIT_SHA on the ephemeral runner, dry-runs Wrangler, records the currently deployed version, uploads without production traffic, stages the candidate at 0% traffic, smoke-tests that exact version through Cloudflare's version-override header, promotes it to 100%, smoke-tests production, and automatically restores the previous version on failure.
 
 The signer service is not redeployed. The existing private TASKMARKET_SIGNER -> atm-taskmarket-signer@production binding remains the only claim/submit signing boundary.
 
