@@ -57,7 +57,7 @@ No additional GitLab source was deleted during ORDER-051 because no further dead
 - Durable Object binding remains ATM_BRAIN -> ATMBrain.
 - AI binding remains AI.
 - signer binding remains TASKMARKET_SIGNER -> atm-taskmarket-signer@production.
-- signer service is not deployed by the GitHub production workflow.
+- the GitHub production workflow contains a signer deployment path, but ORDER-051 final deployment skipped it because signer bytes/config were unchanged.
 - existing Durable Object state is not reset or migrated.
 - GitLab has no deploy authority after cutover.
 - GitHub has no recurring economic runtime scheduler; Cloudflare's existing 15-minute trigger remains the runtime scheduler.
