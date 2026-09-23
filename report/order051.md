@@ -26,7 +26,7 @@ Properties kept because they remain valid:
 - README.md, AGENTS.md, .gitignore -> GitLab canonical versions.
 - legacy worker/src/index.js + root wrangler.toml -> cloudflare/order034 current Worker runtime and config.
 - legacy .github/workflows/ci.yml -> current ORDER-034/051 Node behavior + Python policy gates.
-- legacy .github/workflows/deploy-cloudflare.yml -> CI-gated version upload, Version URL exact-SHA smoke, exact-version promotion, production smoke, automatic rollback.
+- legacy .github/workflows/deploy-cloudflare.yml -> CI-gated version upload, 0%-traffic version-override exact-SHA smoke, exact-version promotion, production smoke, automatic rollback.
 - legacy secret/payout assumptions -> current public payout config + presence-only secret doctor.
 
 ### DELETE FROM ACTIVE TREE

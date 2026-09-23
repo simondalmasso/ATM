@@ -97,8 +97,7 @@ jobs:
         id: upload
         run: |
           set -euo pipefail
-          ALIAS="gha-${GITHUB_RUN_ID}"
-          npx --yes wrangler@4.119.0 versions upload --config "$WRANGLER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA" --preview-alias "$ALIAS" | tee "$RUNNER_TEMP/version-upload.txt"
+          npx --yes wrangler@4.119.0 versions upload --config "$WRANGLER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA" | tee "$RUNNER_TEMP/version-upload.txt"
           npx --yes wrangler@4.119.0 versions list --json --config "$WRANGLER_CONFIG" > "$RUNNER_TEMP/versions-after.json"
 
           node - <<'NODE' >> "$GITHUB_OUTPUT"
@@ -110,19 +109,34 @@ jobs:
           if (!row) throw new Error('uploaded version with exact SHA tag not found');
           console.log('version_id=' + row.id);
           NODE
-          node - <<'NODE' >> "$GITHUB_OUTPUT"
-          const fs = require('fs');
-          const text = fs.readFileSync(process.env.RUNNER_TEMP + '/version-upload.txt', 'utf8');
-          const match = text.match(/https:\/\/[^\s]+\.workers\.dev\/?/);
-          if (!match) throw new Error('Version URL not found in upload output');
-          console.log('version_url=' + match[0].replace(/\/$/, ''));
-          NODE
 
-      - name: Candidate exact-SHA smoke
+      - name: Stage candidate at zero percent
+        run: |
+          set -euo pipefail
+          PREVIOUS_VERSION="${{ steps.previous.outputs.version_id }}"
+          NEW_VERSION="${{ steps.upload.outputs.version_id }}"
+          test -n "$PREVIOUS_VERSION"
+          test -n "$NEW_VERSION"
+          npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION@100%" "$NEW_VERSION@0%" -y --config "$WRANGLER_CONFIG" --message "ORDER-051 zero-percent smoke $SOURCE_SHA"
+
+      - name: Candidate exact-SHA smoke with automatic rollback
         env:
-          BASE_URL: ${{ steps.upload.outputs.version_url }}
+          BASE_URL: ${{ env.PROD_URL }}
           EXPECTED_SHA: ${{ env.SOURCE_SHA }}
-        run: node scripts/order051-smoke.mjs
+          VERSION_OVERRIDE_ID: ${{ steps.upload.outputs.version_id }}
+          PREVIOUS_VERSION_ID: ${{ steps.previous.outputs.version_id }}
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/order051-smoke.mjs
+          smoke_rc=$?
+          set -e
+          if [ "$smoke_rc" -ne 0 ]; then
+            echo "CANDIDATE_SMOKE_FAILED=1"
+            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$WRANGLER_CONFIG" --message "ORDER-051 candidate rollback"
+            echo "ROLLBACK_VERSION_ID=$PREVIOUS_VERSION_ID"
+            exit "$smoke_rc"
+          fi
 
       - name: Promote exact uploaded version
         run: |
@@ -158,7 +172,7 @@ jobs:
             echo "- source_sha: $SOURCE_SHA"
             echo "- candidate_version: ${{ steps.upload.outputs.version_id }}"
             echo "- previous_version: ${{ steps.previous.outputs.version_id }}"
-            echo "- candidate_smoke: PASS"
+            echo "- zero_percent_candidate_smoke: PASS"
             echo "- production_exact_sha_smoke: PASS"
             echo "- owner_out_of_pocket_usd: 0"
             echo "- signer_redeployed: false"

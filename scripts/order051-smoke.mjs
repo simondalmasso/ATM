@@ -2,8 +2,10 @@ import process from "node:process";
 
 const base = String(process.env.BASE_URL || "").replace(/\/$/, "");
 const expected = String(process.env.EXPECTED_SHA || "");
+const overrideId = String(process.env.VERSION_OVERRIDE_ID || "");
 if (!/^https:\/\//.test(base)) throw new Error("BASE_URL must be https");
 if (!/^[0-9a-f]{40}$/.test(expected)) throw new Error("EXPECTED_SHA must be 40 hex");
+if (overrideId && !/^[0-9a-f-]{36}$/.test(overrideId)) throw new Error("VERSION_OVERRIDE_ID must be a UUID");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -16,6 +18,7 @@ async function fetchJson(path, options = {}) {
         headers: {
           "cache-control": "no-cache",
           "user-agent": "ATM-ORDER051-Exact-SHA/1.0",
+          ...(overrideId ? { "Cloudflare-Workers-Version-Overrides": 'atm="' + overrideId + '"' } : {}),
           ...(options.headers || {}),
         },
       });
@@ -73,5 +76,6 @@ console.log(JSON.stringify({
   order: health.order,
   runtime: health.runtime,
   tool_count: names.size,
+  version_override_id: overrideId || null,
   zero_spend: true,
 }, null, 2));
