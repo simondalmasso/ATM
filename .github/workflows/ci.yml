@@ -68,6 +68,9 @@ jobs:
           test ! -e .github/workflows/atm-cloud-schedule.yml
           test ! -e .github/workflows/oci-remote-bootstrap.yml
           test ! -e .github/workflows/oci-remote-probe.yml
+          for f in 00-baseline 01-github-audit 02-gitlab-runtime-map 03-cleanup-manifest 04-migration-map 05-ci-deploy-design 06-parity-and-cutover; do
+            test -f "docs/migration/order051/$f.md"
+          done
           if grep -RIlE '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|mnemonic[[:space:]]*=|seed_phrase[[:space:]]*=)' . --exclude-dir=.git; then
             echo 'SECRET_MATERIAL_PATTERN_FOUND'
             exit 1

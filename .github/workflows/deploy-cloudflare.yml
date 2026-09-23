@@ -19,12 +19,13 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      WRANGLER_CONFIG: cloudflare/order034/wrangler.order034.main.jsonc
+      MAIN_CONFIG: cloudflare/order034/wrangler.order034.main.jsonc
+      SIGNER_CONFIG: cloudflare/order034/wrangler.order034.signer.jsonc
       PROD_URL: https://atm.simondalmasso44.workers.dev
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -33,93 +34,209 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
-        with:
-          node-version: '22.16.0'
-
-      - name: Exact tested-main guard
+      - name: Detect production-relevant changes
+        id: changes
         run: |
           set -euo pipefail
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
           git fetch --quiet origin main
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
 
+          PROD_SHA="$(curl -fsS --max-time 15 -A 'ATM-ORDER051-PathGate/1.0' "$PROD_URL/health?path_gate=$SOURCE_SHA" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).git_sha||'')}catch{}})")"
+          if [[ "$PROD_SHA" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PROD_SHA^{commit}" 2>/dev/null; then
+            git diff --name-only "$PROD_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/changed.txt"
+          else
+            git diff-tree -m --no-commit-id --name-only -r "$SOURCE_SHA" | sort -u > "$RUNNER_TEMP/changed.txt"
+          fi
+          cat "$RUNNER_TEMP/changed.txt"
+
+          MAIN=false
+          SIGNER=false
+          if grep -Eq '^cloudflare/order034/(ATM-ORDER034-ACTIVE-MAIN-READONLY\.js|ATM-ORDER034-WIN101-UI-CANDIDATE\.js|wrangler\.order034\.main\.jsonc)$|^\.github/workflows/deploy-cloudflare\.yml$' "$RUNNER_TEMP/changed.txt"; then
+            MAIN=true
+          fi
+          if grep -Eq '^cloudflare/order034/(ATM-ORDER034-FINAL-SIGNER-CANDIDATE\.mjs|wrangler\.order034\.signer\.jsonc)$' "$RUNNER_TEMP/changed.txt"; then
+            SIGNER=true
+            MAIN=true
+          fi
+          ANY=false
+          if [ "$MAIN" = true ] || [ "$SIGNER" = true ]; then ANY=true; fi
+          echo "main=$MAIN" >> "$GITHUB_OUTPUT"
+          echo "signer=$SIGNER" >> "$GITHUB_OUTPUT"
+          echo "any=$ANY" >> "$GITHUB_OUTPUT"
+          echo "PROD_SHA_BEFORE=${PROD_SHA:-UNKNOWN}"
+          echo "MAIN_CHANGED=$MAIN SIGNER_CHANGED=$SIGNER ANY_DEPLOY=$ANY"
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        if: steps.changes.outputs.any == 'true'
+        with:
+          node-version: '22.16.0'
+
+      - name: Exact tested-main and credential guard
+        if: steps.changes.outputs.any == 'true'
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - name: Inject exact GitHub SHA
+        if: steps.changes.outputs.any == 'true'
         run: |
           set -euo pipefail
           node - <<'NODE'
           const fs = require('fs');
-          const path = process.env.WRANGLER_CONFIG;
           const sha = process.env.SOURCE_SHA;
           if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('invalid SOURCE_SHA');
-          const config = JSON.parse(fs.readFileSync(path, 'utf8'));
-          if (config.name !== 'atm') throw new Error('unexpected worker name');
-          if (config.vars?.EXECUTION_ENABLED !== 'true') throw new Error('execution binding changed');
-          config.vars.ATM_GIT_SHA = sha;
-          config.preview_urls = true;
-          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+          const mainPath = process.env.MAIN_CONFIG;
+          const main = JSON.parse(fs.readFileSync(mainPath, 'utf8'));
+          if (main.name !== 'atm' || main.vars?.EXECUTION_ENABLED !== 'true') throw new Error('main config invariant failed');
+          main.vars.ATM_GIT_SHA = sha;
+          main.preview_urls = true;
+          fs.writeFileSync(mainPath, JSON.stringify(main, null, 2) + '\n');
+          if (process.env.SIGNER_CHANGED === 'true') {
+            const signerPath = process.env.SIGNER_CONFIG;
+            const signer = JSON.parse(fs.readFileSync(signerPath, 'utf8'));
+            if (signer.name !== 'atm-taskmarket-signer') throw new Error('signer config invariant failed');
+            signer.vars ||= {};
+            signer.vars.ATM_GIT_SHA = sha;
+            fs.writeFileSync(signerPath, JSON.stringify(signer, null, 2) + '\n');
+          }
           NODE
-          grep -F "\"ATM_GIT_SHA\": \"$SOURCE_SHA\"" "$WRANGLER_CONFIG"
+        env:
+          SIGNER_CHANGED: ${{ steps.changes.outputs.signer }}
 
-      - name: Wrangler dry-run
+      - name: Wrangler dry-run main
+        if: steps.changes.outputs.main == 'true'
+        run: npx --yes wrangler@4.119.0 deploy --dry-run --outdir .wrangler-order051-main --config "$MAIN_CONFIG"
+      - name: Wrangler dry-run signer
+        if: steps.changes.outputs.signer == 'true'
+        run: npx --yes wrangler@4.119.0 deploy --dry-run --outdir .wrangler-order051-signer --config "$SIGNER_CONFIG"
+
+      - name: Capture current signer version
+        if: steps.changes.outputs.signer == 'true'
+        id: signer_previous
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.119.0 deploy --dry-run --outdir .wrangler-order051 --config "$WRANGLER_CONFIG"
+          npx --yes wrangler@4.119.0 deployments list --json --config "$SIGNER_CONFIG" > "$RUNNER_TEMP/signer-before.json"
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/signer-before.json', 'utf8'));
+          const seen = new Set(), objects = [];
+          const walk = x => { if (!x || typeof x !== 'object' || seen.has(x)) return; seen.add(x); objects.push(x); for (const v of Object.values(x)) walk(v); };
+          walk(raw);
+          for (const obj of objects) {
+            if (!Array.isArray(obj.versions)) continue;
+            const v = obj.versions.find(x => Number(x?.percentage) === 100 && typeof x?.version_id === 'string');
+            if (v) { console.log('version_id=' + v.version_id); process.exit(0); }
+          }
+          throw new Error('unable to resolve current signer version');
+          NODE
 
-      - name: Capture current production version
+      - name: Upload signer candidate
+        if: steps.changes.outputs.signer == 'true'
+        id: signer_upload
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.119.0 versions upload --config "$SIGNER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub signer $SOURCE_SHA"
+          npx --yes wrangler@4.119.0 versions list --json --config "$SIGNER_CONFIG" > "$RUNNER_TEMP/signer-versions.json"
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const sha = process.env.SOURCE_SHA;
+          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/signer-versions.json', 'utf8'));
+          const rows = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
+          const row = rows.find(x => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
+          if (!row) throw new Error('signer candidate exact-SHA version not found');
+          console.log('version_id=' + row.id);
+          NODE
+
+      - name: Promote signer candidate
+        if: steps.changes.outputs.signer == 'true'
+        run: |
+          set -euo pipefail
+          NEW="${{ steps.signer_upload.outputs.version_id }}"
+          test -n "$NEW"
+          npx --yes wrangler@4.119.0 versions deploy "$NEW@100%" -y --config "$SIGNER_CONFIG" --message "ORDER-051 signer $SOURCE_SHA"
+
+      - name: Verify signer deployment and behavior
+        if: steps.changes.outputs.signer == 'true'
+        env:
+          EXPECTED_SIGNER_VERSION: ${{ steps.signer_upload.outputs.version_id }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.119.0 deployments list --json --config "$SIGNER_CONFIG" > "$RUNNER_TEMP/signer-after.json"
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/signer-after.json', 'utf8'));
+          const expected = process.env.EXPECTED_SIGNER_VERSION;
+          if (!JSON.stringify(raw).includes(expected)) throw new Error('signer active deployment missing expected version');
+          NODE
+          node - <<'NODE'
+          const base = process.env.PROD_URL;
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          for (let i = 0; i < 15; i++) {
+            try {
+              const r = await fetch(base + '/api/status?signer_verify=' + i, {headers:{'cache-control':'no-cache','user-agent':'ATM-ORDER051-SignerVerify/1.0'}});
+              const s = await r.json();
+              const signer = s?.task_market?.daydreams?.signer;
+              if (r.ok && signer?.authenticated === true && signer?.contract_version === 'TASKMARKET_SIGNER_CONTRACT_V1' && signer?.public_route === false) {
+                console.log('SIGNER_BEHAVIOR=PASS');
+                process.exit(0);
+              }
+            } catch {}
+            await sleep(1200);
+          }
+          throw new Error('signer behavior verification failed');
+          NODE
+
+      - name: Capture current main production version
+        if: steps.changes.outputs.main == 'true'
         id: previous
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.119.0 deployments list --json --config "$WRANGLER_CONFIG" > "$RUNNER_TEMP/deployments-before.json"
+          npx --yes wrangler@4.119.0 deployments list --json --config "$MAIN_CONFIG" > "$RUNNER_TEMP/deployments-before.json"
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const fs = require('fs');
           const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/deployments-before.json', 'utf8'));
-          const seen = new Set();
-          const objects = [];
-          const walk = (x) => {
-            if (!x || typeof x !== 'object' || seen.has(x)) return;
-            seen.add(x); objects.push(x);
-            for (const v of Object.values(x)) walk(v);
-          };
+          const seen = new Set(), objects = [];
+          const walk = x => { if (!x || typeof x !== 'object' || seen.has(x)) return; seen.add(x); objects.push(x); for (const v of Object.values(x)) walk(v); };
           walk(raw);
           for (const obj of objects) {
-            if (Array.isArray(obj.versions)) {
-              const v = obj.versions.find((x) => Number(x?.percentage) === 100 && typeof x?.version_id === 'string');
-              if (v) { console.log('version_id=' + v.version_id); process.exit(0); }
-            }
+            if (!Array.isArray(obj.versions)) continue;
+            const v = obj.versions.find(x => Number(x?.percentage) === 100 && typeof x?.version_id === 'string');
+            if (v) { console.log('version_id=' + v.version_id); process.exit(0); }
           }
-          throw new Error('unable to resolve current 100% production version');
+          throw new Error('unable to resolve current main production version');
           NODE
 
-      - name: Upload candidate version without production traffic
+      - name: Upload main candidate without production traffic
+        if: steps.changes.outputs.main == 'true'
         id: upload
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.119.0 versions upload --config "$WRANGLER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA" | tee "$RUNNER_TEMP/version-upload.txt"
-          npx --yes wrangler@4.119.0 versions list --json --config "$WRANGLER_CONFIG" > "$RUNNER_TEMP/versions-after.json"
-
+          npx --yes wrangler@4.119.0 versions upload --config "$MAIN_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA"
+          npx --yes wrangler@4.119.0 versions list --json --config "$MAIN_CONFIG" > "$RUNNER_TEMP/versions-after.json"
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const fs = require('fs');
           const sha = process.env.SOURCE_SHA;
           const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/versions-after.json', 'utf8'));
-          const candidates = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
-          const row = candidates.find((x) => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
-          if (!row) throw new Error('uploaded version with exact SHA tag not found');
+          const rows = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
+          const row = rows.find(x => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
+          if (!row) throw new Error('main candidate exact-SHA version not found');
           console.log('version_id=' + row.id);
           NODE
 
-      - name: Stage candidate at zero percent
+      - name: Stage main candidate at zero percent
+        if: steps.changes.outputs.main == 'true'
         run: |
           set -euo pipefail
-          PREVIOUS_VERSION="${{ steps.previous.outputs.version_id }}"
-          NEW_VERSION="${{ steps.upload.outputs.version_id }}"
-          test -n "$PREVIOUS_VERSION"
-          test -n "$NEW_VERSION"
-          npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION@100%" "$NEW_VERSION@0%" -y --config "$WRANGLER_CONFIG" --message "ORDER-051 zero-percent smoke $SOURCE_SHA"
+          PREVIOUS="${{ steps.previous.outputs.version_id }}"
+          NEW="${{ steps.upload.outputs.version_id }}"
+          test -n "$PREVIOUS"
+          test -n "$NEW"
+          npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS@100%" "$NEW@0%" -y --config "$MAIN_CONFIG" --message "ORDER-051 zero-percent smoke $SOURCE_SHA"
 
-      - name: Candidate exact-SHA smoke with automatic rollback
+      - name: Candidate exact-SHA smoke with main rollback
+        if: steps.changes.outputs.main == 'true'
         env:
           BASE_URL: ${{ env.PROD_URL }}
           EXPECTED_SHA: ${{ env.SOURCE_SHA }}
@@ -129,23 +246,21 @@ jobs:
           set -euo pipefail
           set +e
           node scripts/order051-smoke.mjs
-          smoke_rc=$?
+          rc=$?
           set -e
-          if [ "$smoke_rc" -ne 0 ]; then
-            echo "CANDIDATE_SMOKE_FAILED=1"
-            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$WRANGLER_CONFIG" --message "ORDER-051 candidate rollback"
-            echo "ROLLBACK_VERSION_ID=$PREVIOUS_VERSION_ID"
-            exit "$smoke_rc"
+          if [ "$rc" -ne 0 ]; then
+            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$MAIN_CONFIG" --message "ORDER-051 main candidate rollback"
+            exit "$rc"
           fi
 
-      - name: Promote exact uploaded version
+      - name: Promote exact main version
+        if: steps.changes.outputs.main == 'true'
         run: |
           set -euo pipefail
-          NEW_VERSION="${{ steps.upload.outputs.version_id }}"
-          test -n "$NEW_VERSION"
-          npx --yes wrangler@4.119.0 versions deploy "$NEW_VERSION@100%" -y --config "$WRANGLER_CONFIG"
-
-      - name: Production exact-SHA smoke with automatic rollback
+          NEW="${{ steps.upload.outputs.version_id }}"
+          npx --yes wrangler@4.119.0 versions deploy "$NEW@100%" -y --config "$MAIN_CONFIG" --message "GitHub main $SOURCE_SHA"
+      - name: Production exact-SHA smoke with main rollback
+        if: steps.changes.outputs.main == 'true'
         env:
           BASE_URL: ${{ env.PROD_URL }}
           EXPECTED_SHA: ${{ env.SOURCE_SHA }}
@@ -154,26 +269,41 @@ jobs:
           set -euo pipefail
           set +e
           node scripts/order051-smoke.mjs
-          smoke_rc=$?
+          rc=$?
           set -e
-          if [ "$smoke_rc" -ne 0 ]; then
-            echo "POST_DEPLOY_SMOKE_FAILED=1"
-            test -n "$PREVIOUS_VERSION_ID"
-            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$WRANGLER_CONFIG"
-            echo "ROLLBACK_VERSION_ID=$PREVIOUS_VERSION_ID"
-            exit "$smoke_rc"
+          if [ "$rc" -ne 0 ]; then
+            npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_VERSION_ID@100%" -y --config "$MAIN_CONFIG" --message "ORDER-051 production rollback"
+            exit "$rc"
           fi
 
+      - name: Roll back signer on downstream failure
+        if: failure() && steps.changes.outputs.signer == 'true'
+        env:
+          PREVIOUS_SIGNER_VERSION: ${{ steps.signer_previous.outputs.version_id }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_SIGNER_VERSION"
+          npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS_SIGNER_VERSION@100%" -y --config "$SIGNER_CONFIG" --message "ORDER-051 signer rollback"
+
       - name: Deployment proof
+        if: steps.changes.outputs.any == 'true' && success()
         run: |
           {
             echo "### ATM ORDER-051 deployment"
-            echo
             echo "- source_sha: $SOURCE_SHA"
-            echo "- candidate_version: ${{ steps.upload.outputs.version_id }}"
-            echo "- previous_version: ${{ steps.previous.outputs.version_id }}"
-            echo "- zero_percent_candidate_smoke: PASS"
+            echo "- main_changed: ${{ steps.changes.outputs.main }}"
+            echo "- signer_changed: ${{ steps.changes.outputs.signer }}"
+            echo "- main_candidate_version: ${{ steps.upload.outputs.version_id }}"
+            echo "- main_previous_version: ${{ steps.previous.outputs.version_id }}"
+            echo "- signer_candidate_version: ${{ steps.signer_upload.outputs.version_id }}"
+            echo "- signer_previous_version: ${{ steps.signer_previous.outputs.version_id }}"
+            echo "- zero_percent_main_smoke: PASS"
             echo "- production_exact_sha_smoke: PASS"
             echo "- owner_out_of_pocket_usd: 0"
-            echo "- signer_redeployed: false"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: No production deploy required
+        if: steps.changes.outputs.any != 'true'
+        run: |
+          echo "No canonical runtime, signer, or deploy-control bytes changed."
+          echo "Cloudflare deployment skipped; owner spend remains USD 0."
