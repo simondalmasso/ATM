@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "atm",
+  "main": "./ATM-ORDER034-WIN101-UI-CANDIDATE.js",
+  "compatibility_date": "2026-08-26",
+  "exports": {
+    "ATMBrain": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ATM_BRAIN",
+        "class_name": "ATMBrain"
+      }
+    ]
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "services": [
+    {
+      "binding": "TASKMARKET_SIGNER",
+      "service": "atm-taskmarket-signer",
+      "environment": "production"
+    }
+  ],
+  "vars": {
+    "ATM_GIT_SHA": "UNDEPLOYED",
+    "EXECUTION_ENABLED": "true"
+  },
+  "preview_urls": true
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "atm-taskmarket-signer",
+  "main": "./ATM-ORDER034-FINAL-SIGNER-CANDIDATE.mjs",
+  "compatibility_date": "2026-08-28",
+  "durable_objects": {
+    "bindings": [
+      { "name": "SIGNER_GUARD", "class_name": "TaskmarketSignerGuard" }
+    ]
+  },
+  "vars": {
+    "TASKMARKET_AGENT_ID": "73264",
+    "TASKMARKET_DEVICE_ID": "6d804f89-9758-41b0-bab4-2431879bb5ef",
+    "TASKMARKET_WORKER_ADDRESS": "0x7dCBee019FFD17A77413C1fDb47aeFe771222837"
+  }
+}

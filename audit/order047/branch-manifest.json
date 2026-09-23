@@ -1,0 +1,142 @@
+{
+  "schema": "ATM-ORDER047-BRANCH-MANIFEST-V1",
+  "captured_at": "2026-09-22T08:25:47-03:00",
+  "project": "simondalmasso/ATM",
+  "canonical_base": {
+    "branch": "ui/order041-windows101-truth-dashboard",
+    "sha": "81a55ed63617a41859b619bb1421bfc66762610e",
+    "pipeline_iid": 87,
+    "pipeline_status": "success"
+  },
+  "order047_local": {
+    "branch": "feat/order047-cash-first-consolidation-v1",
+    "worktree": "C:\\Users\\Simon\\ATM-ORDER047",
+    "base_sha": "81a55ed63617a41859b619bb1421bfc66762610e",
+    "remote_created": false
+  },
+  "remote_branch_count": 15,
+  "remote_branches": [
+    {
+      "name": "feat/atm-v2-apify-demand-gate-v1",
+      "head": "86ef90096f28f7c4c3f230068957d949f9625fb4",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "feat/atm-v2-apify-ppe",
+      "head": "66644efdae6f738516047cc9e63c9d2c30ec86e6",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "feat/order042-system1-decision-plane-v1",
+      "head": "85f8920f8598fbf240cce1ed3426e48cd375ded8",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "historical ORDER042 implementation/evidence; not canonical runtime"
+    },
+    {
+      "name": "lab/order041-ci-gate-20260915",
+      "head": "c7a675be69ee87883b78a0e7fa2ca44f0e72b53d",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "lab/order041-ci-gate-v2-20260915",
+      "head": "4b1e742c14c01d029a439d9392c5ff28e37bbe62",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "lab/order041-taskmarket-settlement-fix-20260915",
+      "head": "17bf7ab8e09ca6a8f7c9232371aedf6f25f903b4",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "lab/order041-taskmarket-settlement-fix-v2-20260916",
+      "head": "b7cc5d6c5079db9ec9697e311b1ba9ae0397987d",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "lab/order041-v2-shadow-20260915",
+      "head": "f379c1e0ac5b0417f3a2d07d009415c424c7852a",
+      "default": false,
+      "protected": false,
+      "classification": "SUPERSEDED",
+      "reason": "historical lab/experimental branch; no deletion in ORDER047"
+    },
+    {
+      "name": "main",
+      "head": "fc6da7a285317cf816ff3e17db4d9f6828238871",
+      "default": true,
+      "protected": true,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "protected default branch; stale ORDER040 snapshot; untouched"
+    },
+    {
+      "name": "order041/arq-programmable-money-rail-router",
+      "head": "0fd4264898ca4ba06a62b1bba2fec3ea9882163f",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "unique ORDER041 settlement/router evidence; not canonical runtime"
+    },
+    {
+      "name": "research/econ-debridge-vara-30d-20260918",
+      "head": "6d1883e9a7239b4809b42321606b23b5ea35ab59",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "research/evidence history retained by immutable ref"
+    },
+    {
+      "name": "research/order044-galaxy-money-radar-v1",
+      "head": "7366753fd6274deb07e6c87ba55037f2d49af814",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "research/evidence history retained by immutable ref"
+    },
+    {
+      "name": "research/order045-jev-fresh-frontier-v1",
+      "head": "fe9b80a5d3db6fc958abec6f16f8445e35e3e088",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "research/evidence history retained by immutable ref"
+    },
+    {
+      "name": "research/order046-autonomous-money-rail-forensic-v1",
+      "head": "fbf67c0e030d0a15a7343d5540d8c9922f4ee6d8",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_ARCHIVAL",
+      "reason": "research/evidence history retained by immutable ref"
+    },
+    {
+      "name": "ui/order041-windows101-truth-dashboard",
+      "head": "81a55ed63617a41859b619bb1421bfc66762610e",
+      "default": false,
+      "protected": false,
+      "classification": "KEEP_CANONICAL",
+      "reason": "clean base and current canonical source baseline"
+    }
+  ],
+  "deletion_performed": false,
+  "deletion_proposal_only": true
+}

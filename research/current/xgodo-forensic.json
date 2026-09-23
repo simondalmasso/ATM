@@ -1,0 +1,95 @@
+{
+  "schema": "ATM-ORDER047-XGODO-FORENSIC-V1",
+  "captured_at": "2026-09-22T08:34:40-03:00",
+  "platform": "Xgodo",
+  "domain": "https://www.xgodo.com",
+  "read_only_only": true,
+  "mutations_performed": [],
+  "owner_out_of_pocket_usd": 0,
+  "platform_exists": true,
+  "automation_api_exists": true,
+  "jobs_api_exists": true,
+  "payments_api_exists": true,
+  "documented_auth": {
+    "bearer_required_for_all_api_endpoints": true,
+    "source": "https://www.xgodo.com/docs"
+  },
+  "current_demand_readback": {
+    "public_jobs_page": "LOGIN_REQUIRED",
+    "unauthenticated_jobs_search": {
+      "method": "POST",
+      "path": "/api/v2/jobs/search",
+      "http_status": 401
+    },
+    "unauthenticated_job_details": {
+      "method": "GET",
+      "path": "/api/v2/jobs/details?job_id=68910c4a5e1c7092a1fdc03a",
+      "http_status": 401
+    },
+    "existing_authorized_browser_session_available_to_executor": false,
+    "browser_connector_status": "NOT_CONNECTED",
+    "signup_performed": false,
+    "token_extracted": false,
+    "authoritative_current_job_count": null,
+    "authoritative_current_safe_job_count": null,
+    "safe_jobs_proven": 0,
+    "status": "CURRENT_DEMAND_UNOBSERVABLE_WITHOUT_AUTH"
+  },
+  "documented_example": {
+    "evidence_type": "DOCUMENTATION_EXAMPLE_NOT_CURRENT_DEMAND",
+    "job_type": "devices_automation",
+    "title": "Create a Google account",
+    "category": [
+      "Google"
+    ],
+    "job_price_usd": 0.06,
+    "positions": 3,
+    "status": "active_in_example",
+    "automation_id": "83ba7359-d8eb-4374-8ecb-055af01fddfe",
+    "safe_automation_gate": "REJECT",
+    "blockers": [
+      "ACCOUNT_FARMING_OR_BULK_ACCOUNT_CREATION",
+      "TARGET_PLATFORM_POLICY_RISK",
+      "BELOW_MIN_REWARD_USD"
+    ]
+  },
+  "task_mechanics": {
+    "tasks_apply_endpoint": "GET /api/v2/tasks/apply",
+    "note": "Documentation says apply must be called before submit for jobs with job variables."
+  },
+  "payout_mechanics": {
+    "withdrawal_endpoint": "POST /api/v2/payments/withdraw",
+    "withdrawals_readback_endpoint": "GET /api/v2/payments/withdrawals",
+    "documented_historical_example_status": "paid",
+    "documented_historical_payment_method": "cryptomus",
+    "current_xgodo_to_user_settlement_proven": false
+  },
+  "forbidden_for_atm": [
+    "Google/Gmail account creation",
+    "fake or bulk third-party account creation",
+    "account farming/resale/aging",
+    "KYC or identity fabrication/reuse",
+    "CAPTCHA bypass",
+    "SMS/phone verification abuse",
+    "proxy/IP rotation for anti-abuse evasion",
+    "spam/fake engagement/fake reviews",
+    "credential harvesting",
+    "target-platform automation/circumvention without explicit permission",
+    "renting devices with owner funds"
+  ],
+  "decision": {
+    "xgodo_status": "REAL_PLATFORM_BUT_CURRENT_SAFE_DEMAND_UNOBSERVABLE",
+    "promote": false,
+    "live_money_probe_authorized": false,
+    "current_safe_job_count_observed": 0,
+    "current_safe_job_count_authoritative": null,
+    "expected_net_usd_day_verified": 0,
+    "blocker": "AUTH_REQUIRED_FOR_CURRENT_JOB_CATALOG + NO_SAFE_CURRENT_JOB_PROVEN"
+  },
+  "sources": [
+    "https://www.xgodo.com/docs",
+    "https://www.xgodo.com/jobs",
+    "https://www.xgodo.com/docs/automation",
+    "https://www.xgodo.com/docs/automation/reference/api"
+  ]
+}
