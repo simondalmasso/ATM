@@ -68,6 +68,31 @@ jobs:
           test ! -e .github/workflows/atm-cloud-schedule.yml
           test ! -e .github/workflows/oci-remote-bootstrap.yml
           test ! -e .github/workflows/oci-remote-probe.yml
+
+          DEPLOY_WORKFLOW=.github/workflows/deploy-cloudflare.yml
+          test -f "$DEPLOY_WORKFLOW"
+          grep -Fq 'workflows: ["ATM CI"]' "$DEPLOY_WORKFLOW"
+          grep -Fq "github.event.workflow_run.conclusion == 'success'" "$DEPLOY_WORKFLOW"
+          grep -Fq "github.event.workflow_run.event == 'push'" "$DEPLOY_WORKFLOW"
+          grep -Fq "github.event.workflow_run.head_branch == 'main'" "$DEPLOY_WORKFLOW"
+
+          mapfile -t deploy_authorities < <(grep -RIlE 'CLOUDFLARE_API_TOKEN|wrangler@[^ ]+ versions (upload|deploy)' .github/workflows | sort)
+          test "${#deploy_authorities[@]}" -eq 1
+          test "${deploy_authorities[0]}" = "$DEPLOY_WORKFLOW"
+
+          if grep -RInF 'simonkey888' .github/workflows cloudflare/order034/*.jsonc; then
+            echo 'STALE_GITHUB_IDENTITY_FOUND'
+            exit 1
+          fi
+
+          path_gate_line="$(grep -F "if grep -Eq" "$DEPLOY_WORKFLOW")"
+          for nonprod in 'docs/' 'report/' 'tests/' '.github/workflows/ci.yml'; do
+            if grep -Fq "$nonprod" <<<"$path_gate_line"; then
+              echo "NONPROD_PATH_MARKED_FOR_DEPLOY=$nonprod"
+              exit 1
+            fi
+          done
+
           for f in 00-baseline 01-github-audit 02-gitlab-runtime-map 03-cleanup-manifest 04-migration-map 05-ci-deploy-design 06-parity-and-cutover; do
             test -f "docs/migration/order051/$f.md"
           done
