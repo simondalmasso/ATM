@@ -1,0 +1,36 @@
+{
+  "candidate": "HOODIE Affiliate",
+  "verified_at": "2026-09-24",
+  "urls": [
+    "https://affiliate.hoodie.space/",
+    "https://affiliate.hoodie.space/terms",
+    "https://affiliate.hoodie.space/login"
+  ],
+  "classification": "WATCH_AFFILIATE_FUTURE",
+  "registration_free": true,
+  "free_tasks": "HP only",
+  "hp_redeemable_for_money": false,
+  "reward_activation": "not active; date to be announced",
+  "eth_commission_requires": "hold HOODIE worth $50 for 7 days",
+  "min_withdrawal": "0.001 ETH",
+  "withdrawal_delay": "7 days after earned",
+  "paid_mission_examples": [
+    "buy $10/$15/$25",
+    "hold $50+",
+    "buy streaks"
+  ],
+  "anti_abuse": [
+    "one person one account",
+    "no self-referrals",
+    "no referral loops",
+    "no duplicate accounts"
+  ],
+  "atm_decision": "do not admit as active bounty source; watch only",
+  "promotion_conditions": [
+    "official ETH rewards/payouts active",
+    "a mission pays withdrawable cash/ETH with owner out-of-pocket USD 0",
+    "no buy/hold/deposit/stake/gas/card/funding requirement",
+    "objective payout/readback is available"
+  ],
+  "owner_out_of_pocket_usd": 0
+}
