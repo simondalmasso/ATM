@@ -44,7 +44,7 @@ jobs:
           node cloudflare/order034/ATM-ORDER034-STATUS-TRUTH-TEST.mjs
           node cloudflare/order034/ATM-ORDER034-WATCHDOG-V1-TEST.mjs
           node cloudflare/order034/ATM-ORDER034-SIGNER-BEHAVIORAL-P0-FINAL.mjs
-          node cloudflare/order034/ATM-ORDER051-DEPLOY-READBACK-TEST.mjs
+          node cloudflare/order034/ATM-ORDER051-DEPLOY-READBACK-TEST.mjs\n          node cloudflare/order034/ATM-ORDER054-AGENTBOUNTIES-TEST.mjs
 
       - name: Python policy
         run: |
