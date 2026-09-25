@@ -1,0 +1,47 @@
+{
+  "candidate": "Meta Global AI Developer Hackathon",
+  "verified_at": "2026-09-25",
+  "official_url": "https://dev.meta.ai/events/global-hackathon",
+  "classification": "WATCH_HACKATHON_APPLICATION_PENDING",
+  "public_state": {
+    "applications": "OPENING_SOON",
+    "format": "VIRTUAL",
+    "scope": "WORLDWIDE",
+    "duration": "10-day global virtual hackathon",
+    "organizer": "Meta Superintelligence Labs",
+    "build_surface": "Meta Model API",
+    "participant_api_credits_usd": 150,
+    "cash_prize_pool_usd": 1000000
+  },
+  "user_state": {
+    "notification_signup_submitted": true,
+    "application_submitted": false,
+    "accepted": false,
+    "evidence_type": "USER_PROVIDED_CONFIRMATION",
+    "pii_persisted": false
+  },
+  "money_truth": {
+    "paid_usd": 0,
+    "earned_usd": 0,
+    "owner_spend_usd_for_notification_action": 0,
+    "entry_cost": "UNKNOWN_UNTIL_OFFICIAL_RULES",
+    "payout_rail": "UNKNOWN",
+    "exact_prize_breakdown": "UNKNOWN"
+  },
+  "eligibility_truth": {
+    "public_worldwide_wording": true,
+    "argentina_separately_proven": false,
+    "participant_selection_required": "UNKNOWN_UNTIL_APPLICATION_RULES",
+    "judging_rules": "UNKNOWN"
+  },
+  "blockers": [
+    "APPLICATIONS_NOT_OPEN",
+    "APPLICATION_NOT_SUBMITTED",
+    "EXACT_PRIZE_BREAKDOWN_UNKNOWN",
+    "ELIGIBILITY_TERMS_NOT_PUBLISHED",
+    "JUDGING_RULES_UNKNOWN",
+    "PAYOUT_RAIL_UNKNOWN"
+  ],
+  "atm_decision": "WATCH_ONLY; persist notification state; do not rank as active cash or auto-eligible",
+  "next_action": "Reverify the official page when applications open; then evaluate exact rules, Argentina eligibility, judging, deliverables, prize breakdown, payout rail, deadlines, owner spend and allowed automation before any promotion."
+}
