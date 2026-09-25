@@ -9,7 +9,7 @@ if (overrideId && !/^[0-9a-f-]{36}$/.test(overrideId)) throw new Error("VERSION_
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function fetchJson(path, options = {}) {
+async function fetchJson(path, options = {}, accept = () => true) {
   let last;
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
@@ -24,7 +24,11 @@ async function fetchJson(path, options = {}) {
       });
       const text = await response.text();
       last = { status: response.status, text };
-      if (response.ok) return JSON.parse(text);
+      if (response.ok) {
+        const data = JSON.parse(text);
+        last = { status: response.status, text, data };
+        if (accept(data)) return data;
+      }
     } catch (error) {
       last = { error: String(error) };
     }
@@ -33,7 +37,7 @@ async function fetchJson(path, options = {}) {
   throw new Error("request failed " + path + ": " + JSON.stringify(last));
 }
 
-const health = await fetchJson("/health?sha=" + expected);
+const health = await fetchJson("/health?sha=" + expected, {}, (data) => data?.git_sha === expected);
 if (health.ok !== true) throw new Error("health.ok != true");
 if (health.git_sha !== expected) throw new Error("health git_sha mismatch: " + health.git_sha);
 if (health.order !== "ATM-ORDER-034") throw new Error("unexpected order " + health.order);
