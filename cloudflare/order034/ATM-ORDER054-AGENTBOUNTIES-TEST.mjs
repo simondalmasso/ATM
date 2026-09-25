@@ -32,6 +32,7 @@ const base=(id='ab-1')=>({
   global_eligibility:true,
   deliverable:'One UTF-8 JSON artifact',
   acceptance_criteria:['Schema valid','Evidence reproducible'],
+  competition:{mode:'exclusive',entrant_count:0},
   reward:usdc(125),
   bond:usdc(0),
   cash_economics:{
@@ -69,6 +70,10 @@ const notClaimable=base('ab-funded');
 notClaimable.status='funded'; notClaimable.claimable=false;
 const fundedOpp=mod.normalize('AGENTBOUNTIES',notClaimable);
 if(!fundedOpp.blockers.includes('TASK_STATE_NOT_WRITABLE')) throw new Error('FUNDED_NOT_CLAIMABLE_ADMITTED');
+
+const noCompetition=base('ab-no-competition');
+delete noCompetition.competition;
+if(!mod.normalize('AGENTBOUNTIES',noCompetition).blockers.includes('COMPETITION_UNKNOWN')) throw new Error('UNKNOWN_COMPETITION_NOT_BLOCKED');
 
 const stale=base('ab-stale');
 stale.deadline='2020-01-01T00:00:00Z';
