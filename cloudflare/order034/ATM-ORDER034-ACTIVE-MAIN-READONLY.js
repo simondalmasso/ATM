@@ -1005,22 +1005,31 @@ function normalizeAgentBounties(raw = {}) {
   const blockers = detectBlockers({ source: "AGENTBOUNTIES", title, description, raw });
   for (const b of economics.blockers) blockers.push(b);
 
-  const funded = raw.funded === true || raw.funding_complete === true;
-  const claimable = status.toLowerCase() === "claimable" && raw.claimable !== false;
-  const termsValid = raw.terms_valid === true || raw.terms?.valid === true;
-  const verificationReady = raw.verification_ready === true || raw.verifier?.ready === true;
-  if (!(funded && claimable && termsValid && verificationReady)) blockers.push("TASK_STATE_NOT_WRITABLE");
+  const fundingSignal = agentBountiesFirstDefined(raw.funded, raw.funding_complete);
+  const funded = fundingSignal === true ? true : fundingSignal === false ? false : null;
+  const statusLower = status.toLowerCase();
+  const claimable = statusLower === "claimable" ? raw.claimable === false ? false : true : raw.claimable === true ? true : raw.claimable === false || ["funded","claimed","submitted","paid","settled","expired","cancelled","canceled"].includes(statusLower) ? false : null;
+  const termsSignal = agentBountiesFirstDefined(raw.terms_valid, raw.terms?.valid);
+  const termsValid = termsSignal === true ? true : termsSignal === false ? false : null;
+  const verificationSignal = agentBountiesFirstDefined(raw.verification_ready, raw.verifier?.ready);
+  const verificationReady = verificationSignal === true ? true : verificationSignal === false ? false : null;
+  const openSignals = [funded, claimable, termsValid, verificationReady];
+  const openNow = openSignals.every((x) => x === true) ? true : openSignals.some((x) => x === false) ? false : null;
+  if (openNow !== true) blockers.push("TASK_STATE_NOT_WRITABLE");
 
-  const newcomer = raw.newcomer_access === true || raw.eligibility?.newcomer_access === true || raw.permissionless === true || raw.claim_permissionless === true;
-  if (!newcomer) blockers.push("NEWCOMER_ACCESS_UNKNOWN");
+  const newcomerSignal = agentBountiesFirstDefined(raw.newcomer_access, raw.eligibility?.newcomer_access, raw.permissionless, raw.claim_permissionless);
+  const newcomer = newcomerSignal === true ? true : newcomerSignal === false ? false : null;
+  if (newcomer !== true) blockers.push("NEWCOMER_ACCESS_UNKNOWN");
 
   const geo = String(agentBountiesFirstDefined(raw.geography, raw.eligibility?.geography, "") || "").toLowerCase();
   const countries = Array.isArray(raw.eligible_countries) ? raw.eligible_countries.map((x) => String(x).toLowerCase()) : [];
-  const geographyOk = raw.global_eligibility === true || raw.eligibility?.global === true || ["global","worldwide"].includes(geo) || countries.some((x) => ["ar","argentina"].includes(x));
-  if (!geographyOk) blockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
+  const globalSignal = agentBountiesFirstDefined(raw.global_eligibility, raw.eligibility?.global);
+  const geographyOk = globalSignal === true || ["global","worldwide"].includes(geo) || countries.some((x) => ["ar","argentina"].includes(x)) ? true : globalSignal === false || (!!geo && !["global","worldwide"].includes(geo)) || countries.length > 0 ? false : null;
+  if (geographyOk !== true) blockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
 
-  const automationAllowed = raw.automation_allowed === true || raw.agent_access === "AGENT_ALLOWED" || raw.terms?.automation_allowed === true || raw.terms?.agent_allowed === true;
-  if (!automationAllowed) blockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
+  const automationSignal = agentBountiesFirstDefined(raw.automation_allowed, raw.terms?.automation_allowed, raw.terms?.agent_allowed);
+  const automationAllowed = automationSignal === true || raw.agent_access === "AGENT_ALLOWED" ? true : automationSignal === false || raw.agent_access === "HUMAN_ONLY" ? false : null;
+  if (automationAllowed !== true) blockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
 
   const deliverable = agentBountiesFirstDefined(raw.deliverable, raw.terms?.deliverable, raw.evidence_requirements?.deliverable);
   const acceptance = agentBountiesFirstDefined(raw.acceptance_criteria, raw.terms?.acceptance_criteria, raw.evidence_requirements?.acceptance_criteria);
@@ -1080,17 +1089,17 @@ function normalizeAgentBounties(raw = {}) {
     economics: { ...economics, required_external_spend_usd: externalSpend, gross_cash_margin_usd: sourceMargin },
     blocker_details: blockerDetails(clean, { source:"AGENTBOUNTIES", raw_id:String(id), title, description, raw, economics, task_execution_spend:taskExecutionSpend, capability_class:capabilityClass, artifact_profile:artifactProfile, estimated_net_usd:estimatedNet, source_status:status, deadline }),
     eligibility: {
-      open_now: funded && claimable && termsValid && verificationReady,
+      open_now: openNow,
       newcomer_access_proven: newcomer,
       argentina_or_global_eligibility_proven: geographyOk,
       terms_allow_automation: automationAllowed,
-      exact_deliverable_and_acceptance_proven: !!deliverable && acceptanceKnown,
-      competition_known: competitionKnown,
-      deadline_known: !!deadline && !clean.includes("DEADLINE_UNKNOWN"),
-      no_capital_required: economics.owner_spend_zero,
-      owner_spend_zero: economics.owner_spend_zero,
-      expected_net_usd_positive: estimatedNet > 0,
-      payout_path_known: payoutPathKnown,
+      exact_deliverable_and_acceptance_proven: deliverable && acceptanceKnown ? true : null,
+      competition_known: competitionKnown ? true : null,
+      deadline_known: deadline && !clean.includes("DEADLINE_UNKNOWN") ? true : null,
+      no_capital_required: economics.owner_spend_known ? economics.owner_spend_zero : null,
+      owner_spend_zero: economics.owner_spend_known ? economics.owner_spend_zero : null,
+      expected_net_usd_positive: estimatedNet === null ? null : estimatedNet > 0,
+      payout_path_known: payoutPathKnown ? true : null,
       payout_readback: "CONFIRMED_CANONICAL_BountySettled_OR_CompetitionSettledV2_ONLY",
       safe_mutation_authorized: false
     },
