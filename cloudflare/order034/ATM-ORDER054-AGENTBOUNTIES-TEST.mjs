@@ -75,6 +75,15 @@ const noCompetition=base('ab-no-competition');
 delete noCompetition.competition;
 if(!mod.normalize('AGENTBOUNTIES',noCompetition).blockers.includes('COMPETITION_UNKNOWN')) throw new Error('UNKNOWN_COMPETITION_NOT_BLOCKED');
 
+const unknownTruth=base('ab-tristate');
+delete unknownTruth.newcomer_access;
+delete unknownTruth.global_eligibility;
+delete unknownTruth.automation_allowed;
+const unknownTruthOpp=mod.normalize('AGENTBOUNTIES',unknownTruth);
+if(unknownTruthOpp.eligibility.newcomer_access_proven!==null) throw new Error('NEWCOMER_UNKNOWN_NOT_PRESERVED');
+if(unknownTruthOpp.eligibility.argentina_or_global_eligibility_proven!==null) throw new Error('GEO_UNKNOWN_NOT_PRESERVED');
+if(unknownTruthOpp.eligibility.terms_allow_automation!==null) throw new Error('AUTOMATION_UNKNOWN_NOT_PRESERVED');
+
 const stale=base('ab-stale');
 stale.deadline='2020-01-01T00:00:00Z';
 if(!mod.normalize('AGENTBOUNTIES',stale).blockers.includes('TASK_EXPIRED')) throw new Error('STALE_DEADLINE_NOT_BLOCKED');
