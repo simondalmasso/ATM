@@ -239,7 +239,7 @@ __name(reconcileWatchdogRuntimeTruth, "reconcileWatchdogRuntimeTruth");
 __name2(reconcileWatchdogRuntimeTruth, "reconcileWatchdogRuntimeTruth");
 function blockerType(code) {
   const c = String(code || "");
-  const sourceRequirement = new Set(["GITHUB_REQUIRED", "SOCIAL_OR_PUBLICATION_REQUIRED", "OUTREACH_REQUIRED", "HUMAN_INTERACTION_REQUIRED", "KYC_OR_IDENTITY_REQUIRED", "WALLET_SIGN_REQUIRED", "PRIVATE_OR_HISTORICAL_CONTEXT_REQUIRED", "MULTI_DAY_EXECUTION_REQUIRED", "TASK_EXPIRED", "SUBMISSION_WINDOW_CLOSED", "TASK_STATE_NOT_WRITABLE", "WORKER_IDENTITY_NOT_ELIGIBLE", "HUMAN_ONLY_LISTING", "AGENT_ACCESS_NOT_ALLOWED", "NO_WORKER_PENDING_ACTION", "REQUIRED_FIELDS_MISSING"]);
+  const sourceRequirement = new Set(["GITHUB_REQUIRED", "SOCIAL_OR_PUBLICATION_REQUIRED", "OUTREACH_REQUIRED", "HUMAN_INTERACTION_REQUIRED", "KYC_OR_IDENTITY_REQUIRED", "WALLET_SIGN_REQUIRED", "PRIVATE_OR_HISTORICAL_CONTEXT_REQUIRED", "MULTI_DAY_EXECUTION_REQUIRED", "TASK_EXPIRED", "SUBMISSION_WINDOW_CLOSED", "TASK_STATE_NOT_WRITABLE", "WORKER_IDENTITY_NOT_ELIGIBLE", "HUMAN_ONLY_LISTING", "AGENT_ACCESS_NOT_ALLOWED", "NO_WORKER_PENDING_ACTION", "REQUIRED_FIELDS_MISSING", "NEWCOMER_ACCESS_UNKNOWN", "ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN", "EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN", "COMPETITION_UNKNOWN", "DEADLINE_UNKNOWN", "PAYOUT_RAIL_UNKNOWN"]);
   const economic = new Set(["CAPITAL_REQUIRED", "BLOCKED_OWNER_SPEND", "TASK_EXECUTION_SPEND_REQUIRED", "PAID_API_REQUIRED", "FREE_ACTION_NOT_EXPLICIT", "BELOW_MIN_REWARD_USD", "EXPECTED_NET_NOT_POSITIVE_OR_UNKNOWN"]);
   const policy = new Set(["AUTOMATION_NOT_PROVEN_ALLOWED", "FIRST_E2E_CAPABILITY_NOT_ALLOWED", "PAID_SANDBOX_DISABLED", "HTTP_URL_NOT_PUBLIC_HTTPS", "HTTP_EGRESS_HOST_NOT_ALLOWLISTED", "ACCOUNT_FARMING_OR_BULK_ACCOUNT_CREATION", "CAPTCHA_BYPASS_OR_ANTI_ABUSE_EVASION", "SMS_PHONE_VERIFICATION_ABUSE", "PROXY_ROTATION_OR_ANTI_ABUSE_EVASION", "SPAM_OR_FAKE_ENGAGEMENT", "CREDENTIAL_HARVESTING"]);
   if (sourceRequirement.has(c)) return "SOURCE_REQUIREMENT";
@@ -888,6 +888,239 @@ var TaskPayoutReceiver = class {
     return receiptMatchesTask(receipt, task_identity);
   }
 };
+
+var AGENTBOUNTIES_API = "https://api.agentbounties.app/v1/base/autonomous-bounties/feed?network=base-mainnet&claimable_only=true";
+function agentBountiesFirstDefined(...values) {
+  return values.find((v) => v !== void 0 && v !== null);
+}
+function agentBountiesAmountUsd(value) {
+  if (value === void 0 || value === null || value === "") return null;
+  if (typeof value === "number" || typeof value === "string") {
+    const x = Number(value);
+    return Number.isFinite(x) && x >= 0 ? x : null;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) return null;
+  const currency = String(value.currency || value.asset || "USDC").toUpperCase();
+  if (!usdLike(currency)) return null;
+  const raw = Number(value.amount ?? value.value);
+  if (!Number.isFinite(raw) || raw < 0) return null;
+  const decimals = Number(value.decimals);
+  if (Number.isInteger(decimals) && decimals >= 0 && decimals <= 18) return raw / 10 ** decimals;
+  return raw;
+}
+function agentBountiesSumKnown(values) {
+  const present = values.filter((v) => v !== void 0 && v !== null);
+  if (!present.length) return null;
+  const parsed = present.map(agentBountiesAmountUsd);
+  if (parsed.some((v) => v === null)) return null;
+  return parsed.reduce((a, b) => a + b, 0);
+}
+function agentBountiesEconomics(raw = {}) {
+  const cash = raw.cash_economics && typeof raw.cash_economics === "object" ? raw.cash_economics : {};
+  const capital = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.refundable_claim_bond, raw.refundable_claim_bond, raw.claim_bond, raw.bond),
+    raw.stake,
+    raw.deposit
+  ]);
+  const gas = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.gas_network_fee, cash.gas_fee, raw.gas_network_fee, raw.gas_fee, raw.network_fee)
+  ]);
+  const external = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.required_external_spend, raw.required_external_spend)
+  ]);
+  const fees = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.protocol_fee, raw.protocol_fee),
+    agentBountiesFirstDefined(cash.proof_fee, raw.proof_fee),
+    agentBountiesFirstDefined(cash.relay_fee, raw.relay_fee),
+    agentBountiesFirstDefined(cash.fee, raw.fee)
+  ]);
+  const paidApiCompute = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.paid_api_compute, raw.paid_api_compute, raw.compute_cost)
+  ]);
+  const subscription = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.subscription, raw.subscription, raw.subscription_cost)
+  ]);
+  const cardHold = agentBountiesSumKnown([
+    agentBountiesFirstDefined(cash.card_hold, raw.card_hold)
+  ]);
+  const components = {
+    claim_bond_stake_deposit: capital,
+    gas_network_fee: gas,
+    required_external_spend: external,
+    protocol_proof_relay_fee: fees,
+    paid_api_compute: paidApiCompute,
+    subscription,
+    card_hold: cardHold
+  };
+  const unknown_components = Object.entries(components).filter(([,v]) => v === null).map(([k]) => k);
+  const positive_components = Object.entries(components).filter(([,v]) => Number.isFinite(v) && v > 0).map(([k]) => k);
+  const owner_spend_known = unknown_components.length === 0;
+  const owner_spend_usd = owner_spend_known ? Object.values(components).reduce((a,b) => a + b, 0) : null;
+  const blockers = [];
+  if ((capital ?? 0) > 0) blockers.push("CAPITAL_REQUIRED");
+  if (!owner_spend_known || positive_components.length) blockers.push("BLOCKED_OWNER_SPEND");
+  if (!owner_spend_known) blockers.push("FREE_ACTION_NOT_EXPLICIT");
+  return {
+    components,
+    unknown_components,
+    positive_components,
+    owner_spend_known,
+    owner_spend_usd,
+    owner_spend_zero: owner_spend_known && owner_spend_usd === 0,
+    estimated_task_cost_usdc: owner_spend_usd,
+    blockers: uniq(blockers)
+  };
+}
+function agentBountiesCanonicalPaid(raw = {}) {
+  const rows = [];
+  for (const key of ["canonical_events","events","settlement_events"]) {
+    if (Array.isArray(raw?.[key])) rows.push(...raw[key]);
+  }
+  if (raw?.settlement_event && typeof raw.settlement_event === "object") rows.push(raw.settlement_event);
+  for (const event of rows) {
+    const event_name = String(event?.event_name || event?.type || event?.name || "");
+    const canonical = event?.canonical === true || event?.safe_block === true || event?.finalized === true;
+    const confirmed = event?.confirmed === true;
+    const tx_hash = event?.transaction_hash || event?.tx_hash || event?.transactionHash || null;
+    if (["BountySettled","CompetitionSettledV2"].includes(event_name) && canonical && confirmed && tx_hash) {
+      return { paid: true, event_name, tx_hash: String(tx_hash), evidence: "CONFIRMED_CANONICAL_SETTLEMENT_EVENT" };
+    }
+  }
+  return { paid: false, event_name: null, tx_hash: null, evidence: "NO_CONFIRMED_CANONICAL_SETTLEMENT_EVENT" };
+}
+function normalizeAgentBounties(raw = {}) {
+  const id = agentBountiesFirstDefined(raw.bounty_id, raw.id, raw.bounty_contract, raw.source_id);
+  if (id === void 0 || id === null || id === "") return null;
+  const title = String(agentBountiesFirstDefined(raw.title, raw.terms?.title, raw.description, raw.terms?.description) || "");
+  const description = String(agentBountiesFirstDefined(raw.description, raw.terms?.description, "") || "");
+  const cash = raw.cash_economics && typeof raw.cash_economics === "object" ? raw.cash_economics : {};
+  const rewardSource = agentBountiesFirstDefined(cash.solver_reward, raw.solver_reward, raw.reward);
+  const reward = agentBountiesAmountUsd(rewardSource);
+  const rewardCurrency = String(rewardSource?.currency || raw.currency || "USDC").toUpperCase();
+  const externalSpend = agentBountiesAmountUsd(agentBountiesFirstDefined(cash.required_external_spend, raw.required_external_spend));
+  const sourceMargin = agentBountiesAmountUsd(agentBountiesFirstDefined(cash.gross_cash_margin, raw.gross_cash_margin));
+  const estimatedNet = sourceMargin !== null ? sourceMargin : reward !== null && externalSpend !== null ? Math.max(0, reward - externalSpend) : null;
+  const status = String(agentBountiesFirstDefined(raw.status, raw.work_state, raw.state, "UNKNOWN"));
+  const economics = agentBountiesEconomics(raw);
+  const blockers = detectBlockers({ source: "AGENTBOUNTIES", title, description, raw });
+  for (const b of economics.blockers) blockers.push(b);
+
+  const fundingSignal = agentBountiesFirstDefined(raw.funded, raw.funding_complete);
+  const funded = fundingSignal === true ? true : fundingSignal === false ? false : null;
+  const statusLower = status.toLowerCase();
+  const claimable = statusLower === "claimable" ? raw.claimable === false ? false : true : raw.claimable === true ? true : raw.claimable === false || ["funded","claimed","submitted","paid","settled","expired","cancelled","canceled"].includes(statusLower) ? false : null;
+  const termsSignal = agentBountiesFirstDefined(raw.terms_valid, raw.terms?.valid);
+  const termsValid = termsSignal === true ? true : termsSignal === false ? false : null;
+  const verificationSignal = agentBountiesFirstDefined(raw.verification_ready, raw.verifier?.ready);
+  const verificationReady = verificationSignal === true ? true : verificationSignal === false ? false : null;
+  const openSignals = [funded, claimable, termsValid, verificationReady];
+  const openNow = openSignals.every((x) => x === true) ? true : openSignals.some((x) => x === false) ? false : null;
+  if (openNow !== true) blockers.push("TASK_STATE_NOT_WRITABLE");
+
+  const newcomerSignal = agentBountiesFirstDefined(raw.newcomer_access, raw.eligibility?.newcomer_access, raw.permissionless, raw.claim_permissionless);
+  const newcomer = newcomerSignal === true ? true : newcomerSignal === false ? false : null;
+  if (newcomer !== true) blockers.push("NEWCOMER_ACCESS_UNKNOWN");
+
+  const geo = String(agentBountiesFirstDefined(raw.geography, raw.eligibility?.geography, "") || "").toLowerCase();
+  const countries = Array.isArray(raw.eligible_countries) ? raw.eligible_countries.map((x) => String(x).toLowerCase()) : [];
+  const globalSignal = agentBountiesFirstDefined(raw.global_eligibility, raw.eligibility?.global);
+  const geographyOk = globalSignal === true || ["global","worldwide"].includes(geo) || countries.some((x) => ["ar","argentina"].includes(x)) ? true : globalSignal === false || (!!geo && !["global","worldwide"].includes(geo)) || countries.length > 0 ? false : null;
+  if (geographyOk !== true) blockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
+
+  const automationSignal = agentBountiesFirstDefined(raw.automation_allowed, raw.terms?.automation_allowed, raw.terms?.agent_allowed);
+  const automationAllowed = automationSignal === true || raw.agent_access === "AGENT_ALLOWED" ? true : automationSignal === false || raw.agent_access === "HUMAN_ONLY" ? false : null;
+  if (automationAllowed !== true) blockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
+
+  const deliverable = agentBountiesFirstDefined(raw.deliverable, raw.terms?.deliverable, raw.evidence_requirements?.deliverable);
+  const acceptance = agentBountiesFirstDefined(raw.acceptance_criteria, raw.terms?.acceptance_criteria, raw.evidence_requirements?.acceptance_criteria);
+  const acceptanceKnown = typeof acceptance === "string" ? acceptance.trim().length > 0 : Array.isArray(acceptance) ? acceptance.length > 0 : !!acceptance;
+  if (!deliverable || !acceptanceKnown) blockers.push("EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN");
+
+  const competitionKnown = raw.competition != null || raw.participant_count != null || raw.capacity != null || raw.mode != null;
+  if (!competitionKnown) blockers.push("COMPETITION_UNKNOWN");
+
+  const deadline = agentBountiesFirstDefined(raw.deadline, raw.claim_deadline, raw.proof_deadline, raw.expires_at, raw.terms?.deadline);
+  if (!deadline) blockers.push("DEADLINE_UNKNOWN");
+  else {
+    const deadlineMs = Date.parse(String(deadline));
+    if (!Number.isFinite(deadlineMs)) blockers.push("DEADLINE_UNKNOWN");
+    else if (deadlineMs <= Date.now()) blockers.push("TASK_EXPIRED");
+  }
+
+  const contract = agentBountiesFirstDefined(raw.bounty_contract, raw.source_id);
+  const payoutPathKnown = reward !== null && rewardCurrency === "USDC" && !!contract;
+  if (!payoutPathKnown) blockers.push("PAYOUT_RAIL_UNKNOWN");
+  if (!(estimatedNet > 0)) blockers.push("EXPECTED_NET_NOT_POSITIVE_OR_UNKNOWN");
+  else if (estimatedNet < MIN_PRIMARY_REWARD_USD) blockers.push("BELOW_MIN_REWARD_USD");
+
+  const requiredFields = !!title;
+  if (!requiredFields) blockers.push("REQUIRED_FIELDS_MISSING");
+  const taskExecutionSpend = sourceExecutionSpendEvidence(title, description);
+  if (taskExecutionSpend.required) blockers.push("TASK_EXECUTION_SPEND_REQUIRED");
+
+  const capabilityClass = classifyCapability(title, description, blockers);
+  const artifactProfile = runtimeArtifactProfile(title, description);
+  if (capabilityClass === "HTTP_TOOL") for (const b of httpToolEgressAdmission(title, description, capabilityClass).blockers) blockers.push(b);
+  if (capabilityClass === "CODE_SANDBOX_REQUIRED") blockers.push("PAID_SANDBOX_DISABLED");
+
+  blockers.push("DISCOVERY_ONLY_NO_EXECUTION_ADAPTER");
+  const clean = uniq(blockers);
+  const settlement = agentBountiesCanonicalPaid(raw);
+  const sourceUrl = String(agentBountiesFirstDefined(raw.source_url, raw.issue_url, raw.url, "https://agentbounties.app/earn.html"));
+
+  return {
+    opportunity_id: "AGENTBOUNTIES:" + String(id),
+    raw_id: String(id),
+    source: "AGENTBOUNTIES",
+    title: title || "Untitled",
+    description: clamp(description, 12e3),
+    source_url: sourceUrl,
+    payout_amount: reward,
+    payout_currency: rewardCurrency,
+    estimated_net_usd: estimatedNet,
+    source_status: status,
+    created_at: agentBountiesFirstDefined(raw.created_at, raw.createdAt) || null,
+    deadline: deadline || null,
+    freshness_at: now(),
+    task_market: false,
+    mode: raw.mode || raw.competition?.mode || null,
+    capability_class: capabilityClass,
+    artifact_profile: artifactProfile,
+    economics: { ...economics, required_external_spend_usd: externalSpend, gross_cash_margin_usd: sourceMargin },
+    blocker_details: blockerDetails(clean, { source:"AGENTBOUNTIES", raw_id:String(id), title, description, raw, economics, task_execution_spend:taskExecutionSpend, capability_class:capabilityClass, artifact_profile:artifactProfile, estimated_net_usd:estimatedNet, source_status:status, deadline }),
+    eligibility: {
+      open_now: openNow,
+      newcomer_access_proven: newcomer,
+      argentina_or_global_eligibility_proven: geographyOk,
+      terms_allow_automation: automationAllowed,
+      exact_deliverable_and_acceptance_proven: deliverable && acceptanceKnown ? true : null,
+      competition_known: competitionKnown ? true : null,
+      deadline_known: deadline && !clean.includes("DEADLINE_UNKNOWN") ? true : null,
+      no_capital_required: economics.owner_spend_known ? economics.owner_spend_zero : null,
+      owner_spend_zero: economics.owner_spend_known ? economics.owner_spend_zero : null,
+      expected_net_usd_positive: estimatedNet === null ? null : estimatedNet > 0,
+      payout_path_known: payoutPathKnown ? true : null,
+      payout_readback: "CONFIRMED_CANONICAL_BountySettled_OR_CompetitionSettledV2_ONLY",
+      safe_mutation_authorized: false
+    },
+    blockers: clean,
+    ai_executability: "BLOCKED",
+    automatic_action_level: "DISCOVER_ONLY_READ_ONLY",
+    execution_stage: "DISCOVERED",
+    execution_history: [{ stage:"DISCOVERED", at:now(), externally_true:true }],
+    raw_meta: {
+      bounty_contract: contract || null,
+      funded,
+      claimable,
+      terms_valid: termsValid,
+      verification_ready: verificationReady,
+      canonical_paid: settlement.paid,
+      canonical_settlement_event: settlement.event_name,
+      canonical_settlement_tx_hash: settlement.tx_hash
+    }
+  };
+}
+
 var SOURCE_DEFS = [
   { id: "DAYDREAMS", mode: "FIRST_PARTY_PUBLIC_REST", url: `${DAYDREAMS_API}/tasks?status=open&sort=newest&limit=100`, action: "DISCOVER_EVALUATE_ACQUIRE_SUBMIT_ZERO_COST_ONLY" },
   { id: "SUPERTEAM", mode: "PUBLIC_API", url: "https://superteam.fun/api/listings?take=100", action: "DISCOVER_ONLY" },
@@ -895,6 +1128,7 @@ var SOURCE_DEFS = [
   { id: "WORKPROTOCOL", mode: "PUBLIC_API", url: "https://workprotocol.ai/api/jobs?status=open&limit=100&sort=newest", action: "DISCOVER_ONLY" },
   { id: "AGENTHANSA", mode: "PUBLIC_API_PLUS_AGENT_API", url: "https://www.agenthansa.com/api/collective/bounties/public?page=1&per_page=100", action: "CLAIM_AND_SUBMIT_IF_AUTO_ELIGIBLE" },
   { id: "0XWORK", mode: "PUBLIC_API", url: "https://api.0xwork.org/tasks?status=open", action: "DISCOVER_ONLY" },
+  { id: "AGENTBOUNTIES", mode: "PUBLIC_API_READ_ONLY", url: AGENTBOUNTIES_API, action: "DISCOVER_ONLY_READ_ONLY" },
   { id: "MICROWORKERS", mode: "USER_ASSISTED_IMPORT", url: null, action: "IMPORT_ONLY" },
   { id: "PROMOTE_FUN", mode: "DISABLED_UNPROVEN", url: null, action: "NONE" },
   { id: "X", mode: "DISABLED_CREDIT_UNVERIFIED", url: null, action: "NONE" }
@@ -957,6 +1191,7 @@ function detectBlockers({ source, title, description, raw }) {
 __name(detectBlockers, "detectBlockers");
 __name2(detectBlockers, "detectBlockers");
 function normalize(source, raw) {
+  if (source === "AGENTBOUNTIES") return normalizeAgentBounties(raw);
   let id, title, description, payout, currency, url, status, agentAllowed = true, createdAt, deadline;
   if (source === "DAYDREAMS") {
     id = raw.id;
@@ -1135,6 +1370,23 @@ async function discoverSource(id) {
     } else if (id === "0XWORK") {
       const { data } = await fetchJson("https://api.0xwork.org/tasks?status=open");
       raws = Array.isArray(data?.tasks) ? data.tasks.filter((x) => String(x.status).toLowerCase() === "open") : [];
+    } else if (id === "AGENTBOUNTIES") {
+      const { data } = await fetchJson(AGENTBOUNTIES_API);
+      if (!Array.isArray(data)) throw new Error("MALFORMED_AGENTBOUNTIES_FEED");
+      const unique = new Map();
+      for (const row of data) {
+        const key = agentBountiesFirstDefined(row?.bounty_id, row?.id, row?.bounty_contract, row?.source_id);
+        if (key !== void 0 && key !== null && key !== "" && !unique.has(String(key))) unique.set(String(key), row);
+      }
+      raws = [...unique.values()];
+      state.protocol = "AGENTBOUNTIES_BASE_MAINNET";
+      state.network = "BASE_MAINNET";
+      state.payout_asset = "USDC";
+      state.read_only = true;
+      state.owner_spend_policy = "ZERO_ONLY_FAIL_CLOSED";
+      state.raw_count = data.length;
+      state.duplicate_count = Math.max(0, data.length - raws.length);
+      state.canonical_payment_evidence = ["BountySettled","CompetitionSettledV2"];
     } else {
       state.error = id === "MICROWORKERS" ? "USER_ASSISTED_IMPORT_ONLY" : id === "PROMOTE_FUN" ? "CURRENT_DISCOVERY_NOT_PROVEN" : "CREDIT_STATE_UNVERIFIED";
       state.eligibility = "NOT_AUTOMATIC";
@@ -1153,7 +1405,13 @@ async function discoverSource(id) {
     state.result_count = opportunities.length;
     state.error = null;
     state.running = true;
-    state.eligibility = "DISCOVERY_OK";
+    state.eligibility = id === "AGENTBOUNTIES" && opportunities.length === 0 ? "DISCOVERY_OK_ZERO_RESULTS" : "DISCOVERY_OK";
+    if (id === "AGENTBOUNTIES") {
+      state.zero_owner_spend_count = opportunities.filter((x) => x.economics?.owner_spend_zero === true).length;
+      state.blocked_owner_spend_count = opportunities.filter((x) => x.blockers?.includes("BLOCKED_OWNER_SPEND") || x.blockers?.includes("CAPITAL_REQUIRED")).length;
+      state.auto_eligible_count = 0;
+      state.automatic_action_level = "DISCOVER_ONLY_READ_ONLY";
+    }
     if (id === "DAYDREAMS") {
       state.auto_eligible_count = opportunities.filter((x) => x.ai_executability === "AI_EXECUTABLE").length;
       state.zero_cost_route_count = opportunities.filter((x) => x.economics?.estimated_task_cost_usdc === 0).length;
@@ -2178,7 +2436,7 @@ var ATMBrain = class extends DurableObject {
   async refreshRadar(reason = "manual") {
     const started = now();
     await this.activity("searching", `Radar ${reason}: buscando fuentes reales`);
-    const ids = ["DAYDREAMS", "SUPERTEAM", "MOLTJOBS", "WORKPROTOCOL", "AGENTHANSA", "0XWORK"];
+    const ids = ["DAYDREAMS", "SUPERTEAM", "MOLTJOBS", "WORKPROTOCOL", "AGENTHANSA", "0XWORK", "AGENTBOUNTIES"];
     const results = await Promise.all(ids.map((id) => discoverSource(id)));
     const sourceStates = await this.sources();
     let all = [];

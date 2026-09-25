@@ -1,0 +1,20 @@
+{
+  "schema_version": "atm/xento-watch-v1",
+  "verified_at": "2026-09-24",
+  "candidate": "Xento",
+  "state": "WATCH_ONLY",
+  "runtime_source": false,
+  "auto_eligible": false,
+  "owner_out_of_pocket_usd": 0,
+  "evidence_summary": "Current public research did not independently establish the exact active prize pool, payout rail/readback, settled payout receipt, Argentina/global eligibility, automation rules, newcomer access, or withdrawal terms required by ATM.",
+  "blockers": [
+    "EXACT_CURRENT_PRIZE_POOL",
+    "PAYOUT_RAIL",
+    "INDEPENDENT_SETTLED_PAYOUT_RECEIPT",
+    "ARGENTINA_OR_GLOBAL_ELIGIBILITY",
+    "AUTOMATION_RULES",
+    "NEWCOMER_ACCESS",
+    "WITHDRAWAL_TERMS"
+  ],
+  "promotion_rule": "All blockers must be independently resolved from primary/current evidence before any runtime source or cash ranking is allowed."
+}
