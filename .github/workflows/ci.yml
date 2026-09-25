@@ -47,6 +47,7 @@ jobs:
           node cloudflare/order034/ATM-ORDER051-DEPLOY-READBACK-TEST.mjs
           node cloudflare/order034/ATM-ORDER054-AGENTBOUNTIES-TEST.mjs
           node scripts/order051-smoke-retry-test.mjs
+          node scripts/order054-pathgate-unknown-sha-test.mjs
 
       - name: Python policy
         run: |
