@@ -267,7 +267,7 @@ function classifyRequiredCapabilities(opp = {}, advisory = null) {
   if (/\b(?:data|dataset|csv|spreadsheet|sql|analytics|statistical|jsonl)\b/i.test(text)) add("DATA");
   if (/\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
   if (/\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
-  if (/\b(?:animation|animate|motion|transition|microinteraction)\b/i.test(text)) add("ANIMATION");
+  if (/\b(?:animation|animate|animated|animating|motion|transition|microinteraction)\b/i.test(text)) add("ANIMATION");
   if (/\b(?:video|remotion|movie|clip|reel|voiceover)\b/i.test(text)) add("VIDEO");
   if (/\b(?:pdf|portable document)\b/i.test(text)) add("PDF");
   if (/\b(?:email|e-mail|newsletter)\b/i.test(text)) add("EMAIL");
