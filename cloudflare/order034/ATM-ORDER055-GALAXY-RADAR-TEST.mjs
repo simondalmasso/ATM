@@ -103,6 +103,9 @@ if(passive.OPENTASK?.state!=="WATCH_READ_ONLY_VERIFY"||passive.OPENTASK?.runtime
 if(passive.OKX_AI?.state!=="WATCH_ONLY"||passive.OKX_AI?.runtime_source!==false) throw new Error("OKX_NOT_PASSIVE");
 if(passive.CLAW_EARN?.state!=="REJECT_OWNER_SPEND"||passive.CLAW_EARN?.auto_eligible!==false) throw new Error("CLAW_EARN_NOT_REJECTED");
 if(passive.XENTO?.state!=="WATCH_ONLY"||passive.XENTO?.runtime_source!==false) throw new Error("XENTO_PROMOTED");
+if(passive.OPIRE?.state!=="WATCH_READ_ONLY_VERIFY"||passive.OPIRE?.runtime_source!==false) throw new Error("OPIRE_NOT_PASSIVE");
+if(passive.ALGORA?.state!=="WATCH_READ_ONLY_VERIFY"||passive.ALGORA?.runtime_source!==false) throw new Error("ALGORA_NOT_PASSIVE");
+
 if(passive.MQL5_K2?.state!=="PRIMARY_EXTERNAL_EXPERIMENT"||passive.MQL5_K2?.current_order_mutation!==false) throw new Error("MQL5_K2_NOT_PRESERVED");
 
 const tech=Object.fromEntries(mod.GALAXY_ADVISORY_TECH.map(x=>[x.id,x]));
