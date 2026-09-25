@@ -46,7 +46,8 @@ jobs:
           if [[ "$PROD_SHA" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PROD_SHA^{commit}" 2>/dev/null; then
             git diff --name-only "$PROD_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/changed.txt"
           else
-            git diff-tree -m --no-commit-id --name-only -r "$SOURCE_SHA" | sort -u > "$RUNNER_TEMP/changed.txt"
+            echo "cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js" > "$RUNNER_TEMP/changed.txt"
+            echo "PRODUCTION_SHA_UNAVAILABLE_FORCE_MAIN_DEPLOY=1"
           fi
           cat "$RUNNER_TEMP/changed.txt"
 
