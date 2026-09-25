@@ -56,6 +56,15 @@ function shellHtml() {
   <div class="statusline" id="truthline">Cargando verdad operativa…</div>
 </section>
 <section class="window"><div class="titlebar"><span>MARKET HEALTH</span><span>cron 15 min</span></div><div class="grid" id="marketGrid"></div></section>
+<section class="window" id="watchlist"><div class="titlebar"><span>WATCHLIST</span><span>NOT CASH</span></div><div class="body">
+  <div class="truthrule">
+    <span>META GLOBAL AI DEVELOPER HACKATHON</span>
+    <b class="warn">NOTIFICATION SENT · APPLICATIONS OPENING SOON</b>
+    <small>Virtual · worldwide · 10-day hackathon · $1M cash prize pool · $150 Meta Model API credits per participant.</small>
+    <small>NOT YET EARNABLE · application not submitted · acceptance/prize/payout unknown · reverify official rules before action.</small>
+    <small><a href="https://dev.meta.ai/events/global-hackathon" target="_blank" rel="noopener noreferrer">Official Meta event page</a> · verified 2026-09-25</small>
+  </div>
+</div></section>
 <section class="window"><div class="titlebar"><span>EXECUTION QUEUE</span><span id="queueSummary">—</span></div><div class="body"><div class="table" id="queue"></div></div></section>
 <div class="split">
   <section class="window"><div class="titlebar"><span>OPPORTUNITIES</span><span id="oppsCount">—</span></div><div class="body"><div class="table" id="opps"></div></div></section>
