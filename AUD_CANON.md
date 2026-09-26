@@ -7,10 +7,11 @@
 
 ## LAST_VERIFIED / BRANCH / HEAD
 - Repo/PR/ruleset state verified: **2026-09-25T22:06-03:00**.
-- Canonical branch: `main`.
-- Canonical HEAD: `2ee7bdb53c6a8f77373deebac6a5cb1175f112f0`.
-- Latest production exact-SHA smoke: **PASS** at 2026-09-25T05:41:53Z; runtime `RUNNING`, MCP tool count `17`, zero-spend `true`, production SHA = canonical HEAD.
-- Active work branch: `feat/order055-galaxy-radar-v1` @ `46d5eb9c6322a0ab83f14f1188b0437e3d8dc5a1`; PR #63 is open, CI PASS, branch is **ahead 6 / behind main 5**.
+- Canonical branch: `main`; **resolve its live Git HEAD before any mutation** because canon-only documentation commits may sit above the last runtime commit.
+- Verified deployed/runtime HEAD: `2ee7bdb53c6a8f77373deebac6a5cb1175f112f0`.
+- Latest production exact-SHA smoke: **PASS** at 2026-09-25T05:41:53Z; runtime `RUNNING`, MCP tool count `17`, zero-spend `true`, production SHA = deployed/runtime HEAD.
+- Canon refresh commits after that runtime SHA change only `AUD_CANON.md` / `ARQ_CANON.md`; deploy path correctly returns `No production deploy required`.
+- Active work branch: `feat/order055-galaxy-radar-v1` @ `46d5eb9c6322a0ab83f14f1188b0437e3d8dc5a1`; PR #63 is open and CI PASS. It diverges from current `main`; merge-base = `83a7c50e5336ccdad627b2cd498d821e74642adf`. Recompute ahead/behind live before resuming.
 - Fresh dynamic `/api/status` could not be re-read in this refresh (Firecrawl credits exhausted; connected desktop offline). Do not invent current opportunity/earnings counters.
 
 ## CANONICAL LINKS
@@ -74,4 +75,4 @@ Priority: current GitHub `main` + `AGENTS.md` + active ruleset + exact external 
 Hard gates: `MIN_REWARD_USD >= 100`; `OUT_OF_PLAN_SPEND_USD=0`; re-read live task state before ACQUIRE/SUBMIT; independent CHECK before SUBMIT; PAID only from authoritative external settlement tied to ATM work.
 
 ## NEXT EXACT ACTION
-Resume **PR #63 / ORDER-055 only**. Bring `feat/order055-galaxy-radar-v1` onto current `main@2ee7bdb...` without losing work, re-audit/address every still-valid Codex P1/P2 finding, rerun full CI on exact head, obtain a fresh clean review, then merge through protected PR and verify exact production SHA + health + MCP read-only/tool-count + money truth. Do nothing else until ORDER-055 reaches final evidence or a real blocker.
+Resume **PR #63 / ORDER-055 only**. Bring `feat/order055-galaxy-radar-v1` onto the **live current `main`** (runtime baseline `2ee7bdb...` plus canon-only docs descendants) without losing work, re-audit/address every still-valid Codex P1/P2 finding, rerun full CI on exact head, obtain a fresh clean review, then merge through protected PR and verify exact production SHA + health + MCP read-only/tool-count + money truth. Do nothing else until ORDER-055 reaches final evidence or a real blocker.
