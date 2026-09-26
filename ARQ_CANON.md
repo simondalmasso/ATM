@@ -97,13 +97,18 @@ Commits after the reviewed `fc77d485...` only added passive OSS-source coverage;
 Private signer/raw keys, payout destination, wallet/card/withdrawal actions, GitLab runners, direct `main`, force-push, unrelated runtime/UI/research files, stale legacy PRs.
 
 ## AUTHORITIES / GATES
-`AGENTS.md` is the operating contract. GitHub main is source authority. Ruleset `ATM canonical main` is active: PR required, `verify` required, no deletion/non-fast-forward, no bypass.  
+`AGENTS.md` is the operating contract. GitHub main is source authority. GitLab is downstream archive only; `github-main` is the automated mirror branch and must never become execution/deploy authority. Ruleset `ATM canonical main` is active: PR required, `verify` required, no deletion/non-fast-forward, no bypass.  
 Hard economics: `MIN_REWARD_USD>=100`, owner out-of-plan spend `0`, `UNKNOWN != YES`, live re-read before acquire/submit, independent rejection-oriented CHECK, PAID only from authoritative external settlement.
 
 ## ACCEPTANCE / STOP CONDITIONS
 **COMPLETE** only when: synced current main; all confirmed review defects regression-tested/fixed; exact-head CI green; fresh review clean enough to merge; protected merge succeeds; production exact-SHA smoke passes; runtime/MCP safety preserved; no new owner spend; no unsupported money claim.
 
 **STOP / HUMAN_GATE** if any action requires owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, bypassing platform controls, paid dependency, GitHub protection bypass, or changing files outside ORDER-055 scope without AUD authorization.
+
+## MIRROR STATUS
+- `.github/workflows/mirror-gitlab.yml`: GitHub `main` -> GitLab `github-main`, GitLab CI skipped, no force-push, no legacy-main mutation.
+- GitLab legacy main is archived at `archive/pre-github-canonical-main-20260925`.
+- Mirror remains fail-closed until `GITLAB_MIRROR_TOKEN` is configured as a GitHub Actions repository secret. Secret must never be committed or pasted into chat.
 
 ## NEXT EXACT ACTION
 **Open PR #63, sync current main into its existing branch, then start by reproducing the seven review findings above one by one before changing code.**
