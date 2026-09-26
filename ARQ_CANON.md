@@ -7,13 +7,14 @@
 
 ## LAST_VERIFIED / BRANCH / HEAD
 - Verified repo/PR/ruleset state: **2026-09-25T22:06-03:00**.
-- `main` HEAD = `2ee7bdb53c6a8f77373deebac6a5cb1175f112f0`.
-- Production exact-SHA smoke at this HEAD = **PASS**; runtime `RUNNING`, MCP tools `17`, zero-spend `true`.
+- Verified deployed/runtime HEAD = `2ee7bdb53c6a8f77373deebac6a5cb1175f112f0`.
+- Production exact-SHA smoke at this runtime HEAD = **PASS**; runtime `RUNNING`, MCP tools `17`, zero-spend `true`.
+- Current Git `main` can be a docs-only descendant because canon refresh itself adds only `AUD_CANON.md` / `ARQ_CANON.md`; **resolve live `main` before any mutation**. Canon-only descendants do not imply a production deploy.
 - Resume branch = `feat/order055-galaxy-radar-v1`.
 - Resume HEAD = `46d5eb9c6322a0ab83f14f1188b0437e3d8dc5a1`.
 - PR = https://github.com/simondalmasso/ATM/pull/63
 - Issue = https://github.com/simondalmasso/ATM/issues/62
-- Branch is **ahead 6 / behind current main 5**; merge-base = `83a7c50e5336ccdad627b2cd498d821e74642adf`.
+- Branch diverges from current `main`; merge-base = `83a7c50e5336ccdad627b2cd498d821e74642adf`. Recompute ahead/behind live before editing.
 - Head CI run `36082984191` = **SUCCESS**; green CI does not erase review correctness findings.
 
 ## CANONICAL LINKS
@@ -57,7 +58,7 @@ Current review debt to re-check at current head:
 Commits after the reviewed `fc77d485...` only added passive OSS-source coverage; do not assume the seven findings are fixed.
 
 ## WHAT_TO_DO_NOW
-1. Fetch current `main@2ee7bdb...`; sync it into `feat/order055-galaxy-radar-v1` without reset or lost commits.
+1. Resolve and fetch the live current `main` (deployed/runtime baseline `2ee7bdb...` plus canon-only docs descendants); sync it into `feat/order055-galaxy-radar-v1` without reset or lost commits.
 2. Reproduce each review finding against the actual current branch before editing.
 3. Fix only confirmed root causes; add deterministic regression tests for every confirmed case.
 4. Preserve hard rule: capability/skill/model advice can only reduce/route work; it cannot override deterministic owner-spend, policy, payout or executor gates.
@@ -75,7 +76,7 @@ Commits after the reviewed `fc77d485...` only added passive OSS-source coverage;
 - Meta hackathon: WATCH_ONLY until applications/rules open and are reverified.
 
 ## BLOCKERS / RISKS
-- PR #63 is behind main by 5 commits.
+- PR #63 diverges from current `main`; exact ahead/behind count must be recomputed live before resume.
 - Codex P1/P2 findings may permit false execution or false blocking if ignored.
 - PR #64 is stale/duplicate and conflicts conceptually with already-completed ORDER-054.
 - Legacy open PRs/issues are not current authority.
