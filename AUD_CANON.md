@@ -25,7 +25,7 @@
 - Parked single-ARQ backlog: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
 
 ## CURRENT STATE
-- GitHub `main` is source authority. GitLab is downstream archival mirror only: dedicated branch `github-main`, written only by GitHub Actions, `ci.skip`, **0 GitLab runner minutes**, never deployment authority. Legacy GitLab `main` is preserved separately.
+- GitHub `main` is source authority. GitLab is archival/read-only, must consume **0 GitLab runner minutes**, and is never deployment authority.
 - Protected `main`: PR required, required check `verify`, non-fast-forward/deletion blocked, no bypass actors.
 - Production inference path: Cloudflare Workers AI / GLM; current execution adapters: DAYDREAMS + AGENTHANSA behind generic dispatch; signer remains private/bounded.
 - Public MCP is read-only; latest smoke counted **17 tools**.
@@ -75,9 +75,9 @@ Priority: current GitHub `main` + `AGENTS.md` + active ruleset + exact external 
 Hard gates: `MIN_REWARD_USD >= 100`; `OUT_OF_PLAN_SPEND_USD=0`; re-read live task state before ACQUIRE/SUBMIT; independent CHECK before SUBMIT; PAID only from authoritative external settlement tied to ATM work.
 
 ## MIRROR STATUS
-- GitLab legacy `main@264e831e...` preserved at `archive/pre-github-canonical-main-20260925`.
-- Workflow: `.github/workflows/mirror-gitlab.yml` mirrors GitHub `main` -> GitLab `github-main` without force-push and with GitLab CI skipped.
-- Mirror is fail-closed until GitHub repository secret `GITLAB_MIRROR_TOKEN` exists; never paste that secret into chat/repo.
+- GitLab legacy `main@264e831e...` is preserved at `archive/pre-github-canonical-main-20260925`.
+- Verified 2026-09-25: personal GitLab namespace plan = `free`; GitLab pull mirroring is Premium/Ultimate and did not activate (`mirror=null`, pull endpoint reports project not mirrored).
+- Under simultaneous constraints `NO_PERSISTENT_SECRET + GITLAB_RUNNER_MINUTES=0 + NO_ALWAYS_ON_HOST/CONNECTOR`, automatic GitHub->GitLab write mirroring is not available on this GitLab tier. Do not report it as active.
 
 ## NEXT EXACT ACTION
 Resume **PR #63 / ORDER-055 only**. Bring `feat/order055-galaxy-radar-v1` onto the **live current `main`** (runtime baseline `2ee7bdb...` plus canon-only docs descendants) without losing work, re-audit/address every still-valid Codex P1/P2 finding, rerun full CI on exact head, obtain a fresh clean review, then merge through protected PR and verify exact production SHA + health + MCP read-only/tool-count + money truth. Do nothing else until ORDER-055 reaches final evidence or a real blocker.

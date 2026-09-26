@@ -26,5 +26,5 @@ Hard rules:
 17. Do not add research/provider/agent frameworks unless live runtime routing consumes them and economic benefit is demonstrated.
 18. Do not create recurring Windows Scheduled Tasks for ATM.
 19. GitHub main is source authority; production deploy requires exact-main-SHA CI success, non-production version smoke, exact-version promotion, production SHA readback, and rollback-on-failure.
-20. GitLab is a downstream archival mirror only after ORDER-051. GitHub remains the sole source/deploy authority. Automated replication may write only to the dedicated GitLab `github-main` mirror branch from GitHub Actions; GitLab CI must be skipped, GitLab runner minutes must remain 0, and GitLab must never deploy production.
+20. GitLab is archival/read-only after ORDER-051; it must not consume runner minutes or deploy production. GitHub remains the sole source/deploy authority. Do not claim automatic GitHub->GitLab mirroring unless a live mirror is independently verified.
 21. Persist operational truth in Worker state and external receipts, not chat memory.
