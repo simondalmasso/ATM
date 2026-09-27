@@ -158,6 +158,33 @@ for(const id of ["GENOFFICE","BROWSER_USE","AGENT_REACH","WEKNORA","GRAPHITI","C
   if(tech[id].runtime_mounted!==false) throw new Error("NEW_UPSTREAM_FALSELY_MOUNTED_"+id);
 }
 if(tech.BROWSER_USE?.executor_status!=="WATCH_EXECUTOR") throw new Error("BROWSER_USE_FALSE_EXECUTOR_STATUS");
+
+for(const text of ["Buy Bitcoin and hold it","Sell stocks for profit","Invest in cryptocurrency"]){
+  const blockers=mod.galaxyPolicyBlockers(text,"");
+  if(!blockers.includes("TRADING_OR_GAMBLING_PROHIBITED")) throw new Error("SINGULAR_TRADE_COMMAND_NOT_BLOCKED:"+text);
+}
+
+for(const text of ["You must stake 20 USDC","Pay a 5 USDC fee to complete this work","Deposit 20 USDC to get started","Purchase 10 API credits"]){
+  const blockers=mod.galaxyPolicyBlockers(text,"");
+  if(!blockers.includes("BLOCKED_OWNER_SPEND")) throw new Error("DIRECT_SPEND_MANDATE_NOT_BLOCKED:"+text);
+}
+
+for(const text of ["Write an article about Java history","Write documentation comparing Python and Rust"]){
+  const caps=classify(text);
+  if(caps.includes("CODE")) throw new Error("PROGRAMMING_LANGUAGE_SUBJECT_FALSE_CODE:"+text);
+}
+
+const unknownSpend=mod.applyGalaxyCapabilityTruth({
+  ...textOpp,
+  source:"AGENTHANSA",
+  owner_spend:undefined,
+  eligibility:{...textOpp.eligibility,owner_spend_zero:undefined},
+  economics:{},
+  blockers:[]
+});
+if(unknownSpend.owner_spend?.known!==false) throw new Error("UNKNOWN_SPEND_FIXTURE_NOT_UNKNOWN");
+if(mod.executionCandidateAdmitted(unknownSpend,{AGENTHANSA_API_KEY:"test"})) throw new Error("UNKNOWN_OWNER_SPEND_ADMITTED");
+if(!/galaxyNormalized\.owner_spend\?\.known === true && galaxyNormalized\.owner_spend\?\.zero === true/.test(sourceText)) throw new Error("FRESH_HANSA_ZERO_SPEND_GATE_MISSING");
 if(/name:\s*"(?:claim|sign|pay|withdraw|buy|sell|wallet)/i.test(sourceText)) throw new Error("PUBLIC_MUTATION_TOOL_ADDED");
 
 console.log("ORDER055_CAPABILITY_TAXONOMY=PASS");
