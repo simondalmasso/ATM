@@ -262,8 +262,9 @@ function galaxyPolicyBlockers(title, description) {
   const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
   if (tradeOrBet) add("TRADING_OR_GAMBLING_PROHIBITED");
   const spendEvidence = sourceExecutionSpendEvidence(title, description);
-  const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|participat))/i.test(text);
-  const spendRequired = spendEvidence.required || imperativeSpend;
+  const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas(?:\s+fee)?|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|submission|participat))/i.test(text);
+  const explicitRequirement = /\brequires?\b[^.!?;]{0,80}\b(?:stake|deposit|collateral|gas(?:\s+fee)?|network\s+fee|paid\s+api|premium\s+api|paid\s+subscription|api\s+credits?|card\s+hold|preauthori[sz]ation)\b/i.test(text);
+  const spendRequired = spendEvidence.required || imperativeSpend || explicitRequirement;
   if (spendRequired) {
     add("BLOCKED_OWNER_SPEND");
     if (/\b(?:stake|staking|security deposit|refundable deposit|collateral)\b/i.test(text) || /\bbond\b[^.!?;]{0,80}\b(?:required|must|need|post|provide|deposit|collateral)\b/i.test(text)) add("CAPITAL_REQUIRED");
