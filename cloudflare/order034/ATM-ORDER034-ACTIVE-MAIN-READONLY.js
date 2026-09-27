@@ -285,7 +285,7 @@ function classifyRequiredCapabilities(opp = {}, advisory = null) {
   if (/\b(?:open[ -]?source|\boss\b|github issue|pull request|repository fix|repo fix)\b/i.test(text)) { add("OSS_FIX"); add("CODE"); add("GITHUB"); }
   if (/\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b[^.!?;]{0,90}\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b|\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b[^.!?;]{0,90}\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b/i.test(text)) add("DATA");
   if (/\b(?:design|create|build|implement|redesign)\b[^.!?;]{0,90}\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
-  if (/\b(?:build|create|implement|develop|redesign)\b[^.!?;]{0,90}\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
+  if (/\b(?:build|create|implement|develop|redesign|design)\b[^.!?;]{0,90}\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
   if (/\b(?:design|create|build|implement|produce|add)\b[^.!?;]{0,90}\b(?:animation|animate|animated|motion|transition|microinteraction)\b|\b(?:animate)\b[^.!?;]{0,90}\b(?:ui|component|interface|page)\b/i.test(text)) add("ANIMATION");
   if (/\b(?:create|produce|edit|render|generate)\b[^.!?;]{0,90}\b(?:video|remotion|movie|clip|reel|voiceover)\b/i.test(text)) add("VIDEO");
   if (/\b(?:create|generate|edit|convert|produce)\b[^.!?;]{0,90}\b(?:pdf|portable document)\b/i.test(text)) add("PDF");
