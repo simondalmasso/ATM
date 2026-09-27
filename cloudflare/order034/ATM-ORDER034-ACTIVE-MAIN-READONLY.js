@@ -243,17 +243,34 @@ var GALAXY_ADVISORY_TECH = [
   { id:"JEV_DRONE", source:"RomanSlack/jev-drone", class:"PATTERN_HIGH_VALUE", authority:"NONE", runtime_mounted:false },
   { id:"ONEVONEJEV", source:"emrickgarrett/OneVOneJev", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false },
   { id:"JEV_TRADER", source:"buberlo/jev-trader", class:"RESEARCH_PATTERN_ONLY", authority:"NONE", runtime_mounted:false, policy:"TRADING_EXECUTION_PROHIBITED" },
-  { id:"KILLMYIDEA", source:"monteduro/killmyidea", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false, reuse:"NO_CODE_COPY_UNTIL_LICENSE_PROVEN" }
+  { id:"KILLMYIDEA", source:"monteduro/killmyidea", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false, reuse:"NO_CODE_COPY_UNTIL_LICENSE_PROVEN" },
+  { id:"GENOFFICE", source:"genspark-ai/genoffice", class:"DELIVERABLE_EXECUTOR_LOCAL_ONLY", authority:"SOURCE_ONLY", runtime_mounted:false, executor_status:"NOT_MOUNTED", note:"Apache-2.0 office CLI/MCP can create/edit DOCX/XLSX/PPTX/PDF locally; no Worker executor or model key is mounted." },
+  { id:"OPENMAIC", source:"THU-MAIC/OpenMAIC", class:"EDUCATION_APP_PATTERN", authority:"PATTERN_ONLY", runtime_mounted:false, note:"Multi-agent classroom product; no direct ATM money/executor fit." },
+  { id:"WEKNORA", source:"Tencent/WeKnora", class:"KNOWLEDGE_PLATFORM", authority:"SOURCE_ONLY", runtime_mounted:false, note:"MIT self-hosted RAG/agent/MCP stack; useful architecture but heavy persistent services are not mounted." },
+  { id:"GRAPHITI", source:"getzep/graphiti", class:"TEMPORAL_MEMORY_PATTERN", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Apache-2.0 temporal knowledge graph; not a revenue or execution backend by itself." },
+  { id:"COGNEE", source:"topoteretes/cognee", class:"MEMORY_PLATFORM_PATTERN", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Apache-2.0 long-term memory platform; no direct task execution path." },
+  { id:"BROWSER_USE", source:"browser-use/browser-use", class:"WATCH_EXECUTOR_HIGH", authority:"NONE", runtime_mounted:false, executor_status:"WATCH_EXECUTOR", note:"MIT local MCP/CLI can drive a real browser, but requires a persistent browser host/model; cloud path is usage-priced, so ATM BROWSER stays unproven." },
+  { id:"OPEN_WEBUI", source:"open-webui/open-webui", class:"HOST_UI", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Useful agent/MCP frontend, but not an earning executor; current license includes branding conditions." },
+  { id:"PAGEINDEX", source:"VectifyAI/PageIndex", class:"RETRIEVAL_PATTERN_HIGH", authority:"SOURCE_ONLY", runtime_mounted:false, note:"MIT vectorless document retrieval; useful for evidence navigation, not external task execution." },
+  { id:"AGENT_REACH", source:"Panniantong/Agent-Reach", class:"RESEARCH_ROUTER_HIGH", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Zero-API-fee oriented multi-platform CLI router; local tools/cookies and sometimes proxy are required, so no standalone Worker executor is claimed." },
+  { id:"QWEN_AUDIO_AGENT", source:"QwenAudio/qwen-audio-agent", class:"VOICE_RUNTIME", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Realtime voice runtime; no direct cash/radar blocker solved." }
 ];
 
 function galaxyPolicyBlockers(title, description) {
   const text = `${title || ""} ${description || ""}`.toLowerCase(), out = [];
   const add = (x) => { if (!out.includes(x)) out.push(x); };
-  if (/\b(?:trading|trade crypto|crypto trading|forex trading|market making|sports betting|betting|gambling|casino|sportsbook|wager|prediction market)\b/i.test(text)) add("TRADING_OR_GAMBLING_PROHIBITED");
-  if (/\b(?:stake|staking|security deposit|refundable deposit|collateral|bond)\b/i.test(text)) { add("CAPITAL_REQUIRED"); add("BLOCKED_OWNER_SPEND"); }
-  if (/\b(?:gas fee|network fee|gas required|pay gas|transaction fee)\b/i.test(text)) { add("GAS_OR_NETWORK_FEE_REQUIRED"); add("BLOCKED_OWNER_SPEND"); }
-  if (/\b(?:paid api|premium api|paid subscription|subscription required|api credits? required)\b/i.test(text)) { add("PAID_API_REQUIRED"); add("BLOCKED_OWNER_SPEND"); }
-  if (/\b(?:card hold|credit card hold|preauthorization|pre-authori[sz]ation)\b/i.test(text)) { add("CARD_HOLD_REQUIRED"); add("BLOCKED_OWNER_SPEND"); }
+  const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
+  if (tradeOrBet) add("TRADING_OR_GAMBLING_PROHIBITED");
+  const spendEvidence = sourceExecutionSpendEvidence(title, description);
+  const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|participat))/i.test(text);
+  const spendRequired = spendEvidence.required || imperativeSpend;
+  if (spendRequired) {
+    add("BLOCKED_OWNER_SPEND");
+    if (/\b(?:stake|staking|security deposit|refundable deposit|collateral)\b/i.test(text) || /\bbond\b[^.!?;]{0,80}\b(?:required|must|need|post|provide|deposit|collateral)\b/i.test(text)) add("CAPITAL_REQUIRED");
+    if (/\b(?:gas|network fee|transaction fee)\b/i.test(text)) add("GAS_OR_NETWORK_FEE_REQUIRED");
+    if (/\b(?:paid api|premium api|paid subscription|subscription required|api credits? required)\b/i.test(text)) add("PAID_API_REQUIRED");
+    if (/\b(?:card hold|credit card hold|preauthorization|pre-authori[sz]ation)\b/i.test(text)) add("CARD_HOLD_REQUIRED");
+  }
   return out;
 }
 function classifyRequiredCapabilities(opp = {}, advisory = null) {
@@ -265,21 +282,21 @@ function classifyRequiredCapabilities(opp = {}, advisory = null) {
   if (cls === "CODE_SANDBOX_REQUIRED") add("CODE");
   if (/\b(?:research|investigat|summari[sz]e|analysis|analy[sz]e|report|write|article|content|copy|documentation)\b/i.test(text)) add("TEXT_RESEARCH");
   if (/\b(?:code|coding|implement|programming|script|software|bug|patch|fix\b|refactor|typescript|javascript|python|rust|golang|java\b)\b/i.test(text)) add("CODE");
-  if (/\b(?:open[ -]?source|\boss\b|github issue|pull request|repository fix|repo fix)\b/i.test(text)) { add("OSS_FIX"); add("CODE"); }
-  if (/\b(?:data|dataset|csv|spreadsheet|sql|analytics|statistical|jsonl)\b/i.test(text)) add("DATA");
-  if (/\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
-  if (/\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
-  if (/\b(?:animation|animate|animated|animating|motion|transition|microinteraction)\b/i.test(text)) add("ANIMATION");
-  if (/\b(?:video|remotion|movie|clip|reel|voiceover)\b/i.test(text)) add("VIDEO");
-  if (/\b(?:pdf|portable document)\b/i.test(text)) add("PDF");
-  if (/\b(?:email|e-mail|newsletter)\b/i.test(text)) add("EMAIL");
-  if (/\b(?:diagram|flowchart|sequence diagram|architecture diagram|mermaid|data model)\b/i.test(text)) add("DIAGRAM");
+  if (/\b(?:open[ -]?source|\boss\b|github issue|pull request|repository fix|repo fix)\b/i.test(text)) { add("OSS_FIX"); add("CODE"); add("GITHUB"); }
+  if (/\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b[^.!?;]{0,90}\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b|\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b[^.!?;]{0,90}\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b/i.test(text)) add("DATA");
+  if (/\b(?:design|create|build|implement|redesign)\b[^.!?;]{0,90}\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
+  if (/\b(?:build|create|implement|develop|redesign)\b[^.!?;]{0,90}\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
+  if (/\b(?:design|create|build|implement|produce|add)\b[^.!?;]{0,90}\b(?:animation|animate|animated|motion|transition|microinteraction)\b|\b(?:animate)\b[^.!?;]{0,90}\b(?:ui|component|interface|page)\b/i.test(text)) add("ANIMATION");
+  if (/\b(?:create|produce|edit|render|generate)\b[^.!?;]{0,90}\b(?:video|remotion|movie|clip|reel|voiceover)\b/i.test(text)) add("VIDEO");
+  if (/\b(?:create|generate|edit|convert|produce)\b[^.!?;]{0,90}\b(?:pdf|portable document)\b/i.test(text)) add("PDF");
+  if (/\b(?:email|send|deliver)\b[^.!?;]{0,90}\b(?:it|them|report|message|recipient|results?)\b|\bsend\b[^.!?;]{0,90}\b(?:email|e-mail|newsletter)\b/i.test(text)) add("EMAIL");
+  if (/\b(?:draw|create|generate|render)\b[^.!?;]{0,90}\b(?:diagram|flowchart|sequence diagram|architecture diagram|mermaid|data model)\b/i.test(text)) add("DIAGRAM");
   if (/\b(?:scientific|science|literature review|research paper|journal paper|experiment|hypothesis)\b/i.test(text)) add("SCIENTIFIC");
-  if (/\b(?:browser|browse\b|web navigation|navigate (?:a |the )?website|fill (?:a |the )?(?:web )?form|click (?:a |the )?(?:web )?button)\b/i.test(text)) add("BROWSER");
-  if (/\b(?:desktop|windows app|macos app|native app|accessibility tree|system settings)\b/i.test(text)) add("DESKTOP");
+  if (/\b(?:navigate|browse|fill|click|submit)\b[^.!?;]{0,90}\b(?:browser|website|web form|web page|button|checkout)\b|\bbrowser\b[^.!?;]{0,90}\b(?:navigate|fill|click|submit)\b/i.test(text)) add("BROWSER");
+  if (/\b(?:automate|control|operate)\b[^.!?;]{0,90}\b(?:desktop|windows app|macos app|native app|system settings)\b/i.test(text)) add("DESKTOP");
   if (/\b(?:rest api|http api|api endpoint|webhook|http request|https request)\b/i.test(text) || cls === "HTTP_TOOL") add("API_HTTP");
-  if (/\b(?:github|pull request|repository|repo\b)\b/i.test(text)) add("GITHUB");
-  if (/\b(?:cpu|compute|simulation|render farm|benchmark compute|distributed compute)\b/i.test(text)) add("COMPUTE_CPU");
+  if (/\b(?:open|create|submit|comment|merge|push|update)\b[^.!?;]{0,90}\b(?:github|pull request|repository|repo\b|issue)\b/i.test(text)) add("GITHUB");
+  if (/\b(?:run|execute|perform)\b[^.!?;]{0,90}\b(?:cpu|compute|simulation|render farm|benchmark compute|distributed compute)\b/i.test(text)) add("COMPUTE_CPU");
   for (const x of advisory?.required_capabilities || []) add(String(x).toUpperCase());
   return caps;
 }
@@ -287,16 +304,18 @@ function executorCapabilityTruth(capability, opp = {}) {
   const cap = String(capability || "").toUpperCase(), spec = EXECUTOR_CAPABILITIES[cap] || { status:"UNKNOWN", executor:null };
   if (cap === "API_HTTP") {
     const blocked = (opp.blockers || []).some((x) => ["HTTP_URL_NOT_PUBLIC_HTTPS","HTTP_EGRESS_HOST_NOT_ALLOWLISTED","HTTP_TOOL_HAS_NO_EXPLICIT_SAFE_URL","PAID_API_REQUIRED"].includes(x));
-    return { capability:cap, ...spec, proven:spec.status === "PROVEN_BOUNDED" && !blocked };
+    const actualHttpPath = String(opp.capability_class || "").toUpperCase() === "HTTP_TOOL";
+    return { capability:cap, ...spec, proven:spec.status === "PROVEN_BOUNDED" && actualHttpPath && !blocked };
   }
   return { capability:cap, ...spec, proven:spec.status === "PROVEN" };
 }
 function galaxyOwnerSpendTruth(opp = {}, blockers = []) {
-  if (opp?.eligibility?.owner_spend_zero === true) return { known:true, zero:true, amount_usd:0 };
+  const explicitSpendBlocker = blockers.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x));
+  if (explicitSpendBlocker) return { known:true, zero:false, amount_usd:null };
   if (opp?.eligibility?.owner_spend_zero === false) return { known:true, zero:false, amount_usd:null };
   if (opp?.economics?.owner_spend_known === true) return { known:true, zero:opp.economics.owner_spend_zero === true, amount_usd:opp.economics.total_owner_spend_usd ?? null };
+  if (opp?.eligibility?.owner_spend_zero === true) return { known:true, zero:true, amount_usd:0 };
   if (opp?.economics?.explicit_zero_cost === true || opp?.economics?.estimated_task_cost_usdc === 0 && opp?.source === "DAYDREAMS") return { known:true, zero:true, amount_usd:0 };
-  if (blockers.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x))) return { known:true, zero:false, amount_usd:null };
   return { known:false, zero:null, amount_usd:null };
 }
 function galaxyOpenNow(opp = {}) {
@@ -377,7 +396,7 @@ __name(executionAdapterCapabilities, "executionAdapterCapabilities");
 __name2(executionAdapterCapabilities, "executionAdapterCapabilities");
 function executionCandidateAdmitted(opp, env = {}) {
   const a = executionAdapterCapabilities(opp?.source, env);
-  const galaxyExecutorOk = opp?.executor_truth === void 0 || opp?.executor_truth === "PROVEN";
+  const galaxyExecutorOk = opp?.executor_truth === "PROVEN";
   return !!(a.complete_lifecycle && galaxyExecutorOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
 }
 __name(executionCandidateAdmitted, "executionCandidateAdmitted");
@@ -2048,7 +2067,9 @@ var ATMBrain = class extends DurableObject {
     if (economics.worker_action === "submit" && task.submissionWindowOpen !== true) blockers.push("SUBMISSION_WINDOW_CLOSED");
     if (!["open", "claimed", "worker_selected"].includes(String(task.status || "").toLowerCase())) blockers.push("TASK_STATE_NOT_WRITABLE");
     const terms_hash = await taskmarketTermsHash(task), pending_action_snapshot_hash = await pendingActionSnapshotHash(task), clean = uniq(blockers);
-    return { ok: clean.length === 0 && economics.explicit_zero_cost, task, normalized, economics: { ...economics, worker_action_cost_usdc: economics.action_cost_usdc, task_execution_spend_required: normalized.economics?.task_execution_spend_required === true, task_execution_spend_evidence: normalized.economics?.task_execution_spend_evidence || [] }, blockers: clean, blocker_details: blockerDetails(clean, { source: "DAYDREAMS", raw_id: String(task.id || normalized.raw_id || ""), title: normalized.title, description: normalized.description, raw: task, economics: { ...economics, task_execution_spend_required: normalized.economics?.task_execution_spend_required === true }, task_execution_spend: { required: normalized.economics?.task_execution_spend_required === true, matches: normalized.economics?.task_execution_spend_evidence || [] }, capability_class: normalized.capability_class, artifact_profile: normalized.artifact_profile, estimated_net_usd: normalized.estimated_net_usd, source_status: task.status, deadline: task.expiryTime, terms_hash, observed_at: read.read_at }), terms_hash, pending_action_snapshot_hash, read_at: read.read_at, worker_address: TASKMARKET_WORKER_ADDRESS, operation: economics.worker_action, action_cost_usdc: economics.explicit_zero_cost ? 0 : economics.action_cost_usdc };
+    const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
+    const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
+    return { ok: finalBlockers.length === 0 && economics.explicit_zero_cost && galaxyNormalized.executor_truth === "PROVEN", task, normalized:galaxyNormalized, economics: { ...economics, worker_action_cost_usdc: economics.action_cost_usdc, task_execution_spend_required: galaxyNormalized.economics?.task_execution_spend_required === true, task_execution_spend_evidence: galaxyNormalized.economics?.task_execution_spend_evidence || [] }, blockers: finalBlockers, blocker_details: blockerDetails(finalBlockers, { source: "DAYDREAMS", raw_id: String(task.id || galaxyNormalized.raw_id || ""), title: galaxyNormalized.title, description: galaxyNormalized.description, raw: task, economics: { ...economics, task_execution_spend_required: galaxyNormalized.economics?.task_execution_spend_required === true }, task_execution_spend: { required: galaxyNormalized.economics?.task_execution_spend_required === true, matches: galaxyNormalized.economics?.task_execution_spend_evidence || [] }, capability_class: galaxyNormalized.capability_class, artifact_profile: galaxyNormalized.artifact_profile, estimated_net_usd: galaxyNormalized.estimated_net_usd, source_status: task.status, deadline: task.expiryTime, terms_hash, observed_at: read.read_at }), terms_hash, pending_action_snapshot_hash, read_at: read.read_at, worker_address: TASKMARKET_WORKER_ADDRESS, operation: economics.worker_action, action_cost_usdc: economics.explicit_zero_cost ? 0 : economics.action_cost_usdc };
   }
   async acquireDaydreams(opp, runtime) {
     const fresh = await this.freshTaskmarketPolicy(opp, "claim");
@@ -2113,7 +2134,9 @@ var ATMBrain = class extends DurableObject {
     const terms_hash = await sha256Hex(stableJson({ source:"AGENTHANSA", id:String(bounty.id || opp.raw_id), title:normalized.title, description:normalized.description, reward_amount:bounty.reward_amount, currency:bounty.currency, status:bounty.status, deadline:bounty.deadline, goal:bounty.goal }));
     const pending_action_snapshot_hash = await sha256Hex(stableJson({ source:"AGENTHANSA", operation, joined, status:bounty.status }));
     const clean = uniq(blockers);
-    return { ok:clean.length===0, task:bounty, bounty, normalized, blockers:clean, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
+    const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
+    const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
+    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN", task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
   }
   async freshExecutionPolicy(opp, operation = null) {
     if (opp?.source === "DAYDREAMS") return await this.freshTaskmarketPolicy(opp, operation);
