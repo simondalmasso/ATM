@@ -115,6 +115,49 @@ if(tech.AGENT_DESKTOP?.executor_status!=="WATCH_EXECUTOR") throw new Error("AGEN
 if(tech.JSON_RENDER?.runtime_mounted!==false) throw new Error("JSON_RENDER_MOUNTED_IN_WORKER");
 
 if(mod.executionCandidateAdmitted({...textOpp,source:"SUPERTEAM"},{})) throw new Error("DISCOVER_ONLY_SOURCE_EXECUTION_REGRESSION");
+
+const legacyMissingExecutor={...textOpp,source:"AGENTHANSA"};
+delete legacyMissingExecutor.executor_truth;
+if(mod.executionCandidateAdmitted(legacyMissingExecutor,{AGENTHANSA_API_KEY:"test"})) throw new Error("MISSING_EXECUTOR_TRUTH_DID_NOT_FAIL_CLOSED");
+
+for(const text of ["Trade stocks for profit","Buy and sell equities","Place a bet on a football match"]){
+  const blockers=mod.galaxyPolicyBlockers(text,"");
+  if(!blockers.includes("TRADING_OR_GAMBLING_PROHIBITED")) throw new Error("DIRECT_TRADE_BET_NOT_BLOCKED:"+text);
+}
+
+for(const text of ["No stake or gas fee is required","Write a bond market analysis"]){
+  const blockers=mod.galaxyPolicyBlockers(text,"");
+  if(blockers.some(x=>["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","GAS_OR_NETWORK_FEE_REQUIRED"].includes(x))) throw new Error("NEGATED_OR_SUBJECT_SPEND_FALSE_POSITIVE:"+text);
+}
+
+const staleZero=mod.applyGalaxyCapabilityTruth(base({
+  title:"Stake 20 USDC to claim the task",
+  description:"Stake 20 USDC to claim the task",
+  blockers:["BLOCKED_OWNER_SPEND","CAPITAL_REQUIRED"],
+  eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true}
+}));
+if(staleZero.owner_spend?.zero!==false || staleZero.eligibility?.owner_spend_zero!==false) throw new Error("EXPLICIT_SPEND_DID_NOT_OVERRIDE_STALE_ZERO_COST");
+
+const dataSubject=classify("Write an article about data privacy");
+if(dataSubject.includes("DATA")) throw new Error("DATA_RESEARCH_SUBJECT_FALSE_EXECUTOR");
+const webSubject=classify("Research website accessibility standards");
+if(webSubject.includes("WEB_UI")) throw new Error("WEB_RESEARCH_SUBJECT_FALSE_EXECUTOR");
+
+const fakeHttp=mod.applyGalaxyCapabilityTruth(base({
+  title:"Call REST API endpoint and report status",
+  description:"Call REST API endpoint and report status",
+  capability_class:"PURE_LLM"
+}));
+if(!fakeHttp.required_capabilities.includes("API_HTTP")) throw new Error("API_HTTP_REQUIREMENT_NOT_DETECTED");
+if(fakeHttp.executor_truth==="PROVEN" || fakeHttp.ai_executability!=="BLOCKED") throw new Error("API_HTTP_PROVEN_WITHOUT_HTTP_EXECUTION_PATH");
+
+if((sourceText.match(/galaxyNormalized\s*=\s*applyGalaxyCapabilityTruth/g)||[]).length<2) throw new Error("FRESH_READBACK_GALAXY_RECLASSIFICATION_MISSING");
+
+for(const id of ["GENOFFICE","BROWSER_USE","AGENT_REACH","WEKNORA","GRAPHITI","COGNEE","OPEN_WEBUI","PAGEINDEX","QWEN_AUDIO_AGENT","OPENMAIC"]){
+  if(!tech[id]) throw new Error("NEW_UPSTREAM_CLASSIFICATION_MISSING_"+id);
+  if(tech[id].runtime_mounted!==false) throw new Error("NEW_UPSTREAM_FALSELY_MOUNTED_"+id);
+}
+if(tech.BROWSER_USE?.executor_status!=="WATCH_EXECUTOR") throw new Error("BROWSER_USE_FALSE_EXECUTOR_STATUS");
 if(/name:\s*"(?:claim|sign|pay|withdraw|buy|sell|wallet)/i.test(sourceText)) throw new Error("PUBLIC_MUTATION_TOOL_ADDED");
 
 console.log("ORDER055_CAPABILITY_TAXONOMY=PASS");
