@@ -1,0 +1,107 @@
+name: ATM GitLab downstream mirror
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atm-gitlab-downstream-mirror
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout GitHub source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Configure repo-scoped GitLab SSH key
+        env:
+          GITLAB_MIRROR_SSH_KEY: ${{ secrets.GITLAB_MIRROR_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITLAB_MIRROR_SSH_KEY:-}"
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$GITLAB_MIRROR_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -t ed25519 gitlab.com > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Mirror GitHub branches and tags to GitLab
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git remote add gitlab git@gitlab.com:simondalmasso/ATM.git
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+
+          sync_ref() {
+            src="$1"
+            dst="$2"
+            local_sha="$(git rev-parse "$src")"
+            remote_sha="$(git ls-remote gitlab "$dst" | awk '{print $1}')"
+
+            if [[ "$local_sha" == "$remote_sha" ]]; then
+              echo "MIRROR_REF_ALREADY_EQUAL=$dst@$local_sha"
+              return 0
+            fi
+
+            if [[ -n "$remote_sha" ]]; then
+              git push -o ci.skip --force-with-lease="$dst:$remote_sha" gitlab "$src:$dst"
+            else
+              git push -o ci.skip gitlab "$src:$dst"
+            fi
+          }
+
+          while IFS= read -r ref; do
+            name="${ref#refs/remotes/origin/}"
+            [[ "$name" == "HEAD" ]] && continue
+            sync_ref "$ref" "refs/heads/$name"
+          done < <(git for-each-ref --format='%(refname)' refs/remotes/origin)
+
+          while IFS= read -r ref; do
+            sync_ref "$ref" "$ref"
+          done < <(git for-each-ref --format='%(refname)' refs/tags)
+
+      - name: Verify main parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          GITHUB_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          GITLAB_MAIN_SHA="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+
+          echo "GITHUB_MAIN_SHA=$GITHUB_MAIN_SHA"
+          echo "GITLAB_MAIN_SHA=$GITLAB_MAIN_SHA"
+          test -n "$GITHUB_MAIN_SHA"
+          test "$GITHUB_MAIN_SHA" = "$GITLAB_MAIN_SHA"
+
+          {
+            echo "### ATM GitHub → GitLab downstream mirror"
+            echo "- MIRROR_WORKFLOW=SUCCESS"
+            echo "- GITHUB_MAIN_SHA=$GITHUB_MAIN_SHA"
+            echo "- GITLAB_MAIN_SHA=$GITLAB_MAIN_SHA"
+            echo "- HEAD_PARITY=PASS"
+            echo "- CANON=GITHUB"
+            echo "- MIRROR=GITLAB"
+            echo "- WORK_ONLY_ON_GITHUB=YES"
+            echo "- DUPLICATE_WORK=NO"
+            echo "- LOCAL_PC_DEPENDENCY=NO"
+            echo "- REMOTE_DESKTOP_DEPENDENCY=NO"
+            echo "- SENTINELX_DEPENDENCY=NO"
+            echo "- GitLab CI push option: ci.skip"
+            echo "- GitLab-only refs are preserved; no global prune/delete is performed"
+          } >> "$GITHUB_STEP_SUMMARY"
