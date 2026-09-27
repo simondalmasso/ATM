@@ -1,0 +1,80 @@
+name: ATM GitLab downstream mirror
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atm-gitlab-downstream-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout triggering GitHub ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure repository-scoped GitLab deploy key
+        env:
+          GITLAB_MIRROR_SSH_KEY: ${{ secrets.GITLAB_MIRROR_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITLAB_MIRROR_SSH_KEY:-}"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$GITLAB_MIRROR_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Sync GitHub branches and tags to GitLab
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add gitlab git@gitlab.com:simondalmasso/ATM.git
+
+          # Refresh every GitHub branch and tag. Do not prune GitLab-only legacy refs.
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' --force
+
+          while IFS= read -r branch; do
+            [ -n "$branch" ] || continue
+            git push gitlab "refs/remotes/origin/$branch:refs/heads/$branch"
+          done < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | grep -v '^HEAD$' | sort)
+
+          git push gitlab --tags
+
+      - name: Verify canonical main parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          github_main="$(git rev-parse refs/remotes/origin/main)"
+          gitlab_main="$(git ls-remote git@gitlab.com:simondalmasso/ATM.git refs/heads/main | awk '{print $1}')"
+
+          echo "GITHUB_MAIN_SHA=$github_main"
+          echo "GITLAB_MAIN_SHA=$gitlab_main"
+
+          test -n "$gitlab_main"
+          test "$github_main" = "$gitlab_main"
+
+          {
+            echo "### ATM GitHub -> GitLab mirror"
+            echo "- MIRROR_WORKFLOW=SUCCESS"
+            echo "- GITHUB_MAIN_SHA=$github_main"
+            echo "- GITLAB_MAIN_SHA=$gitlab_main"
+            echo "- HEAD_PARITY=PASS"
+            echo "- CANON=GITHUB"
+            echo "- MIRROR=GITLAB"
+            echo "- WORK_ONLY_ON_GITHUB=YES"
+            echo "- DUPLICATE_WORK=NO"
+            echo "- LOCAL_PC_DEPENDENCY=NO"
+            echo "- REMOTE_DESKTOP_DEPENDENCY=NO"
+            echo "- SENTINELX_DEPENDENCY=NO"
+            echo "- GITLAB_LEGACY_REFS_PRUNED=NO"
+          } >> "$GITHUB_STEP_SUMMARY"
