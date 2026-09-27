@@ -6,109 +6,87 @@
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
 ## LAST_VERIFIED / BRANCH / HEAD
-- Verified repo/PR/ruleset state: **2026-09-25T22:06-03:00**.
-- Verified deployed/runtime HEAD = `2ee7bdb53c6a8f77373deebac6a5cb1175f112f0`.
-- Production exact-SHA smoke at this runtime HEAD = **PASS**; runtime `RUNNING`, MCP tools `17`, zero-spend `true`.
-- Current Git `main` can be a docs-only descendant because canon refresh itself adds only `AUD_CANON.md` / `ARQ_CANON.md`; **resolve live `main` before any mutation**. Canon-only descendants do not imply a production deploy.
-- Resume branch = `feat/order055-galaxy-radar-v1`.
-- Resume HEAD = `46d5eb9c6322a0ab83f14f1188b0437e3d8dc5a1`.
-- PR = https://github.com/simondalmasso/ATM/pull/63
-- Issue = https://github.com/simondalmasso/ATM/issues/62
-- Branch diverges from current `main`; merge-base = `83a7c50e5336ccdad627b2cd498d821e74642adf`. Recompute ahead/behind live before editing.
-- Head CI run `36082984191` = **SUCCESS**; green CI does not erase review correctness findings.
+- Verified: **2026-09-27T20:39-03:00**.
+- GitHub `main` runtime/deployed HEAD: `147fb81fb659c7a888154dbee97cda27dc53e907`.
+- Main required `verify`: **PASS** (run `36359359467`).
+- Cloudflare exact-SHA deployment: **PASS** (run `36359377106`).
+- GitLab downstream mirror: **PASS** (run `36359359489`), main SHA parity verified.
 
 ## CANONICAL LINKS
 - Contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
 - Ruleset: https://github.com/simondalmasso/ATM/rules/23903496
-- ORDER-054 final: https://github.com/simondalmasso/ATM/issues/58#issuecomment-5824904782
-- ORDER-058 merged: https://github.com/simondalmasso/ATM/pull/68
+- Completed ORDER-055: https://github.com/simondalmasso/ATM/issues/62
+- Merged ORDER-055 PR: https://github.com/simondalmasso/ATM/pull/63
+- Mirror implementation: https://github.com/simondalmasso/ATM/pull/74
+- GitLab mirror: https://gitlab.com/simondalmasso/ATM
 - Pending skills order: https://github.com/simondalmasso/ATM/issues/55
-- Parked research orders: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
+- Parked research: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
 
 ## CURRENT STATE
-Single-ARQ mode is now authoritative. The only active workstream is ORDER-055.
-
-PR #63 currently changes only:
-1. `.github/workflows/ci.yml`
-2. `cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js`
-3. `cloudflare/order034/ATM-ORDER055-GALAXY-RADAR-TEST.mjs`
-
-Implemented direction: deterministic capability taxonomy; separate `EXECUTOR_CAPABILITIES`; passive source matrix; Laya/Jev advisory patterns. Skills are context, not executor proof.
-
-Latest authoritative money evidence remains `REAL_PAID_USD=0`, owner spend `0`, auto-eligible `0` from ORDER-054. Fresh dynamic status was unavailable during this canon refresh; re-read live before making any current economic claim.
+- **Work only in GitHub. GitLab is mirror-only.**
+- `.github/workflows/mirror-gitlab.yml` automatically syncs GitHub branches/tags to GitLab using repo-scoped SSH credentials stored only in GitHub Actions.
+- No ongoing PC, Remote Desktop, SentinelX or GitLab-runner dependency exists for mirroring.
+- ORDER-055 is complete and deployed.
+- Galaxy hard rules: deterministic capability taxonomy; skill != executor; missing/unknown executor or owner-spend truth fails closed; trading/gambling and owner-funded spend remain blocked; fresh source readbacks reapply capability/spend truth.
+- Laya/System2/GLM and upstream repos are advisory/source evidence only unless a future order proves a bounded executor.
+- Public MCP stays read-only.
+- Latest authoritative money truth remains `PAID=0` unless a newer external receipt proves settlement.
 
 ## DONE
-- ORDER-051 canonical GitHub/Cloudflare exact-SHA deployment control.
+- GitHub canonical migration + Cloudflare exact-SHA deployment control.
+- Automatic GitHub -> GitLab downstream mirror with SHA-parity readback.
 - ORDER-054 AgentBounties read-only source; Xento WATCH_ONLY.
-- ORDER-058 Meta hackathon WATCHLIST persisted/deployed.
-- Public MCP read-only; skill broker exists.
+- ORDER-055 Galaxy Radar capability/executor hardening.
+- ORDER-058 Meta hackathon WATCHLIST.
+- Existing install-free skill broker.
 
 ## ACTIVE WORK / WHERE_TO_RESUME
-Resume **existing PR #63**, not a new branch/order. Preserve all six ORDER-055 commits.
-
-Current review debt to re-check at current head:
-1. missing/legacy `executor_truth` must fail closed or be reclassified before execution;
-2. authoritative fresh task readbacks must reapply Galaxy capability truth before acquire/submit;
-3. direct imperative trading/betting language must remain blocked;
-4. explicit spend evidence must override stale `owner_spend_zero=true`;
-5. `API_HTTP` is PROVEN only when actual HTTP execution class + egress admission are proven;
-6. negated/non-requirement words such as “no stake/gas” or “bond market analysis” must not create false spend blockers;
-7. research subjects (“article about data”, “website accessibility research”) must not be mistaken for required DATA/WEB_UI executors.
-
-Commits after the reviewed `fc77d485...` only added passive OSS-source coverage; do not assume the seven findings are fixed.
+**No active ARQ order.** Single-ARQ mode is mandatory. Wait for one explicit AUD order; do not choose multiple backlog items yourself.
 
 ## WHAT_TO_DO_NOW
-1. Resolve and fetch the live current `main` (deployed/runtime baseline `2ee7bdb...` plus canon-only docs descendants); sync it into `feat/order055-galaxy-radar-v1` without reset or lost commits.
-2. Reproduce each review finding against the actual current branch before editing.
-3. Fix only confirmed root causes; add deterministic regression tests for every confirmed case.
-4. Preserve hard rule: capability/skill/model advice can only reduce/route work; it cannot override deterministic owner-spend, policy, payout or executor gates.
-5. Run the complete existing CI/test matrix; required `verify` must pass on exact final head.
-6. Request/re-run a fresh PR review and clear correctness debt before merge.
-7. Merge PR #63 through protected `main` only.
-8. Because ACTIVE-MAIN changes, require canonical auto-deploy: exact-main SHA guard -> 0% candidate smoke -> 100% promote -> production exact-SHA smoke -> rollback on failure.
-9. Post final evidence to Issue #62: final SHA, tests, CI, deploy, production SHA, `/health`, MCP tool/read-only state, source/capability matrix, `REAL_PAID_USD`, owner spend.
-10. Stop. Return to AUD for the next single order.
+When AUD gives the next order:
+1. Resolve live GitHub `main` first.
+2. Read `AGENTS.md`, this file, and the order Issue.
+3. Create/use exactly one bounded branch for that order.
+4. Verify existing evidence before editing.
+5. Fix only in-scope root causes; add deterministic tests.
+6. Required `verify` must pass on exact PR head.
+7. Merge only through protected GitHub PR.
+8. If runtime bytes changed, require exact-SHA Cloudflare candidate/production smoke.
+9. Verify GitLab mirror run succeeds and GitLab `main` equals GitHub `main`.
+10. Return final evidence to AUD and stop.
 
 ## PENDING
-- ORDER-053 (#55): not started; do not start while #63 is active.
-- ORDER-056 (#65) and ORDER-057 (#66): parked; no result comments; do not run them in parallel.
-- MQL5 K2: separate future host experiment; no install/PC mutation under ORDER-055.
-- Meta hackathon: WATCH_ONLY until applications/rules open and are reverified.
+- #55 ORDER-053: not started.
+- #65 ORDER-056 and #66 ORDER-057: parked; never parallelize them.
+- MQL5 K2: separate explicit human-authorized host experiment only.
 
 ## BLOCKERS / RISKS
-- PR #63 diverges from current `main`; exact ahead/behind count must be recomputed live before resume.
-- Codex P1/P2 findings may permit false execution or false blocking if ignored.
-- PR #64 is stale/duplicate and conflicts conceptually with already-completed ORDER-054.
-- Legacy open PRs/issues are not current authority.
-- Dynamic live money/opportunity counters require fresh readback.
+- No proven cash machine; no unsupported revenue projections.
+- Fresh dynamic status is required before economic claims.
+- A library/skill/repo does not prove execution capability.
+- Legacy open PRs are not authority.
 
 ## WHAT_NOT_TO_REPEAT
-- Do not create another ORDER-055 branch or rewrite the six existing commits.
-- Do not redo AgentBounties ORDER-054; do not merge PR #64.
-- Do not redo Meta ORDER-058.
-- Do not execute #65/#66 concurrently.
-- Do not expand skill manifests via ORDER-053 until #63 is complete.
-- Do not install JEV/Laya/Agent-Desktop/json-render merely because they were researched.
-- Do not give Laya/System2/GLM authority over hard gates.
+- Do not redo ORDER-054/055/058.
+- Do not create work in GitLab or manually duplicate GitHub changes there.
+- Do not create a second mirror mechanism.
+- Do not execute #55/#65/#66 concurrently.
+- Do not install JEV/Laya/Browser Use/desktop runtimes merely because they were researched.
+- Do not give model/advisory output authority over hard economic/safety gates.
 - Do not revive x402/Bazaar as a demand engine absent materially new evidence.
-- Do not touch local PC, MetaTester, wallet, card, KYC/MFA/CAPTCHA or owner financial signatures without a separate explicit human gate/order.
 
 ## DO_NOT_TOUCH
-Private signer/raw keys, payout destination, wallet/card/withdrawal actions, GitLab runners, direct `main`, force-push, unrelated runtime/UI/research files, stale legacy PRs.
+Private signer/raw keys, payout destination, wallet/card/withdrawal actions, GitLab runners/deploys, direct GitHub `main`, force-push, unrelated files, stale legacy PRs without AUD authorization.
 
 ## AUTHORITIES / GATES
-`AGENTS.md` is the operating contract. GitHub main is source authority. GitLab is archival/read-only and must never become execution/deploy authority. Ruleset `ATM canonical main` is active: PR required, `verify` required, no deletion/non-fast-forward, no bypass.  
-Hard economics: `MIN_REWARD_USD>=100`, owner out-of-plan spend `0`, `UNKNOWN != YES`, live re-read before acquire/submit, independent rejection-oriented CHECK, PAID only from authoritative external settlement.
+`AGENTS.md` + current GitHub `main` are source authority. GitLab is downstream mirror only. Required GitHub `verify` gate and protected-main rules remain mandatory.  
+Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh task readback before mutation, independent CHECK, authoritative settlement only for PAID.
 
 ## ACCEPTANCE / STOP CONDITIONS
-**COMPLETE** only when: synced current main; all confirmed review defects regression-tested/fixed; exact-head CI green; fresh review clean enough to merge; protected merge succeeds; production exact-SHA smoke passes; runtime/MCP safety preserved; no new owner spend; no unsupported money claim.
+**COMPLETE** only with exact-head CI green, protected merge, deploy/smoke when runtime changed, GitLab mirror success + main SHA parity, and no unsupported money claim.
 
-**STOP / HUMAN_GATE** if any action requires owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, bypassing platform controls, paid dependency, GitHub protection bypass, or changing files outside ORDER-055 scope without AUD authorization.
-
-## MIRROR STATUS
-- GitLab legacy main is archived at `archive/pre-github-canonical-main-20260925`.
-- Verified 2026-09-25: GitLab namespace plan is `free`; native pull mirroring is unavailable and no automatic mirror is active.
-- Do not add GitLab CI/runners, recurring local-host sync, or a persistent credential unless AUD/user explicitly changes those constraints.
+**STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, or scope expansion.
 
 ## NEXT EXACT ACTION
-**Open PR #63, sync current main into its existing branch, then start by reproducing the seven review findings above one by one before changing code.**
+Wait for the next single AUD order. Do not start parked backlog on your own.
