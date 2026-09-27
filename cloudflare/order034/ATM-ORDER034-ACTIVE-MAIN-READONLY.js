@@ -200,6 +200,194 @@ function uniq(a) {
 }
 __name(uniq, "uniq");
 __name2(uniq, "uniq");
+var GALAXY_CAPABILITY_TAXONOMY = [
+  "TEXT_RESEARCH","CODE","OSS_FIX","DATA","UI_DESIGN","WEB_UI","ANIMATION","VIDEO","PDF","EMAIL",
+  "DIAGRAM","SCIENTIFIC","BROWSER","DESKTOP","API_HTTP","GITHUB","COMPUTE_CPU"
+];
+var EXECUTOR_CAPABILITIES = {
+  TEXT_RESEARCH: { status:"PROVEN", executor:"ATM_TEXT_MODEL", boundary:"BOUNDED_TEXT_ARTIFACT" },
+  API_HTTP: { status:"PROVEN_BOUNDED", executor:"ATM_HTTP_TOOL", boundary:"PUBLIC_HTTPS_ALLOWLIST_AND_EXISTING_EGRESS_GATES" },
+  CODE: { status:"UNAVAILABLE", executor:null, reason:"NO_GENERAL_CODE_SANDBOX_MOUNTED" },
+  OSS_FIX: { status:"UNAVAILABLE", executor:null, reason:"NO_GITHUB_WRITE_EXECUTOR_MOUNTED" },
+  DATA: { status:"UNAVAILABLE", executor:null, reason:"NO_GENERAL_DATA_EXECUTOR_MOUNTED" },
+  UI_DESIGN: { status:"UNAVAILABLE", executor:null, reason:"SKILLS_ARE_CONTEXT_NOT_EXECUTORS" },
+  WEB_UI: { status:"UNAVAILABLE", executor:null, reason:"NO_WEB_UI_BUILD_RUNTIME_MOUNTED" },
+  ANIMATION: { status:"UNAVAILABLE", executor:null, reason:"NO_ANIMATION_RUNTIME_MOUNTED" },
+  VIDEO: { status:"UNAVAILABLE", executor:null, reason:"NO_VIDEO_PRODUCTION_EXECUTOR_MOUNTED" },
+  PDF: { status:"UNAVAILABLE", executor:null, reason:"NO_PDF_PRODUCTION_EXECUTOR_MOUNTED" },
+  EMAIL: { status:"UNAVAILABLE", executor:null, reason:"NO_EMAIL_ACTION_EXECUTOR_MOUNTED" },
+  DIAGRAM: { status:"UNAVAILABLE", executor:null, reason:"INSTRUCTION_SKILL_ONLY" },
+  SCIENTIFIC: { status:"UNAVAILABLE", executor:null, reason:"INSTRUCTION_SKILL_ONLY" },
+  BROWSER: { status:"UNAVAILABLE", executor:null, reason:"NO_BROWSER_EXECUTOR_MOUNTED" },
+  DESKTOP: { status:"UNKNOWN", executor:null, reason:"NO_PROVEN_ATM_WINDOWS_DESKTOP_EXECUTOR" },
+  GITHUB: { status:"UNAVAILABLE", executor:null, reason:"NO_RUNTIME_GITHUB_WRITE_EXECUTOR_MOUNTED" },
+  COMPUTE_CPU: { status:"UNAVAILABLE", executor:null, reason:"NO_SCHEDULER_FED_CPU_EXECUTOR_MOUNTED" }
+};
+var GALAXY_PASSIVE_SOURCES = [
+  { id:"MQL5_K2", state:"PRIMARY_EXTERNAL_EXPERIMENT", runtime_source:false, auto_eligible:false, current_order_mutation:false, next_action:"SEPARATE_READ_ONLY_PHYSICAL_WINDOWS_PREFLIGHT", blockers:[], owner_spend_usd:0, note:"ORDER-055 does not install MetaTester, mutate the host, or forecast income." },
+  { id:"OPENTASK", state:"WATCH_READ_ONLY_VERIFY", runtime_source:false, auto_eligible:false, first_party:"https://www.opentask.app/", economics:{ join_cost_usd:0, platform_fee_percent:4.5 }, blockers:["ACCOUNT_OR_AUTH_REQUIRED","PROPOSAL_BIDDING_FLOW","PAYOUT_READBACK_NOT_INTEGRATED","ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN","OWNER_SPEND_UNKNOWN"], note:"Agent API/MCP exists, but exact zero-upfront dispatch and payout/geo gates are not proven for ATM." },
+  { id:"OKX_AI", state:"WATCH_ONLY", runtime_source:false, auto_eligible:false, first_party:"https://web3.okx.com/build/docs/waas/okx-ai-task-marketplace", blockers:["AGENTIC_WALLET_REQUIRED","ONCHAIN_GAS_OR_FEE_UNKNOWN","DISPUTE_DEPOSIT_POSSIBLE","PAYOUT_READBACK_NOT_INTEGRATED","ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN"], note:"Public task hall exists; wallet/on-chain economics remain incompatible with automatic zero-spend admission until proven." },
+  { id:"CLAW_EARN", state:"REJECT_OWNER_SPEND", runtime_source:false, auto_eligible:false, blockers:["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","WALLET_SIGN_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED"], note:"Worker stake/on-chain flow violates current owner-spend policy." },
+  { id:"OPIRE", state:"WATCH_READ_ONLY_VERIFY", runtime_source:false, auto_eligible:false, first_party:"https://docs.opire.dev/overview/getting-started", blockers:["GITHUB_WRITE_REQUIRED","AUTOMATION_PERMISSION_UNKNOWN","DIRECT_MANUAL_PAYOUT","PAYOUT_READBACK_NOT_INTEGRATED","ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN"], note:"Public rewarded issues exist, but solver payment is arranged directly by bounty creators and automation/geo truth is not proven." },
+  { id:"ALGORA", state:"WATCH_READ_ONLY_VERIFY", runtime_source:false, auto_eligible:false, first_party:"https://api.docs.algora.io/", blockers:["AUTOMATION_PERMISSION_UNKNOWN","PAYOUT_RAIL_UNKNOWN","PAYOUT_READBACK_NOT_INTEGRATED","ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN","OWNER_SPEND_UNKNOWN"], note:"Public bounty API and historical awards exist; current ATM execution and settlement gates are not proven." },
+  { id:"XENTO", state:"WATCH_ONLY", runtime_source:false, auto_eligible:false, blockers:["EXACT_CURRENT_PRIZE_POOL","PAYOUT_RAIL","INDEPENDENT_SETTLED_PAYOUT_RECEIPT","ARGENTINA_OR_GLOBAL_ELIGIBILITY","AUTOMATION_RULES","NEWCOMER_ACCESS","WITHDRAWAL_TERMS"], note:"Preserved from ORDER-054; no runtime promotion." }
+];
+var GALAXY_ADVISORY_TECH = [
+  { id:"LAYA", source:"he-jev/laya", class:"ADVISORY_CLASSIFIER", authority:"ADVISORY_ONLY", hard_gate_authority:false, runtime_mounted:false, benchmark_status:"ATM_REPLAY_REJECTED_PROMOTION_AUTHORITY", note:"May add capability hints only; deterministic code owns money and policy gates." },
+  { id:"JEV_ULTRAFAST", source:"browser-use/jev-ultrafast", class:"PATTERN_HIGH_VALUE", authority:"PATTERN_ONLY", runtime_mounted:false, executor_status:"NOT_MOUNTED", note:"Indexed DOM, freshness/occlusion checks, bounded actions and independent outcome verification." },
+  { id:"FAST_JEV_COMPACTION", source:"tamaratran/fast-jev-compaction", class:"ADAPT_LAYA_HIGH", authority:"ADVISORY_ONLY", runtime_mounted:false, note:"JevAsker transport abstraction is reusable; hard evidence must remain pinned." },
+  { id:"TYPESAFE_MCP", source:"itsmostafa/typesafe-mcp", class:"LAYA_BRIDGE_HIGH", authority:"ADVISORY_ONLY", runtime_mounted:false, note:"TYPESAFE_BASE_URL can retarget /v1/systemone to a local compatible server; no ATM authority granted." },
+  { id:"JSON_RENDER", source:"vercel-labs/json-render", class:"DELIVERABLE_CAPABILITY_HIGH", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Runtime library for UI/PDF/email/video/3D families; isolated task workspace only if a real task justifies it." },
+  { id:"AGENT_DESKTOP", source:"lahfir/agent-desktop", class:"WATCH_EXECUTOR", authority:"NONE", runtime_mounted:false, executor_status:"WATCH_EXECUTOR", note:"Architecture is useful; ATM Windows execution is not independently proven or mounted." },
+  { id:"TYPESAFE_MARIO", source:"fhshaik/typesafe-mario", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false },
+  { id:"JEV_DRONE", source:"RomanSlack/jev-drone", class:"PATTERN_HIGH_VALUE", authority:"NONE", runtime_mounted:false },
+  { id:"ONEVONEJEV", source:"emrickgarrett/OneVOneJev", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false },
+  { id:"JEV_TRADER", source:"buberlo/jev-trader", class:"RESEARCH_PATTERN_ONLY", authority:"NONE", runtime_mounted:false, policy:"TRADING_EXECUTION_PROHIBITED" },
+  { id:"KILLMYIDEA", source:"monteduro/killmyidea", class:"PATTERN_ONLY", authority:"NONE", runtime_mounted:false, reuse:"NO_CODE_COPY_UNTIL_LICENSE_PROVEN" },
+  { id:"GENOFFICE", source:"genspark-ai/genoffice", class:"DELIVERABLE_EXECUTOR_LOCAL_ONLY", authority:"SOURCE_ONLY", runtime_mounted:false, executor_status:"NOT_MOUNTED", note:"Apache-2.0 office CLI/MCP can create/edit DOCX/XLSX/PPTX/PDF locally; no Worker executor or model key is mounted." },
+  { id:"OPENMAIC", source:"THU-MAIC/OpenMAIC", class:"EDUCATION_APP_PATTERN", authority:"PATTERN_ONLY", runtime_mounted:false, note:"Multi-agent classroom product; no direct ATM money/executor fit." },
+  { id:"WEKNORA", source:"Tencent/WeKnora", class:"KNOWLEDGE_PLATFORM", authority:"SOURCE_ONLY", runtime_mounted:false, note:"MIT self-hosted RAG/agent/MCP stack; useful architecture but heavy persistent services are not mounted." },
+  { id:"GRAPHITI", source:"getzep/graphiti", class:"TEMPORAL_MEMORY_PATTERN", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Apache-2.0 temporal knowledge graph; not a revenue or execution backend by itself." },
+  { id:"COGNEE", source:"topoteretes/cognee", class:"MEMORY_PLATFORM_PATTERN", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Apache-2.0 long-term memory platform; no direct task execution path." },
+  { id:"BROWSER_USE", source:"browser-use/browser-use", class:"WATCH_EXECUTOR_HIGH", authority:"NONE", runtime_mounted:false, executor_status:"WATCH_EXECUTOR", note:"MIT local MCP/CLI can drive a real browser, but requires a persistent browser host/model; cloud path is usage-priced, so ATM BROWSER stays unproven." },
+  { id:"OPEN_WEBUI", source:"open-webui/open-webui", class:"HOST_UI", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Useful agent/MCP frontend, but not an earning executor; current license includes branding conditions." },
+  { id:"PAGEINDEX", source:"VectifyAI/PageIndex", class:"RETRIEVAL_PATTERN_HIGH", authority:"SOURCE_ONLY", runtime_mounted:false, note:"MIT vectorless document retrieval; useful for evidence navigation, not external task execution." },
+  { id:"AGENT_REACH", source:"Panniantong/Agent-Reach", class:"RESEARCH_ROUTER_HIGH", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Zero-API-fee oriented multi-platform CLI router; local tools/cookies and sometimes proxy are required, so no standalone Worker executor is claimed." },
+  { id:"QWEN_AUDIO_AGENT", source:"QwenAudio/qwen-audio-agent", class:"VOICE_RUNTIME", authority:"SOURCE_ONLY", runtime_mounted:false, note:"Realtime voice runtime; no direct cash/radar blocker solved." }
+];
+
+function galaxyPolicyBlockers(title, description) {
+  const text = `${title || ""} ${description || ""}`.toLowerCase(), out = [];
+  const add = (x) => { if (!out.includes(x)) out.push(x); };
+  const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|(?:buy|sell|invest(?:\s+in)?)\s+(?:bitcoin|btc|ethereum|eth|crypto(?:currency|currencies)?|tokens?|stocks?|equities|forex|securities)|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
+  if (tradeOrBet) add("TRADING_OR_GAMBLING_PROHIBITED");
+  const spendEvidence = sourceExecutionSpendEvidence(title, description);
+  const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas(?:\s+fee)?|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|submission|participat))/i.test(text);
+  const explicitRequirement = /\brequires?\b[^.!?;]{0,80}\b(?:stake|deposit|collateral|gas(?:\s+fee)?|network\s+fee|paid\s+api|premium\s+api|paid\s+subscription|api\s+credits?|card\s+hold|preauthori[sz]ation)\b/i.test(text);
+  const directSpendMandate = /\b(?:must\s+)?(?:stake|deposit|post\s+collateral|pay\s+(?:(?:a|the)\s+)?(?:\d+(?:\.\d+)?\s*(?:usd|usdc|usdt|eur|ars)?\s*)?(?:fee|gas(?:\s+fee)?|network\s+fee)?|purchase\s+(?:\d+\s+)?(?:api\s+)?credits?)\b/i.test(text)
+    && !/\b(?:no|not|without)\s+(?:stake|staking|deposit|collateral|gas(?:\s+fee)?|network\s+fee|fee|api\s+credits?)\b/i.test(text);
+  const spendRequired = spendEvidence.required || imperativeSpend || explicitRequirement || directSpendMandate;
+  if (spendRequired) {
+    add("BLOCKED_OWNER_SPEND");
+    if (/\b(?:stake|staking|security deposit|refundable deposit|collateral)\b/i.test(text) || /\bbond\b[^.!?;]{0,80}\b(?:required|must|need|post|provide|deposit|collateral)\b/i.test(text)) add("CAPITAL_REQUIRED");
+    if (/\b(?:gas|network fee|transaction fee)\b/i.test(text)) add("GAS_OR_NETWORK_FEE_REQUIRED");
+    if (/\b(?:paid api|premium api|paid subscription|subscription required|api credits? required)\b/i.test(text)) add("PAID_API_REQUIRED");
+    if (/\b(?:card hold|credit card hold|preauthorization|pre-authori[sz]ation)\b/i.test(text)) add("CARD_HOLD_REQUIRED");
+  }
+  return out;
+}
+function classifyRequiredCapabilities(opp = {}, advisory = null) {
+  const text = `${opp.title || ""} ${opp.description || ""}`.toLowerCase(), caps = [];
+  const add = (x) => { if (GALAXY_CAPABILITY_TAXONOMY.includes(x) && !caps.includes(x)) caps.push(x); };
+  const cls = String(opp.capability_class || "").toUpperCase();
+  if (cls === "PURE_LLM") add("TEXT_RESEARCH");
+  if (cls === "HTTP_TOOL") add("API_HTTP");
+  if (cls === "CODE_SANDBOX_REQUIRED") add("CODE");
+  if (/\b(?:research|investigat|summari[sz]e|analysis|analy[sz]e|report|write|article|content|copy|documentation)\b/i.test(text)) add("TEXT_RESEARCH");
+  if (/\b(?:code|coding|implement|program(?:ming)?|script|debug|patch|fix\b|refactor|write\s+(?:a\s+)?(?:function|program|script|module|class)|build\s+(?:a\s+)?(?:tool|app|service|library)|develop\s+(?:a\s+)?(?:tool|app|service|library))\b/i.test(text)) add("CODE");
+  if (/\b(?:open[ -]?source|\boss\b|github issue|pull request|repository fix|repo fix)\b/i.test(text)) { add("OSS_FIX"); add("CODE"); add("GITHUB"); }
+  if (/\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b[^.!?;]{0,90}\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b|\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b[^.!?;]{0,90}\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b/i.test(text)) add("DATA");
+  if (/\b(?:design|create|build|implement|redesign)\b[^.!?;]{0,90}\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
+  if (/\b(?:build|create|implement|develop|redesign|design)\b[^.!?;]{0,90}\b(?:web ui|web app|website|frontend|react\b|vue\b|svelte\b|solidjs|tailwind)\b/i.test(text)) add("WEB_UI");
+  if (/\b(?:design|create|build|implement|produce|add)\b[^.!?;]{0,90}\b(?:animation|animate|animated|motion|transition|microinteraction)\b|\b(?:animate)\b[^.!?;]{0,90}\b(?:ui|component|interface|page)\b/i.test(text)) add("ANIMATION");
+  if (/\b(?:create|produce|edit|render|generate)\b[^.!?;]{0,90}\b(?:video|remotion|movie|clip|reel|voiceover)\b/i.test(text)) add("VIDEO");
+  if (/\b(?:create|generate|edit|convert|produce)\b[^.!?;]{0,90}\b(?:pdf|portable document)\b/i.test(text)) add("PDF");
+  if (/\b(?:email|send|deliver)\b[^.!?;]{0,90}\b(?:it|them|report|message|recipient|results?)\b|\bsend\b[^.!?;]{0,90}\b(?:email|e-mail|newsletter)\b/i.test(text)) add("EMAIL");
+  if (/\b(?:draw|create|generate|render)\b[^.!?;]{0,90}\b(?:diagram|flowchart|sequence diagram|architecture diagram|mermaid|data model)\b/i.test(text)) add("DIAGRAM");
+  if (/\b(?:scientific|science|literature review|research paper|journal paper|experiment|hypothesis)\b/i.test(text)) add("SCIENTIFIC");
+  if (/\b(?:navigate|browse|fill|click|submit)\b[^.!?;]{0,90}\b(?:browser|website|web form|web page|button|checkout)\b|\bbrowser\b[^.!?;]{0,90}\b(?:navigate|fill|click|submit)\b/i.test(text)) add("BROWSER");
+  if (/\b(?:automate|control|operate)\b[^.!?;]{0,90}\b(?:desktop|windows app|macos app|native app|system settings)\b/i.test(text)) add("DESKTOP");
+  if (/\b(?:rest api|http api|api endpoint|webhook|http request|https request)\b/i.test(text) || cls === "HTTP_TOOL") add("API_HTTP");
+  if (/\b(?:open|create|submit|comment|merge|push|update)\b[^.!?;]{0,90}\b(?:github|pull request|repository|repo\b|issue)\b/i.test(text)) add("GITHUB");
+  if (/\b(?:run|execute|perform)\b[^.!?;]{0,90}\b(?:cpu|compute|simulation|render farm|benchmark compute|distributed compute)\b/i.test(text)) add("COMPUTE_CPU");
+  for (const x of advisory?.required_capabilities || []) add(String(x).toUpperCase());
+  return caps;
+}
+function executorCapabilityTruth(capability, opp = {}) {
+  const cap = String(capability || "").toUpperCase(), spec = EXECUTOR_CAPABILITIES[cap] || { status:"UNKNOWN", executor:null };
+  if (cap === "API_HTTP") {
+    const blocked = (opp.blockers || []).some((x) => ["HTTP_URL_NOT_PUBLIC_HTTPS","HTTP_EGRESS_HOST_NOT_ALLOWLISTED","HTTP_TOOL_HAS_NO_EXPLICIT_SAFE_URL","PAID_API_REQUIRED"].includes(x));
+    const actualHttpPath = String(opp.capability_class || "").toUpperCase() === "HTTP_TOOL";
+    return { capability:cap, ...spec, proven:spec.status === "PROVEN_BOUNDED" && actualHttpPath && !blocked };
+  }
+  return { capability:cap, ...spec, proven:spec.status === "PROVEN" };
+}
+function galaxyOwnerSpendTruth(opp = {}, blockers = []) {
+  const explicitSpendBlocker = blockers.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x));
+  if (explicitSpendBlocker) return { known:true, zero:false, amount_usd:null };
+  if (opp?.eligibility?.owner_spend_zero === false) return { known:true, zero:false, amount_usd:null };
+  if (opp?.economics?.owner_spend_known === true) return { known:true, zero:opp.economics.owner_spend_zero === true, amount_usd:opp.economics.total_owner_spend_usd ?? null };
+  if (opp?.eligibility?.owner_spend_zero === true) return { known:true, zero:true, amount_usd:0 };
+  if (opp?.economics?.explicit_zero_cost === true || opp?.economics?.estimated_task_cost_usdc === 0 && opp?.source === "DAYDREAMS") return { known:true, zero:true, amount_usd:0 };
+  return { known:false, zero:null, amount_usd:null };
+}
+function galaxyOpenNow(opp = {}) {
+  if (typeof opp?.eligibility?.open_now === "boolean") return opp.eligibility.open_now;
+  const s = String(opp.source_status || "").toLowerCase();
+  if (["open","active","claimable","funded","in_progress"].includes(s)) return true;
+  if (["closed","expired","cancelled","canceled","paid","settled","rejected"].includes(s)) return false;
+  return null;
+}
+function recommendGalaxySkills(opp = {}, caps = [], preExecutorBlockers = []) {
+  const hardBlocked = preExecutorBlockers.some((x) => blockerType(x) !== "INTERNAL_CAPABILITY_GAP");
+  if (hardBlocked || typeof ATM_SKILLS === "undefined") return [];
+  const task = `${opp.title || ""} ${opp.description || ""} ${caps.join(" ")}`;
+  return ATM_SKILLS.map((x) => ({ id:x.id, score:scoreSkill(x, task) })).filter((x) => x.score > 0).sort((a,b) => b.score-a.score || a.id.localeCompare(b.id)).slice(0,3);
+}
+function applyGalaxyCapabilityTruth(opp, advisory = null) {
+  if (!opp || typeof opp !== "object") return opp;
+  const originalBlockers = uniq([...(opp.blockers || []), ...galaxyPolicyBlockers(opp.title, opp.description)]);
+  const required = classifyRequiredCapabilities({ ...opp, blockers:originalBlockers }, advisory);
+  const requirements = required.map((x) => executorCapabilityTruth(x, { ...opp, blockers:originalBlockers }));
+  const missing = [];
+  if (!required.length) missing.push("REQUIRED_CAPABILITIES_UNKNOWN");
+  for (const r of requirements) if (!r.proven) missing.push(`EXECUTOR_CAPABILITY_${r.status === "UNKNOWN" ? "UNKNOWN" : "UNAVAILABLE"}_${r.capability}`);
+  const blockers = uniq([...originalBlockers, ...missing]);
+  const executorTruth = required.length && requirements.every((x) => x.proven) ? "PROVEN" : requirements.some((x) => x.status === "UNKNOWN") || !required.length ? "UNKNOWN" : "BLOCKED";
+  const openNow = galaxyOpenNow(opp);
+  const newcomer = typeof opp?.eligibility?.newcomer_access_proven === "boolean" ? opp.eligibility.newcomer_access_proven : null;
+  const geo = typeof opp?.eligibility?.argentina_or_global_eligibility_proven === "boolean" ? opp.eligibility.argentina_or_global_eligibility_proven : null;
+  const automation = typeof opp?.eligibility?.terms_allow_automation === "boolean" ? opp.eligibility.terms_allow_automation : null;
+  const deliverableAcceptance = typeof opp?.eligibility?.exact_deliverable_and_acceptance_proven === "boolean" ? opp.eligibility.exact_deliverable_and_acceptance_proven : null;
+  const competition = typeof opp?.eligibility?.competition_known === "boolean" ? opp.eligibility.competition_known : null;
+  const ownerSpend = galaxyOwnerSpendTruth(opp, blockers);
+  const payoutPath = typeof opp?.eligibility?.payout_path_known === "boolean" ? opp.eligibility.payout_path_known : null;
+  const payoutRail = opp.source === "DAYDREAMS" ? "BASE_USDC_TASKMARKET" : opp.source === "AGENTBOUNTIES" ? "BASE_USDC_CANONICAL_SETTLEMENT" : null;
+  const payoutReadback = opp?.eligibility?.payout_readback || (opp.source === "DAYDREAMS" ? "TASKMARKET_EXTERNAL_SETTLEMENT_WATCHER" : null);
+  let ai = opp.ai_executability === "AI_EXECUTABLE" && executorTruth === "PROVEN" && !blockers.length ? "AI_EXECUTABLE" : "BLOCKED";
+  if (advisory?.decision && String(advisory.decision).toUpperCase() === "PROMOTE" && opp.ai_executability !== "AI_EXECUTABLE") ai = "BLOCKED";
+  const sourceTruth = openNow === true && automation === true && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE");
+  const payoutTruth = payoutPath === true && Number(opp.estimated_net_usd) > 0;
+  const active = ai === "AI_EXECUTABLE" && sourceTruth && payoutTruth && ownerSpend.known && ownerSpend.zero === true && executorTruth === "PROVEN";
+  const skills = recommendGalaxySkills(opp, required, originalBlockers);
+  return {
+    ...opp,
+    open_now: openNow,
+    newcomer_can_enter: newcomer,
+    geo_argentina_or_global: geo,
+    ai_automation_allowed: automation,
+    exact_deliverable: deliverableAcceptance,
+    acceptance: deliverableAcceptance,
+    reward: { amount:opp.payout_amount ?? null, currency:opp.payout_currency || null, estimated_net_usd:opp.estimated_net_usd ?? null },
+    payout_rail: payoutRail,
+    payout_readback: payoutReadback,
+    competition,
+    owner_spend: ownerSpend,
+    required_capabilities: required,
+    executor_requirements: requirements,
+    executor_truth: executorTruth,
+    skill_recommendations: skills,
+    skills_are_executors: false,
+    advisory: advisory ? { provider:String(advisory.provider || "UNKNOWN"), authority:"ADVISORY_ONLY", hard_gate_authority:false, decision:advisory.decision || null, confidence:advisory.confidence ?? null, accepted_capability_hints:(advisory.required_capabilities || []).filter((x) => GALAXY_CAPABILITY_TAXONOMY.includes(String(x).toUpperCase())).map((x) => String(x).toUpperCase()), promotion_authority:false } : { provider:null, authority:"ADVISORY_ONLY", hard_gate_authority:false, promotion_authority:false },
+    galaxy_status: active ? "ACTIVE" : "DISCOVERED_BLOCKED",
+    galaxy_version: "ATM-ORDER-055-V1",
+    blockers,
+    blocker_details: typeof blockerDetails === "function" ? blockerDetails(blockers, { source:opp.source, raw_id:opp.raw_id, title:opp.title, description:opp.description, economics:opp.economics, capability_class:opp.capability_class, artifact_profile:opp.artifact_profile, estimated_net_usd:opp.estimated_net_usd, source_status:opp.source_status, deadline:opp.deadline }) : opp.blocker_details,
+    ai_executability: ai,
+    eligibility: { ...(opp.eligibility || {}), owner_spend_zero:ownerSpend.known ? ownerSpend.zero : null, executor_truth_proven:executorTruth === "PROVEN", source_truth_proven:sourceTruth, payout_truth_proven:payoutTruth }
+  };
+}
+
 function executionAdapterCapabilities(source, env = {}) {
   const s = String(source || "").toUpperCase();
   const daydreams = s === "DAYDREAMS", hansa = s === "AGENTHANSA";
@@ -211,7 +399,9 @@ __name(executionAdapterCapabilities, "executionAdapterCapabilities");
 __name2(executionAdapterCapabilities, "executionAdapterCapabilities");
 function executionCandidateAdmitted(opp, env = {}) {
   const a = executionAdapterCapabilities(opp?.source, env);
-  return !!(a.complete_lifecycle && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
+  const galaxyExecutorOk = opp?.executor_truth === "PROVEN";
+  const galaxySpendOk = opp?.owner_spend?.known === true && opp?.owner_spend?.zero === true;
+  return !!(a.complete_lifecycle && galaxyExecutorOk && galaxySpendOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
 }
 __name(executionCandidateAdmitted, "executionCandidateAdmitted");
 __name2(executionCandidateAdmitted, "executionCandidateAdmitted");
@@ -1280,7 +1470,7 @@ function normalize(source, raw) {
   const taskExecutionSpend = sourceExecutionSpendEvidence(title, description);
   const economicView = source === "DAYDREAMS" ? { ...daydreams, worker_action_cost_usdc: daydreams?.action_cost_usdc ?? null, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches } : { estimated_task_cost_usd: 0, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches };
   const blockerContext = { source, raw_id: String(id), title, description, raw, economics: economicView, task_execution_spend: taskExecutionSpend, capability_class: capabilityClass, artifact_profile: artifactProfile, estimated_net_usd: estimatedNet, source_status: status, deadline };
-  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, payout_path_known: source === "DAYDREAMS" ? true : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { reference_code: raw.referenceCode, mode: raw.mode, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: !!raw.submissionWindowOpen, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
+  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, owner_spend_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost === true : source === "AGENTHANSA" ? !taskExecutionSpend.required && !clean.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x)) : null, payout_path_known: source === "DAYDREAMS" ? true : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { reference_code: raw.referenceCode, mode: raw.mode, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: !!raw.submissionWindowOpen, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
 }
 __name(normalize, "normalize");
 __name2(normalize, "normalize");
@@ -1392,7 +1582,7 @@ async function discoverSource(id) {
       state.eligibility = "NOT_AUTOMATIC";
       return { state, opportunities: [] };
     }
-    const opportunities = raws.map((x) => normalize(id, x)).filter(Boolean);
+    const opportunities = raws.map((x) => normalize(id, x)).filter(Boolean).map((x) => applyGalaxyCapabilityTruth(x));
     if (id === "DAYDREAMS") {
       for (let i = 0; i < opportunities.length; i++) {
         const raw = raws[i];
@@ -1881,7 +2071,9 @@ var ATMBrain = class extends DurableObject {
     if (economics.worker_action === "submit" && task.submissionWindowOpen !== true) blockers.push("SUBMISSION_WINDOW_CLOSED");
     if (!["open", "claimed", "worker_selected"].includes(String(task.status || "").toLowerCase())) blockers.push("TASK_STATE_NOT_WRITABLE");
     const terms_hash = await taskmarketTermsHash(task), pending_action_snapshot_hash = await pendingActionSnapshotHash(task), clean = uniq(blockers);
-    return { ok: clean.length === 0 && economics.explicit_zero_cost, task, normalized, economics: { ...economics, worker_action_cost_usdc: economics.action_cost_usdc, task_execution_spend_required: normalized.economics?.task_execution_spend_required === true, task_execution_spend_evidence: normalized.economics?.task_execution_spend_evidence || [] }, blockers: clean, blocker_details: blockerDetails(clean, { source: "DAYDREAMS", raw_id: String(task.id || normalized.raw_id || ""), title: normalized.title, description: normalized.description, raw: task, economics: { ...economics, task_execution_spend_required: normalized.economics?.task_execution_spend_required === true }, task_execution_spend: { required: normalized.economics?.task_execution_spend_required === true, matches: normalized.economics?.task_execution_spend_evidence || [] }, capability_class: normalized.capability_class, artifact_profile: normalized.artifact_profile, estimated_net_usd: normalized.estimated_net_usd, source_status: task.status, deadline: task.expiryTime, terms_hash, observed_at: read.read_at }), terms_hash, pending_action_snapshot_hash, read_at: read.read_at, worker_address: TASKMARKET_WORKER_ADDRESS, operation: economics.worker_action, action_cost_usdc: economics.explicit_zero_cost ? 0 : economics.action_cost_usdc };
+    const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
+    const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
+    return { ok: finalBlockers.length === 0 && economics.explicit_zero_cost && galaxyNormalized.executor_truth === "PROVEN", task, normalized:galaxyNormalized, economics: { ...economics, worker_action_cost_usdc: economics.action_cost_usdc, task_execution_spend_required: galaxyNormalized.economics?.task_execution_spend_required === true, task_execution_spend_evidence: galaxyNormalized.economics?.task_execution_spend_evidence || [] }, blockers: finalBlockers, blocker_details: blockerDetails(finalBlockers, { source: "DAYDREAMS", raw_id: String(task.id || galaxyNormalized.raw_id || ""), title: galaxyNormalized.title, description: galaxyNormalized.description, raw: task, economics: { ...economics, task_execution_spend_required: galaxyNormalized.economics?.task_execution_spend_required === true }, task_execution_spend: { required: galaxyNormalized.economics?.task_execution_spend_required === true, matches: galaxyNormalized.economics?.task_execution_spend_evidence || [] }, capability_class: galaxyNormalized.capability_class, artifact_profile: galaxyNormalized.artifact_profile, estimated_net_usd: galaxyNormalized.estimated_net_usd, source_status: task.status, deadline: task.expiryTime, terms_hash, observed_at: read.read_at }), terms_hash, pending_action_snapshot_hash, read_at: read.read_at, worker_address: TASKMARKET_WORKER_ADDRESS, operation: economics.worker_action, action_cost_usdc: economics.explicit_zero_cost ? 0 : economics.action_cost_usdc };
   }
   async acquireDaydreams(opp, runtime) {
     const fresh = await this.freshTaskmarketPolicy(opp, "claim");
@@ -1946,7 +2138,9 @@ var ATMBrain = class extends DurableObject {
     const terms_hash = await sha256Hex(stableJson({ source:"AGENTHANSA", id:String(bounty.id || opp.raw_id), title:normalized.title, description:normalized.description, reward_amount:bounty.reward_amount, currency:bounty.currency, status:bounty.status, deadline:bounty.deadline, goal:bounty.goal }));
     const pending_action_snapshot_hash = await sha256Hex(stableJson({ source:"AGENTHANSA", operation, joined, status:bounty.status }));
     const clean = uniq(blockers);
-    return { ok:clean.length===0, task:bounty, bounty, normalized, blockers:clean, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
+    const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
+    const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
+    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN" && galaxyNormalized.owner_spend?.known === true && galaxyNormalized.owner_spend?.zero === true, task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
   }
   async freshExecutionPolicy(opp, operation = null) {
     if (opp?.source === "DAYDREAMS") return await this.freshTaskmarketPolicy(opp, operation);
@@ -2449,7 +2643,7 @@ var ATMBrain = class extends DurableObject {
     sourceStates.X = { ...sourceStates.X, ...sourceBase("X"), last_attempt: started, error: "CREDIT_STATE_UNVERIFIED", eligibility: "NOT_AUTOMATIC" };
     const imports = await this.get("microworkers_imports", []);
     for (const x of imports) {
-      all.push({ ...x, freshness_at: now(), source: "MICROWORKERS", automatic_action_level: "IMPORT_ONLY" });
+      all.push(applyGalaxyCapabilityTruth({ ...x, freshness_at: now(), source: "MICROWORKERS", automatic_action_level: "IMPORT_ONLY", ai_executability:"BLOCKED", blockers:uniq([...(x.blockers || []),"USER_ASSISTED_IMPORT"]) }));
     }
     const map = /* @__PURE__ */ new Map();
     for (const x of all) map.set(x.opportunity_id, x);
@@ -2865,6 +3059,7 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       agentic_execution: { ...reconciledAgentic, execution_enabled: executionEnabled, execution_actor: RUNTIME_ACTOR, arq_execution: false, worker_address: TASKMARKET_WORKER_ADDRESS, agent_identity_ready: taskMarket.daydreams.signer.ready, agent_identity_id: TASKMARKET_AGENT_ID, signer_ready: taskMarket.daydreams.signer.ready, signer_authenticated: taskMarket.daydreams.signer.authenticated, ladder: EXECUTION_LADDER, auto_eligible_now: auto, automatically_executable_now: auto, settlement_watcher: await this.get("settlement_watcher", { checked: 0, pending: 0, status: "READY_NO_PENDING_SUBMISSIONS" }) },
       durable: { backend: "Durable Object SQLite", thread_memory: true, tool_state: true, opportunities: true, idempotency: true, quota: true, settlement_watcher: true, economic_watchdog: true, do_alarm: true },
       economic_watchdog: reconciledWatchdog,
+      galaxy_radar: { version:"ATM-ORDER-055-V1", policy:"SOURCE_TRUTH_AND_PAYOUT_TRUTH_AND_EXECUTOR_TRUTH_REQUIRED_UNKNOWN_NE_YES", capability_taxonomy:GALAXY_CAPABILITY_TAXONOMY, executor_capabilities:EXECUTOR_CAPABILITIES, passive_sources:GALAXY_PASSIVE_SOURCES, advisory_tech:GALAXY_ADVISORY_TECH, skill_count:ATM_SKILLS.length, skills_are_executors:false, laya_hard_gate_authority:false, mql5_k2_preserved:true },
       zero_spend: { out_of_pocket_spend_usd: 0, auto_purchase: false, auto_refill: false, paid_fallback: false },
       task_market: { status: taskMarket.status, open_tasks: taskMarket.task_market.open_tasks, daydreams: taskMarket.daydreams, p1_candidates: taskMarket.p1_candidates },
       payment_capabilities: money.payment_capabilities,
