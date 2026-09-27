@@ -11,7 +11,7 @@ code+='\nexport { executionAdapterCapabilities, executionCandidateAdmitted };\n'
 fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const mod=await import(pathToFileURL(tmp).href+'?v='+Date.now());
-const base={ai_executability:'AI_EXECUTABLE',estimated_net_usd:150,artifact_profile:{supported:true},blockers:[]};
+const base={ai_executability:'AI_EXECUTABLE',executor_truth:'PROVEN',estimated_net_usd:150,artifact_profile:{supported:true},blockers:[]};
 if(!mod.executionAdapterCapabilities('DAYDREAMS',{TASKMARKET_SIGNER:{}}).complete_lifecycle) throw new Error('DAYDREAMS_ADAPTER_NOT_COMPLETE');
 if(mod.executionAdapterCapabilities('AGENTHANSA',{}).complete_lifecycle) throw new Error('HANSA_READY_WITHOUT_SECRET');
 if(!mod.executionAdapterCapabilities('AGENTHANSA',{AGENTHANSA_API_KEY:'test'}).complete_lifecycle) throw new Error('HANSA_NOT_READY_WITH_SECRET');
