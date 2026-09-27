@@ -259,12 +259,14 @@ var GALAXY_ADVISORY_TECH = [
 function galaxyPolicyBlockers(title, description) {
   const text = `${title || ""} ${description || ""}`.toLowerCase(), out = [];
   const add = (x) => { if (!out.includes(x)) out.push(x); };
-  const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
+  const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|(?:buy|sell|invest(?:\s+in)?)\s+(?:bitcoin|btc|ethereum|eth|crypto(?:currency|currencies)?|tokens?|stocks?|equities|forex|securities)|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
   if (tradeOrBet) add("TRADING_OR_GAMBLING_PROHIBITED");
   const spendEvidence = sourceExecutionSpendEvidence(title, description);
   const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas(?:\s+fee)?|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|submission|participat))/i.test(text);
   const explicitRequirement = /\brequires?\b[^.!?;]{0,80}\b(?:stake|deposit|collateral|gas(?:\s+fee)?|network\s+fee|paid\s+api|premium\s+api|paid\s+subscription|api\s+credits?|card\s+hold|preauthori[sz]ation)\b/i.test(text);
-  const spendRequired = spendEvidence.required || imperativeSpend || explicitRequirement;
+  const directSpendMandate = /\b(?:must\s+)?(?:stake|deposit|post\s+collateral|pay\s+(?:(?:a|the)\s+)?(?:\d+(?:\.\d+)?\s*(?:usd|usdc|usdt|eur|ars)?\s*)?(?:fee|gas(?:\s+fee)?|network\s+fee)?|purchase\s+(?:\d+\s+)?(?:api\s+)?credits?)\b/i.test(text)
+    && !/\b(?:no|not|without)\s+(?:stake|staking|deposit|collateral|gas(?:\s+fee)?|network\s+fee|fee|api\s+credits?)\b/i.test(text);
+  const spendRequired = spendEvidence.required || imperativeSpend || explicitRequirement || directSpendMandate;
   if (spendRequired) {
     add("BLOCKED_OWNER_SPEND");
     if (/\b(?:stake|staking|security deposit|refundable deposit|collateral)\b/i.test(text) || /\bbond\b[^.!?;]{0,80}\b(?:required|must|need|post|provide|deposit|collateral)\b/i.test(text)) add("CAPITAL_REQUIRED");
@@ -282,7 +284,7 @@ function classifyRequiredCapabilities(opp = {}, advisory = null) {
   if (cls === "HTTP_TOOL") add("API_HTTP");
   if (cls === "CODE_SANDBOX_REQUIRED") add("CODE");
   if (/\b(?:research|investigat|summari[sz]e|analysis|analy[sz]e|report|write|article|content|copy|documentation)\b/i.test(text)) add("TEXT_RESEARCH");
-  if (/\b(?:code|coding|implement|programming|script|software|bug|patch|fix\b|refactor|typescript|javascript|python|rust|golang|java\b)\b/i.test(text)) add("CODE");
+  if (/\b(?:code|coding|implement|program(?:ming)?|script|debug|patch|fix\b|refactor|write\s+(?:a\s+)?(?:function|program|script|module|class)|build\s+(?:a\s+)?(?:tool|app|service|library)|develop\s+(?:a\s+)?(?:tool|app|service|library))\b/i.test(text)) add("CODE");
   if (/\b(?:open[ -]?source|\boss\b|github issue|pull request|repository fix|repo fix)\b/i.test(text)) { add("OSS_FIX"); add("CODE"); add("GITHUB"); }
   if (/\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b[^.!?;]{0,90}\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b|\b(?:data(?:set)?|csv|spreadsheet|sql|jsonl)\b[^.!?;]{0,90}\b(?:analy[sz]e|process|clean|transform|query|aggregate|parse|extract|visuali[sz]e|compute)\b/i.test(text)) add("DATA");
   if (/\b(?:design|create|build|implement|redesign)\b[^.!?;]{0,90}\b(?:ui\b|ux\b|user interface|figma|design system|visual design|component design)\b/i.test(text)) add("UI_DESIGN");
@@ -398,7 +400,8 @@ __name2(executionAdapterCapabilities, "executionAdapterCapabilities");
 function executionCandidateAdmitted(opp, env = {}) {
   const a = executionAdapterCapabilities(opp?.source, env);
   const galaxyExecutorOk = opp?.executor_truth === "PROVEN";
-  return !!(a.complete_lifecycle && galaxyExecutorOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
+  const galaxySpendOk = opp?.owner_spend?.known === true && opp?.owner_spend?.zero === true;
+  return !!(a.complete_lifecycle && galaxyExecutorOk && galaxySpendOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
 }
 __name(executionCandidateAdmitted, "executionCandidateAdmitted");
 __name2(executionCandidateAdmitted, "executionCandidateAdmitted");
@@ -2137,7 +2140,7 @@ var ATMBrain = class extends DurableObject {
     const clean = uniq(blockers);
     const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
     const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
-    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN", task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
+    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN" && galaxyNormalized.owner_spend?.known === true && galaxyNormalized.owner_spend?.zero === true, task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
   }
   async freshExecutionPolicy(opp, operation = null) {
     if (opp?.source === "DAYDREAMS") return await this.freshTaskmarketPolicy(opp, operation);
