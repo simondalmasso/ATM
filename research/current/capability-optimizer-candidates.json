@@ -1,0 +1,45 @@
+﻿{
+  "schema": "ATM-CAPABILITY-OPTIMIZER-CANDIDATES-V1",
+  "verified_at": "2026-09-28",
+  "owner_spend_usd": 0,
+  "candidates": [
+    {
+      "id": "SKILLOPT",
+      "repository": "https://github.com/microsoft/SkillOpt",
+      "state": "OFFLINE_SKILL_OPTIMIZER_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "allowed_backend_policy": "EXTERNAL_NON_OWNER_OR_ALREADY_AUTHENTICATED_ZERO_INCREMENTAL_COST_ONLY",
+      "held_out_validation_required": true,
+      "can_promote_executor": false,
+      "can_change_money_policy": false
+    },
+    {
+      "id": "OPENSCIENCE",
+      "repository": "https://github.com/synthetic-sciences/openscience",
+      "state": "EXTERNAL_SCIENTIFIC_EXECUTOR_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "allowed_cost_mode": "EXTERNAL_ZERO_COST_HOST_WITH_LOCAL_MODEL_COMPUTE_ONLY",
+      "blocked_routes": ["ACE_WALLET","PAID_PROVIDER_API","PAID_REMOTE_COMPUTE","BYOK_PAID_API"],
+      "capabilities": ["SCIENTIFIC","DATA","CODE"]
+    },
+    {
+      "id": "DCP",
+      "source": "https://www.npmjs.com/package/dcp-worker",
+      "state": "EXTERNAL_COMPUTE_WORKER_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "host_requirement": "EXTERNAL_NON_OWNER_NODE_PLUS_DCP_EVALUATOR",
+      "value_unit": "DCC",
+      "count_as_paid_usd": false,
+      "blockers": ["DCC_TO_USD_SETTLEMENT_NOT_PROVEN","PAYOUT_READBACK_NOT_INTEGRATED","HOST_MARGINAL_COST_NOT_PROVEN_ZERO"]
+    }
+  ]
+}
