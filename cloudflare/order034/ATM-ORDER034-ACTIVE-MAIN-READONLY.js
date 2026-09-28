@@ -117,6 +117,167 @@ function receiptMatchesTask(receipt, taskIdentity) {
 }
 __name(receiptMatchesTask, "receiptMatchesTask");
 __name2(receiptMatchesTask, "receiptMatchesTask");
+
+var SOURCE_TRUTH_V1 = Object.freeze({
+  YES:"YES",
+  UNKNOWN_NOT_FETCHED:"UNKNOWN_NOT_FETCHED",
+  UNKNOWN_NOT_PUBLISHED:"UNKNOWN_NOT_PUBLISHED",
+  NO:"NO"
+});
+var WORKER_CONTRACT_SCHEMA_V1 = Object.freeze({
+  version:"WORKER_CONTRACT_SCHEMA_V1",
+  max_owner_cost_usd:0,
+  required_request_fields:["capability","source_evidence_refs","task_id","timeout_ms","idempotency_key","authority_flags"],
+  required_result_fields:["status","artifact_hashes","evidence_hashes","error"],
+  required_receipt_fields:["worker_id","task_id","idempotency_key","check_receipt","observed_at"],
+  authority_flags:{spend:false,financial_mutation:false,settlement_authority:false,policy_override:false}
+});
+function newWorkerRegistryEntryV1(id,capabilities=[]){
+  return { id:String(id||""), capabilities:uniq(Array.isArray(capabilities)?capabilities.map(String):[]), proven:false, proof_receipt:null, max_owner_cost_usd:0, authority:{spend:false,financial_mutation:false,settlement:false,policy_override:false} };
+}
+var WORKER_PROVEN_REGISTRY_V1 = Object.freeze(Object.fromEntries([
+  ["SENEX",["MARKET_RESEARCH","MARKET_OBSERVABILITY","EVIDENCE_SCORING"]],
+  ["BOQA",["AUTHORIZED_BROWSER_QA","SECURITY_VERIFICATION","EVIDENCE_PRODUCTION"]],
+  ["ORACLE",["COMPUTE_CPU"]],
+  ["BROWSER",["BROWSER"]],
+  ["CODE",["CODE"]],
+  ["GITHUB",["GITHUB"]]
+].map(([id,caps])=>[id,newWorkerRegistryEntryV1(id,caps)])));
+
+function sourceEvidenceBundleV1(opp={},state={}){
+  const owner=opp?.owner_spend&&typeof opp.owner_spend==="object"?opp.owner_spend:{known:typeof opp?.eligibility?.owner_spend_zero==="boolean",zero:opp?.eligibility?.owner_spend_zero===true,amount_usd:opp?.eligibility?.owner_spend_zero===true?0:null};
+  const fetched=state.fetched===false?false:state.fetched===true?true:!!opp?.freshness_at;
+  const shared=/\bshare\s+\d+(?:\.\d+)?\s*(?:usd|usdc)\b|\bshared\s+(?:reward\s+)?pool\b/i.test(`${opp?.title||""} ${opp?.description||""}`);
+  const applyClaim=opp?.source==="DAYDREAMS"?(opp?.economics?.worker_action||null):opp?.source==="AGENTHANSA"?"CLAIM_OR_SUBMIT_ADAPTER":null;
+  const exactDeliverable=opp?.source==="DAYDREAMS"?(typeof opp?.source_truth_basis?.task_terms_hydrated==="boolean"?opp.source_truth_basis.task_terms_hydrated:(opp?.exact_deliverable??opp?.acceptance??null)):(opp?.exact_deliverable??opp?.acceptance??null);
+  const fields=[opp?.open_now,opp?.newcomer_can_enter,opp?.geo_argentina_or_global,opp?.ai_automation_allowed,exactDeliverable,opp?.competition];
+  const defaultPublished=fields.every((x)=>typeof x==="boolean")&&!!opp?.payout_rail&&!!opp?.payout_readback&&owner.known===true&&!!applyClaim;
+  return {
+    version:"SOURCE_EVIDENCE_V1",
+    source:String(opp?.source||""),
+    task_id:String(opp?.raw_id||""),
+    opportunity_id:String(opp?.opportunity_id||""),
+    canonical_url:opp?.source_url||null,
+    observed_at:opp?.freshness_at||now(),
+    terms_hash:opp?.terms_hash||null,
+    fetched,
+    published:state.published===false?false:state.published===true?true:defaultPublished,
+    open_now:opp?.open_now??null,
+    newcomer_access:opp?.newcomer_can_enter??null,
+    geo_argentina_or_global:opp?.geo_argentina_or_global??null,
+    automation_allowed:opp?.ai_automation_allowed??opp?.eligibility?.terms_allow_automation??null,
+    exact_deliverable_and_acceptance:exactDeliverable,
+    competition_known:opp?.competition??null,
+    gross_reward:{amount:opp?.payout_amount??null,currency:opp?.payout_currency||null},
+    net_reward_usd:Number.isFinite(Number(opp?.estimated_net_usd))?Number(opp.estimated_net_usd):null,
+    reward_semantics:shared?"SHARED_POOL":"INDIVIDUAL_OR_FIXED",
+    owner_execution_cost:{known:owner.known===true,zero:owner.zero===true,amount_usd:Number.isFinite(Number(owner.amount_usd))?Number(owner.amount_usd):owner.zero===true?0:null},
+    apply_claim_mechanism:applyClaim,
+    payout_rail:opp?.payout_rail||null,
+    payout_readback:opp?.payout_readback||null
+  };
+}
+function sourceTruthVerdictV1(bundle={}){
+  if(bundle.fetched!==true)return SOURCE_TRUTH_V1.UNKNOWN_NOT_FETCHED;
+  if(bundle.open_now===false||bundle.automation_allowed===false||bundle.owner_execution_cost?.zero===false)return SOURCE_TRUTH_V1.NO;
+  if(bundle.published!==true)return SOURCE_TRUTH_V1.UNKNOWN_NOT_PUBLISHED;
+  const required=[bundle.open_now,bundle.newcomer_access,bundle.geo_argentina_or_global,bundle.automation_allowed,bundle.exact_deliverable_and_acceptance,bundle.competition_known];
+  if(!required.every((x)=>x===true)||!bundle.canonical_url||!bundle.terms_hash||!bundle.apply_claim_mechanism||!bundle.payout_rail||!bundle.payout_readback||bundle.owner_execution_cost?.known!==true)return SOURCE_TRUTH_V1.UNKNOWN_NOT_PUBLISHED;
+  return SOURCE_TRUTH_V1.YES;
+}
+function economicTruthV1(bundle={}){
+  let verdict=SOURCE_TRUTH_V1.YES;
+  if(bundle.fetched!==true)verdict=SOURCE_TRUTH_V1.UNKNOWN_NOT_FETCHED;
+  else if(bundle.owner_execution_cost?.known!==true||!bundle.payout_rail||!bundle.payout_readback||!(Number(bundle.net_reward_usd)>0)||bundle.reward_semantics==="SHARED_POOL")verdict=SOURCE_TRUTH_V1.UNKNOWN_NOT_PUBLISHED;
+  else if(bundle.owner_execution_cost?.zero!==true)verdict=SOURCE_TRUTH_V1.NO;
+  return { version:"ECONOMIC_TRUTH_V1", verdict, owner_spend_zero:bundle.owner_execution_cost?.zero===true, payout_readback_known:!!bundle.payout_readback, reward_semantics:bundle.reward_semantics||"UNKNOWN", expected_realized_usd:verdict===SOURCE_TRUTH_V1.YES?Number(bundle.net_reward_usd):null };
+}
+function humanGateReasonsV1(opp={}){
+  const blockers=Array.isArray(opp?.blockers)?opp.blockers:[];
+  const gateCodes=new Set(["KYC_OR_IDENTITY_REQUIRED","WALLET_SIGN_REQUIRED","GITHUB_REQUIRED","GITHUB_WRITE_REQUIRED","ACCOUNT_OR_AUTH_REQUIRED","AUTH_OWNER_SETUP_REQUIRED","OWNER_AUTH_REQUIRED","HUMAN_INTERACTION_REQUIRED","HUMAN_ONLY_LISTING","AGENT_ACCESS_NOT_ALLOWED","SOCIAL_OR_PUBLICATION_REQUIRED"]);
+  return uniq(blockers.filter((x)=>gateCodes.has(x)||HUMAN_PATH_SIGNALS.has(x)));
+}
+function moneyPathConstraintV1(opp={},bundle=sourceEvidenceBundleV1(opp),economic=economicTruthV1(bundle)){
+  if(sourceTruthVerdictV1(bundle)!==SOURCE_TRUTH_V1.YES||economic.verdict!==SOURCE_TRUTH_V1.YES)return "SOURCE_PROOF_REQUIRED";
+  const humanReasons=humanGateReasonsV1(opp);
+  if(humanReasons.length)return "WAITING_HUMAN";
+  if(opp?.executor_truth!=="PROVEN"){
+    const cap=(Array.isArray(opp?.required_capabilities)?opp.required_capabilities:[]).find((x=>!["TEXT_RESEARCH","API_HTTP"].includes(String(x))))||(Array.isArray(opp?.required_capabilities)?opp.required_capabilities:[]).find(Boolean)||"UNKNOWN";
+    return `EXECUTOR_PROOF:${String(cap)}`;
+  }
+  return "ACTION_READY";
+}
+
+function pendingStateFromRuntimeV1(stage){
+  const s=String(stage||"").toUpperCase();
+  if(["PAID","REJECTED","EXPIRED","STALE","WRITE_UNCERTAIN","ACCEPTED","SUBMITTED","CLAIMED","APPLIED","WAITING_REPLY","WAITING_HUMAN","ACTION_READY"].includes(s))return s;
+  if(s==="WAITING_ACCEPTANCE"||s==="SUBMITTING")return "SUBMITTED";
+  if(s==="WAITING_OWNER")return "WAITING_HUMAN";
+  if(["ACQUIRING","EVALUATING","AUTO_ELIGIBLE","EXECUTING","VERIFYING","RETRY_WAIT"].includes(s))return "ACTION_READY";
+  if(s==="ABORTED")return "STALE";
+  return "ACTION_READY";
+}
+function pendingWorkRecordV1(opp={},runtime={}){
+  const state=pendingStateFromRuntimeV1(runtime?.write_uncertain?"WRITE_UNCERTAIN":runtime?.stage);
+  const idempotency=runtime?.pending_external_intent?.idempotency_key||runtime?.submit_idempotency_key||runtime?.claim_idempotency_key||null;
+  return {
+    version:"PENDING_WORK_ENGINE_V1",opportunity_id:String(opp?.opportunity_id||runtime?.opportunity_id||""),source:String(runtime?.source||opp?.source||""),task_id:String(runtime?.task_id||opp?.raw_id||""),
+    state,application_ref:runtime?.application_id||null,claim_ref:runtime?.claim_id||null,submission_ref:runtime?.submission_id||null,terms_hash:runtime?.terms_hash||opp?.terms_hash||null,idempotency_key:idempotency,
+    deadline:opp?.deadline||runtime?.deadline||null,last_readback_hash:runtime?.last_readback_hash||null,last_readback_at:runtime?.last_settlement_check||runtime?.last_readback_at||null,next_poll_at:runtime?.next_poll_at||runtime?.next_retry_at||null,
+    attempts:Math.min(3,Math.max(0,n(runtime?.attempts))),human_gate_reason:runtime?.human_gate_reason||null,allow_mutation:state!=="WRITE_UNCERTAIN",required_action:state==="WRITE_UNCERTAIN"?"READBACK_ONLY":"NORMAL",updated_at:now()
+  };
+}
+function pendingWriteGuardV1(record={},current={}){
+  const blockers=[];
+  if(record.state==="WRITE_UNCERTAIN"||record.allow_mutation===false)blockers.push("WRITE_UNCERTAIN_READBACK_ONLY");
+  if(record.terms_hash&&current.terms_hash&&String(record.terms_hash)!==String(current.terms_hash))blockers.push("TERMS_CHANGED");
+  const deadline=Date.parse(current.deadline||record.deadline||"");
+  if(Number.isFinite(deadline)&&deadline<=Date.now())blockers.push("DEADLINE_EXPIRED");
+  const readAt=Date.parse(current.last_readback_at||"");
+  const maxAge=Math.max(1,n(current.max_readback_age_ms)||30*60e3);
+  if(current.last_readback_at&&(!Number.isFinite(readAt)||Date.now()-readAt>maxAge))blockers.push("READBACK_STALE");
+  return {allow_mutation:blockers.length===0,blockers,required_action:blockers.includes("WRITE_UNCERTAIN_READBACK_ONLY")?"READBACK_ONLY":"REVALIDATE"};
+}
+function pendingAfterWriteFailureV1(record={},failure={}){
+  const err=String(failure?.error||"");
+  const ambiguous=/timeout|timed out|network|fetch|connection|signer_call_failed|non_json|socket|econn|aborted|readback_missing|unverified|submission_id_unverified/i.test(err);
+  if(!ambiguous)return {...record,state:"STALE",allow_mutation:false,required_action:"REVALIDATE",last_error:err,updated_at:now()};
+  return {...record,state:"WRITE_UNCERTAIN",allow_mutation:false,required_action:"READBACK_ONLY",write_operation:String(failure?.operation||""),last_error:err,next_poll_at:new Date(Date.now()+SETTLEMENT_ALARM_MS).toISOString(),updated_at:now()};
+}
+function recoverPendingWorkV1(existing={},runtimes={},oppsById={}){
+  const out={...(existing||{})};
+  for(const [key,runtime] of Object.entries(runtimes||{})){
+    const opportunityId=String(runtime?.opportunity_id||key||"");
+    if(!opportunityId||["PAID","REJECTED","EXPIRED"].includes(String(runtime?.stage||"").toUpperCase()))continue;
+    const next=pendingWorkRecordV1(oppsById?.[opportunityId]||{opportunity_id:opportunityId,raw_id:runtime?.task_id,source:runtime?.source},runtime);
+    const prev=out[opportunityId];
+    if(prev?.state==="WRITE_UNCERTAIN"&&!["SUBMITTED","ACCEPTED"].includes(next.state))out[opportunityId]={...prev,updated_at:next.updated_at};
+    else out[opportunityId]={...(prev||{}),...next};
+  }
+  return out;
+}
+function settlementReceiptMatchV1(receipt={},expected={},seenRefs=[]){
+  const reasons=[];
+  const eq=(a,b)=>String(a??"")===String(b??"");
+  if(receipt?.status!=="PAID")reasons.push("STATUS_NOT_PAID");
+  if(!eq(receipt?.source,expected?.source))reasons.push("SOURCE_MISMATCH");
+  if(!eq(receipt?.task_id,expected?.task_id))reasons.push("TASK_MISMATCH");
+  if(expected?.submission_id&&!eq(receipt?.submission_id,expected?.submission_id))reasons.push("SUBMISSION_MISMATCH");
+  if(expected?.claim_id&&!eq(receipt?.claim_id,expected?.claim_id))reasons.push("CLAIM_MISMATCH");
+  if(!expected?.payee||!eq(String(receipt?.payee||"").toLowerCase(),String(expected.payee).toLowerCase()))reasons.push("PAYEE_MISMATCH");
+  const amount=Number(receipt?.amount);
+  if(!(amount>0))reasons.push("AMOUNT_NOT_POSITIVE");
+  if(Number(expected?.amount)>0&&amount!==Number(expected.amount))reasons.push("AMOUNT_MISMATCH");
+  if(!receipt?.currency||expected?.currency&&!eq(String(receipt.currency).toUpperCase(),String(expected.currency).toUpperCase()))reasons.push("CURRENCY_MISMATCH");
+  const ref=String(receipt?.external_ref||"");
+  if(!ref)reasons.push("EXTERNAL_REF_MISSING");
+  if(ref&&seenRefs.map(String).includes(ref))reasons.push("DUPLICATE_EXTERNAL_REF");
+  if(!receipt?.authoritative_readback)reasons.push("AUTHORITATIVE_READBACK_MISSING");
+  if(!Number.isFinite(Date.parse(String(receipt?.observed_at||""))))reasons.push("OBSERVED_AT_MISSING");
+  if(!receipt?.evidence_hash)reasons.push("EVIDENCE_HASH_MISSING");
+  return {matched:reasons.length===0,paid:reasons.length===0,reasons,external_ref:ref||null};
+}
+
 var RUNTIME_ORDER = "ATM-ORDER-034";
 var ORDER = RUNTIME_ORDER;
 var MODEL = "@cf/zai-org/glm-4.7-flash";
@@ -1946,6 +2107,150 @@ var ATMBrain = class extends DurableObject {
   async taskRuntimeHistory() {
     return await this.get("task_runtime_history", {});
   }
+  async pendingWorkState(persist=false) {
+    const [stored,runtimes,opps]=await Promise.all([this.get("pending_work_v1",{version:"PENDING_WORK_ENGINE_V1",items:{},updated_at:null}),this.taskRuntime(),this.opportunities()]);
+    const byId=Object.fromEntries(opps.map((x)=>[x.opportunity_id,x]));
+    const items=recoverPendingWorkV1(stored?.items||{},runtimes,byId);
+    const next={version:"PENDING_WORK_ENGINE_V1",items,updated_at:persist?now():(stored?.updated_at||null)};
+    if(persist)await this.put("pending_work_v1",next);
+    return next;
+  }
+  async recordPendingRuntime(opp,runtime,patch={}) {
+    const store=await this.get("pending_work_v1",{version:"PENDING_WORK_ENGINE_V1",items:{},updated_at:null});
+    store.items=store.items||{};
+    const base=pendingWorkRecordV1(opp,runtime);
+    store.items[opp.opportunity_id]={...(store.items[opp.opportunity_id]||{}),...base,...patch,updated_at:now()};
+    store.updated_at=now();
+    await this.put("pending_work_v1",store);
+    return store.items[opp.opportunity_id];
+  }
+  async journalPendingIntent(opp,runtime,operation) {
+    const op=String(operation||"").toLowerCase();
+    const idempotencyKey=op==="claim"?runtime.claim_idempotency_key:runtime.submit_idempotency_key;
+    runtime.pending_external_intent={operation:op,idempotency_key:idempotencyKey,terms_hash:runtime.terms_hash,at:now()};
+    runtime.pending_external_intent_hash=await sha256Hex(stableJson(runtime.pending_external_intent));
+    runtime.write_uncertain=false;
+    return await this.recordPendingRuntime(opp,runtime,{state:"ACTION_READY",allow_mutation:true,required_action:"NORMAL",write_intent:runtime.pending_external_intent,write_intent_hash:runtime.pending_external_intent_hash});
+  }
+  async clearPendingIntent(opp,runtime,patch={}) {
+    runtime.pending_external_intent=null;
+    runtime.pending_external_intent_hash=null;
+    runtime.write_uncertain=false;
+    return await this.recordPendingRuntime(opp,runtime,patch);
+  }
+  async syncHumanGatePendingV1(opps=[]) {
+    const store=await this.get("pending_work_v1",{version:"PENDING_WORK_ENGINE_V1",items:{},updated_at:null});
+    store.items=store.items||{};
+    const current=new Set();
+    for(const opp of opps){
+      if(opp?.money_path_constraint!=="WAITING_HUMAN")continue;
+      current.add(opp.opportunity_id);
+      const reasons=humanGateReasonsV1(opp);
+      store.items[opp.opportunity_id]={...(store.items[opp.opportunity_id]||{}),version:"PENDING_WORK_ENGINE_V1",opportunity_id:opp.opportunity_id,source:opp.source,task_id:opp.raw_id,state:"WAITING_HUMAN",terms_hash:opp.terms_hash||null,deadline:opp.deadline||null,human_gate_reason:reasons,action_url:opp.source_url||null,allow_mutation:false,required_action:"HUMAN_GATE_THEN_FRESH_REVALIDATION",updated_at:now()};
+    }
+    for(const [id,item] of Object.entries(store.items))if(item?.state==="WAITING_HUMAN"&&!current.has(id))store.items[id]={...item,state:"STALE",allow_mutation:false,required_action:"FRESH_REVALIDATION",updated_at:now()};
+    store.updated_at=now();
+    await this.put("pending_work_v1",store);
+    return store;
+  }
+  async settlementRefsState() {
+    return await this.get("settlement_refs_v1",{version:"SETTLEMENT_READBACK_V1",refs:{},updated_at:null});
+  }
+  async registerSettlementRef(receipt,opportunityId) {
+    const state=await this.settlementRefsState(), ref=String(receipt?.external_ref||"");
+    if(!ref)return {ok:false,error:"EXTERNAL_REF_REQUIRED"};
+    if(state.refs?.[ref])return {ok:false,error:"DUPLICATE_EXTERNAL_REF",existing:state.refs[ref]};
+    state.refs=state.refs||{};
+    state.refs[ref]={opportunity_id:opportunityId,source:receipt.source,task_id:receipt.task_id,submission_id:receipt.submission_id||null,payee:receipt.payee,amount:receipt.amount,currency:receipt.currency,observed_at:receipt.observed_at,evidence_hash:receipt.evidence_hash};
+    state.updated_at=now();
+    await this.put("settlement_refs_v1",state);
+    return {ok:true,ref};
+  }
+  async reconcileUncertainWrites() {
+    const pending=await this.pendingWorkState(true), runtimes=await this.taskRuntime(), opps=await this.opportunities();
+    const byId=Object.fromEntries(opps.map((x)=>[x.opportunity_id,x]));
+    let checked=0,resolved=0,remaining=0;
+    let taskmarketSubmissions=null;
+    for(const [oppId,item] of Object.entries(pending.items||{})){
+      if(item?.state!=="WRITE_UNCERTAIN")continue;
+      checked++;
+      const runtime=runtimes[oppId], opp=byId[oppId];
+      if(!runtime||!opp){remaining++;continue;}
+      const op=String(item.write_operation||runtime?.pending_external_intent?.operation||"").toLowerCase();
+      try{
+        if(op==="claim"){
+          const fresh=await this.freshExecutionPolicy(opp);
+          if(fresh?.operation==="submit"){
+            runtime.stage="CLAIMED"; runtime.claim_id=runtime.claim_id||item.idempotency_key||runtime.claim_idempotency_key; runtime.last_readback_at=fresh.read_at||now(); runtime.last_readback_hash=await sha256Hex(stableJson(fresh)); runtime.pending_external_intent=null; runtime.write_uncertain=false;
+            pending.items[oppId]={...pendingWorkRecordV1(opp,runtime),state:"CLAIMED",claim_ref:runtime.claim_id,allow_mutation:true,required_action:"FRESH_REVALIDATION",last_readback_at:runtime.last_readback_at,last_readback_hash:runtime.last_readback_hash,updated_at:now()};
+            resolved++; continue;
+          }
+        }else if(op==="submit"&&opp.source==="DAYDREAMS"){
+          taskmarketSubmissions=taskmarketSubmissions||await this.taskmarketSubmissionReadback();
+          const sub=(taskmarketSubmissions.results||[]).find((x)=>String(x?.taskId||"")===String(runtime.task_id)&&String(x?.workerAddress||"").toLowerCase()===TASKMARKET_WORKER_ADDRESS.toLowerCase())||null;
+          if(sub){
+            runtime.submission_id=String(sub.id||sub.submissionId||sub.submission_id||""); runtime.stage="WAITING_ACCEPTANCE"; runtime.external_submission_readback="PASS"; runtime.last_readback_at=taskmarketSubmissions.read_at||now(); runtime.last_readback_hash=await sha256Hex(stableJson(sub)); runtime.pending_external_intent=null; runtime.write_uncertain=false;
+            pending.items[oppId]={...pendingWorkRecordV1(opp,runtime),state:"SUBMITTED",submission_ref:runtime.submission_id,allow_mutation:false,required_action:"SETTLEMENT_READBACK",last_readback_at:runtime.last_readback_at,last_readback_hash:runtime.last_readback_hash,updated_at:now()};
+            resolved++; continue;
+          }
+        }else if(op==="submit"&&opp.source==="AGENTHANSA"){
+          const auth=await this.hansaAuth(), read=auth.ok?await this.hansaReadBounty(runtime.task_id,auth):{ok:false};
+          const submissions=Array.isArray(read?.bounty?.submissions)?read.bounty.submissions:[];
+          const own=submissions.find((x)=>String(x?.agent_id||x?.agent?.id||x?.participant?.agent_id||"")===String(AGENTHANSA_AGENT_ID)||String(x?.agent_name||x?.agent?.name||"")===String(AGENTHANSA_AGENT_NAME))||null;
+          const sid=own?.id||own?.submission_id||null;
+          if(sid){
+            runtime.submission_id=String(sid); runtime.stage="WAITING_ACCEPTANCE"; runtime.external_submission_readback="PASS"; runtime.last_readback_at=read.read_at||now(); runtime.last_readback_hash=await sha256Hex(stableJson(own)); runtime.pending_external_intent=null; runtime.write_uncertain=false;
+            pending.items[oppId]={...pendingWorkRecordV1(opp,runtime),state:"SUBMITTED",submission_ref:runtime.submission_id,allow_mutation:false,required_action:"SETTLEMENT_READBACK",last_readback_at:runtime.last_readback_at,last_readback_hash:runtime.last_readback_hash,updated_at:now()};
+            resolved++; continue;
+          }
+        }
+      }catch{}
+      remaining++;
+    }
+    pending.updated_at=now();
+    await this.put("task_runtime",runtimes);
+    await this.put("pending_work_v1",pending);
+    if(remaining>0)await this.ctx.storage.setAlarm(Date.now()+SETTLEMENT_ALARM_MS);
+    return {checked,resolved,remaining};
+  }
+  async moneyPathStatus() {
+    const [storedOpps,sources,pending,refs,epoch]=await Promise.all([this.opportunities(),this.sources(),this.pendingWorkState(),this.settlementRefsState(),this.get("money_path_epoch_v1",null)]);
+    const opps=storedOpps.map((opp)=>{
+      if(opp?.source_evidence_v1?.version==="SOURCE_EVIDENCE_V1"&&opp?.economic_truth_v1?.version==="ECONOMIC_TRUTH_V1"&&opp?.money_path_constraint)return opp;
+      const bundle=sourceEvidenceBundleV1(opp,{fetched:sources?.[opp.source]?.running===true});
+      const economic=economicTruthV1(bundle);
+      return {...opp,source_evidence_v1:bundle,source_truth_v1:sourceTruthVerdictV1(bundle),economic_truth_v1:economic,money_path_constraint:moneyPathConstraintV1(opp,bundle,economic),expected_realized_usd:economic.expected_realized_usd};
+    });
+    const items=Object.values(pending.items||{});
+    const withRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&!!x.last_readback_at&&!!x.last_readback_hash).length;
+    const sourceProof=opps.filter((x)=>x.money_path_constraint==="SOURCE_PROOF_REQUIRED").length;
+    const executorProof=opps.filter((x)=>String(x.money_path_constraint||"").startsWith("EXECUTOR_PROOF:")).length;
+    const waitingHuman=Math.max(items.filter((x)=>x.state==="WAITING_HUMAN").length,opps.filter((x)=>x.money_path_constraint==="WAITING_HUMAN").length);
+    const accepted=items.filter((x)=>x.state==="ACCEPTED"&&!!x.last_readback_at&&!!x.last_readback_hash).length;
+    const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length, paidExternalUsd=Math.round(paidRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
+    const unresolvedPending=items.some((x)=>["WRITE_UNCERTAIN","APPLIED","CLAIMED","WAITING_REPLY"].includes(x.state));
+    let nextBinding="EMPTY_ADMISSIBLE_DEMAND";
+    if(unresolvedPending)nextBinding="PENDING_WORK";
+    else if(accepted>0&&paidExternal===0)nextBinding="SETTLEMENT";
+    else if(waitingHuman>0)nextBinding="HUMAN_GATE";
+    else{
+      const executor=opps.filter((x)=>String(x.money_path_constraint||"").startsWith("EXECUTOR_PROOF:")).sort((a,b)=>(Number(b.expected_realized_usd)||0)-(Number(a.expected_realized_usd)||0))[0];
+      if(executor)nextBinding=executor.money_path_constraint;
+      else if(sourceProof>0)nextBinding="SOURCE_DEMAND";
+    }
+    const hasAppliedReadback=items.some((x)=>["APPLIED","CLAIMED","SUBMITTED","ACCEPTED"].includes(x.state)&&(x.last_readback_at||x.claim_ref||x.submission_ref));
+    const hasFundedDemand=opps.some((x)=>x.source_truth_v1==="YES"&&x.economic_truth_v1?.verdict==="YES"&&!!x.source_evidence_v1?.apply_claim_mechanism&&!!x.source_evidence_v1?.payout_readback);
+    const epochStart=Date.parse(epoch?.started_at||"");
+    const emptyAdmissible=Number.isFinite(epochStart)&&Date.now()-epochStart>=14*864e5&&!hasAppliedReadback&&!hasFundedDemand;
+    if(emptyAdmissible)nextBinding="EMPTY_ADMISSIBLE_DEMAND";
+    return {
+      version:"MONEY_PATH_V1",source_bundles:opps.filter((x)=>x.source_evidence_v1?.version==="SOURCE_EVIDENCE_V1").length,
+      APPLIED_WITH_READBACK:withRef("APPLIED","application_ref"),CLAIMED_WITH_READBACK:withRef("CLAIMED","claim_ref"),SUBMITTED_WITH_READBACK:withRef("SUBMITTED","submission_ref"),
+      ACCEPTED_WITH_READBACK:accepted,PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
+      EMPTY_ADMISSIBLE_DEMAND:emptyAdmissible,EXPECTED_REALIZED_USD_PER_HOUR:"UNKNOWN",next_binding_constraint:nextBinding,owner_spend_usd:0,
+      worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},earnings_paid_external_usd:paidExternalUsd
+    };
+  }
   async browserUsage() {
     let b = await this.get("browser_usage", { day: dayKey(), minutes: 0 });
     if (b.day !== dayKey()) b = { day: dayKey(), minutes: 0 };
@@ -2523,14 +2828,27 @@ var ATMBrain = class extends DurableObject {
       payoutData = data;
     } catch (e) { payoutData = { error:String(e?.message || e) }; }
     const submissions = Array.isArray(read.bounty?.submissions) ? read.bounty.submissions : [];
-    const own = submissions.find((x) => String(x?.id || x?.submission_id || "") === String(runtime.submission_id) || String(x?.agent_id || x?.agent?.id || "") === String(AGENTHANSA_AGENT_ID) || String(x?.agent_name || x?.agent?.name || "") === String(AGENTHANSA_AGENT_NAME)) || null;
+    const own = submissions.find((x) => String(x?.id || x?.submission_id || "") === String(runtime.submission_id)) || null;
     const rows = Array.isArray(payoutData) ? payoutData : Array.isArray(payoutData?.payouts) ? payoutData.payouts : Array.isArray(payoutData?.results) ? payoutData.results : Array.isArray(payoutData?.items) ? payoutData.items : [];
-    const payout = rows.find((x) => String(x?.submission_id || x?.submission?.id || "") === String(runtime.submission_id) || String(x?.bounty_id || x?.task_id || x?.reference_id || x?.source_id || "") === String(runtime.task_id)) || null;
+    const payout = rows.find((x) => {
+      const submissionId=String(x?.submission_id || x?.submission?.id || "");
+      const taskId=String(x?.bounty_id || x?.task_id || x?.reference_id || x?.source_id || "");
+      return !!submissionId && !!taskId && submissionId===String(runtime.submission_id) && taskId===String(runtime.task_id);
+    }) || null;
     const submissionStatus = String(own?.status || "").toLowerCase(), payoutStatus = String(payout?.status || "").toLowerCase();
     const amount = n(payout?.amount_usdc ?? payout?.amount ?? payout?.paid_amount ?? payout?.reward_amount ?? payout?.value);
-    const paid = !!payout && amount > 0 && ["paid","settled","completed"].includes(payoutStatus);
-    const accepted = paid || ["accepted","approved","winner","paid","settled","completed"].includes(submissionStatus);
-    return { ok:true, accepted, paid, amount, currency:String(payout?.currency || "USD"), submission_id:own?.id || own?.submission_id || runtime.submission_id, submission_status:submissionStatus || null, payout_id:payout?.id || null, payout_status:payoutStatus || null, paid_at:payout?.paid_at || payout?.settled_at || payout?.completed_at || null, payout_readback_error:payoutData?.error || null };
+    const currency=String(payout?.currency || "");
+    const payee=String(payout?.agent_id || payout?.payee_agent_id || payout?.recipient_agent_id || payout?.recipient?.agent_id || payout?.agent?.id || payout?.payee?.id || "");
+    const externalRef=String(payout?.tx_hash || payout?.transaction_hash || payout?.settlement_tx_hash || payout?.reference || payout?.id || "");
+    const paidStatus=["paid","settled","completed"].includes(payoutStatus);
+    const receiptBase={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee,amount,currency,status:paidStatus?"PAID":payoutStatus.toUpperCase(),external_ref:externalRef,authoritative_readback:"AGENTHANSA_PAYOUTS_API",observed_at:now()};
+    const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
+    const refs=await this.settlementRefsState();
+    const expected={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:String(AGENTHANSA_AGENT_ID),amount:n(read.bounty?.reward_amount),currency:String(read.bounty?.currency || "")};
+    const settlementMatch=settlementReceiptMatchV1(settlementReceipt,expected,Object.keys(refs.refs||{}));
+    const paid=!!payout && paidStatus && settlementMatch.paid===true;
+    const accepted = paid || (!!own && ["accepted","approved","winner","paid","settled","completed"].includes(submissionStatus));
+    return { ok:true, accepted, paid, amount, currency, submission_id:own?.id || own?.submission_id || runtime.submission_id, submission_status:submissionStatus || null, payout_id:payout?.id || null, payout_status:payoutStatus || null, paid_at:payout?.paid_at || payout?.settled_at || payout?.completed_at || null, payout_readback_error:payoutData?.error || null, settlement_receipt:settlementReceipt, settlement_match:settlementMatch };
   }
   async monitorExecutionReadback(trigger = "cron") {
     const runtimes = await this.taskRuntime(), opps = await this.opportunities(), reads = await this.get("execution_readbacks", []), subRead = await this.taskmarketSubmissionReadback();
@@ -2542,14 +2860,24 @@ var ATMBrain = class extends DurableObject {
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
         const h = await this.hansaSettlementReadback(runtime), row = { at:now(), trigger, opportunity_id:oppId, task_id:runtime.task_id, submission_id:runtime.submission_id, source:"AGENTHANSA", submission_readback:h.ok ? "PASS" : "PENDING", accepted:h.accepted===true, paid:h.paid===true, amount:h.amount || 0, payout_id:h.payout_id || null, payout_status:h.payout_status || null, error:h.error || h.payout_readback_error || null };
         runtime.external_submission_readback = h.ok ? "PASS" : "PENDING"; runtime.last_settlement_check = row.at; runtime.settlement_watcher_trigger = trigger;
-        if (h.paid === true && h.amount > 0) {
-          if (!runtime.accepted_at) { runtime.accepted_at = h.paid_at || row.at; accepted++; await this.appendTaskEvent(opp,"ACCEPTED",{ submission_id:runtime.submission_id, external_status:h.submission_status || "ACCEPTED", external_readback:true, reference:runtime.submission_id }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"ACCEPTED",{ receipt_present:true, external_readback:true, reference:runtime.submission_id }); }
-          runtime.stage="PAID"; runtime.terminal=true; runtime.paid_at=h.paid_at || row.at; runtime.paid_amount_usd=h.amount; runtime.payment_receipt={ task_id:runtime.task_id, submission_id:runtime.submission_id, amount:h.amount, currency:h.currency, payout_id:h.payout_id, paid_at:h.paid_at || null }; paid++; opp.execution_stage="PAID";
-          await this.appendTaskEvent(opp,"PAID",{ submission_id:runtime.submission_id, external_status:"PAID", payment_receipt:runtime.payment_receipt }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"PAID",{ receipt_present:true, external_readback:true, reference:h.payout_id || runtime.submission_id });
+        if (h.paid === true && h.amount > 0 && h.settlement_match?.paid === true) {
+          const registered=await this.registerSettlementRef(h.settlement_receipt,oppId);
+          if(!registered.ok){
+            runtime.stage="ACCEPTED"; opp.execution_stage="ACCEPTED"; pending++;
+            row.paid=false; row.error=registered.error;
+          }else{
+            if (!runtime.accepted_at) { runtime.accepted_at = h.paid_at || row.at; accepted++; await this.appendTaskEvent(opp,"ACCEPTED",{ submission_id:runtime.submission_id, external_status:h.submission_status || "ACCEPTED", external_readback:true, reference:runtime.submission_id }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"ACCEPTED",{ receipt_present:true, external_readback:true, reference:runtime.submission_id }); }
+            runtime.stage="PAID"; runtime.terminal=true; runtime.paid_at=h.paid_at || row.at; runtime.paid_amount_usd=h.amount; runtime.payment_receipt=h.settlement_receipt; paid++; opp.execution_stage="PAID";
+            await this.appendTaskEvent(opp,"PAID",{ submission_id:runtime.submission_id, external_status:"PAID", payment_receipt:runtime.payment_receipt }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"PAID",{ receipt_present:true, external_readback:true, reference:h.settlement_receipt.external_ref });
+            await this.recordPendingRuntime(opp,runtime,{state:"PAID",allow_mutation:false,required_action:"NONE",last_readback_at:row.at});
+          }
         } else if (h.accepted === true) {
           if (!runtime.accepted_at) { runtime.accepted_at = row.at; accepted++; await this.appendTaskEvent(opp,"ACCEPTED",{ submission_id:runtime.submission_id, external_status:h.submission_status || "ACCEPTED", external_readback:true, reference:runtime.submission_id }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:n(opp.estimated_net_usd) },"ACCEPTED",{ receipt_present:true, external_readback:true, reference:runtime.submission_id }); }
           runtime.stage="ACCEPTED"; opp.execution_stage="ACCEPTED"; pending++;
         } else { runtime.stage="WAITING_ACCEPTANCE"; opp.execution_stage="SUBMITTED"; pending++; }
+        runtime.last_readback_at=row.at;
+        runtime.last_readback_hash=await sha256Hex(stableJson(row));
+        await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":"SETTLEMENT_READBACK"});
         runtimes[oppId]=runtime; reads.unshift(row); continue;
       }
       if (runtime?.source !== "DAYDREAMS") continue;
@@ -2581,15 +2909,29 @@ var ATMBrain = class extends DurableObject {
           await this.appendLedgerEvent({ ...opp, estimated_net_usd: amountUsdc }, "ACCEPTED", { receipt_present: true, external_readback: true, reference: runtime.submission_id });
         }
         if (settlement && amountUsdc > 0) {
-          runtime.stage = "PAID";
-          runtime.terminal = true;
-          runtime.paid_at = award.settledAt || row.at;
-          runtime.paid_amount_usdc = amountUsdc;
-          runtime.payment_receipt = { task_id: runtime.task_id, submission_id: runtime.submission_id, worker_address: TASKMARKET_WORKER_ADDRESS, amount: amountUsdc, currency: "USDC", settlement_tx_hash: settlement, settled_at: award.settledAt || null, award_rank: award.rank };
-          paid++;
-          opp.execution_stage = "PAID";
-          await this.appendTaskEvent(opp, "PAID", { submission_id: runtime.submission_id, external_status: "SETTLED", payment_receipt: runtime.payment_receipt });
-          await this.appendLedgerEvent({ ...opp, estimated_net_usd: amountUsdc }, "PAID", { receipt_present: true, external_readback: true, reference: settlement });
+          const receiptBase={source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,amount:amountUsdc,currency:"USDC",status:"PAID",external_ref:settlement,authoritative_readback:"TASKMARKET_AWARD_SETTLEMENT",observed_at:row.at};
+          const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
+          const refs=await this.settlementRefsState();
+          const settlementMatch=settlementReceiptMatchV1(settlementReceipt,{source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,currency:"USDC"},Object.keys(refs.refs||{}));
+          const registered=settlementMatch.paid?await this.registerSettlementRef(settlementReceipt,oppId):{ok:false,error:"SETTLEMENT_MATCH_FAILED"};
+          if(registered.ok){
+            runtime.stage = "PAID";
+            runtime.terminal = true;
+            runtime.paid_at = award.settledAt || row.at;
+            runtime.paid_amount_usdc = amountUsdc;
+            runtime.payment_receipt = settlementReceipt;
+            paid++;
+            opp.execution_stage = "PAID";
+            await this.appendTaskEvent(opp, "PAID", { submission_id: runtime.submission_id, external_status: "SETTLED", payment_receipt: runtime.payment_receipt });
+            await this.appendLedgerEvent({ ...opp, estimated_net_usd: amountUsdc }, "PAID", { receipt_present: true, external_readback: true, reference: settlement });
+            await this.recordPendingRuntime(opp,runtime,{state:"PAID",allow_mutation:false,required_action:"NONE",last_readback_at:row.at});
+          }else{
+            pending++;
+            runtime.stage = "ACCEPTED";
+            opp.execution_stage = "ACCEPTED";
+            row.settlement_match=settlementMatch;
+            row.settlement_error=registered.error;
+          }
         } else {
           pending++;
           runtime.stage = "ACCEPTED";
@@ -2600,6 +2942,9 @@ var ATMBrain = class extends DurableObject {
         runtime.stage = "WAITING_ACCEPTANCE";
         opp.execution_stage = "SUBMITTED";
       }
+      runtime.last_readback_at=row.at;
+      runtime.last_readback_hash=await sha256Hex(stableJson(row));
+      await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":runtime.stage==="PAID"?"NONE":"SETTLEMENT_READBACK"});
       runtimes[oppId] = runtime;
       reads.unshift(row);
     }
@@ -2719,13 +3064,25 @@ var ATMBrain = class extends DurableObject {
       }
     }
     await this.observeTaskEvents(dedup);
+    for (const x of dedup) {
+      const sourceState=sourceStates[x.source]||{};
+      const bundle=sourceEvidenceBundleV1(x,{fetched:sourceState.running===true});
+      const sourceVerdict=sourceTruthVerdictV1(bundle), economic=economicTruthV1(bundle);
+      x.source_evidence_v1=bundle;
+      x.source_truth_v1=sourceVerdict;
+      x.economic_truth_v1=economic;
+      x.money_path_constraint=moneyPathConstraintV1(x,bundle,economic);
+      x.expected_realized_usd=economic.expected_realized_usd;
+    }
     await this.put("opportunities", dedup);
     await this.put("source_states", sourceStates);
+    if(!await this.get("money_path_epoch_v1",null))await this.put("money_path_epoch_v1",{version:"MONEY_PATH_V1",started_at:now()});
     const ok = ids.filter((id) => sourceStates[id]?.running).length;
     const admitted = dedup.filter((x) => x.ai_executability === "AI_EXECUTABLE").length;
     const radar = { last_run: now(), next_run: new Date(Date.now() + RADAR_INTERVAL_MS).toISOString(), sources_attempted: ids.length, sources_ok: ok, sources_failed: ids.length - ok, raw_found: dedup.length, admitted, rejected: dedup.length - admitted, status: ok > 0 ? ok === ids.length ? "RUNNING" : "DEGRADED" : "FAILED", reason };
     await this.put("radar", radar);
     await this.upsertHumanProposals(dedup);
+    await this.syncHumanGatePendingV1(dedup);
     await this.activity("found", `Radar encontr\xF3 ${dedup.length}; ${radar.admitted} AUTO_ELIGIBLE, ${radar.rejected} no autom\xE1ticas`, { radar });
     return { radar, sources: sourceStates, results: dedup };
   }
@@ -2974,6 +3331,17 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
         return state;
       }
       const opp = choice.opp, fresh = choice.fresh, runtimes = await this.taskRuntime();
+      const pendingBefore=await this.pendingWorkState(), pendingExisting=pendingBefore.items?.[opp.opportunity_id]||null;
+      if(pendingExisting?.state==="WRITE_UNCERTAIN"){
+        state.status="WRITE_UNCERTAIN";
+        state.error="WRITE_UNCERTAIN_READBACK_ONLY";
+        state.selected_task_id=opp.raw_id;
+        state.execution_job_id=runtimes[opp.opportunity_id]?.job_id||null;
+        await this.put("agentic",state);
+        await this.ctx.storage.setAlarm(Date.now()+SETTLEMENT_ALARM_MS);
+        await this.activity("analyzed",`ATM blocked duplicate mutation for ${opp.opportunity_id}; external readback required`,{opportunity_id:opp.opportunity_id,execution_actor:RUNTIME_ACTOR,trigger});
+        return state;
+      }
       const previous = runtimes[opp.opportunity_id] || {}, revisionChanged = previous.capability_revision !== CAPABILITY_REVISION;
       if (revisionChanged && previous.job_id && !previous.submission_id) {
         const history = await this.taskRuntimeHistory();
@@ -3003,13 +3371,18 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
         state.status = "ACQUIRING";
         runtime.stage = "ACQUIRING";
         await this.put("agentic", state);
+        await this.journalPendingIntent(opp,runtime,"claim");
+        runtimes[opp.opportunity_id]=runtime;
         await this.put("task_runtime", runtimes);
         const claim = await this.acquireExecutionSource(opp, runtime);
         if (!claim.ok) throw new Error(`MARKET_CLAIM_BLOCKED:${claim.error || "UNKNOWN"}`);
         runtime.claim_id = claim.claim_id || runtime.claim_idempotency_key;
         runtime.claim_receipt = claim;
+        runtime.last_readback_at=claim?.fresh_policy?.read_at||now();
+        runtime.last_readback_hash=await sha256Hex(stableJson(claim));
         runtime.stage = "CLAIMED";
         state.claimed = n(state.claimed) + 1;
+        await this.clearPendingIntent(opp,runtime,{state:"CLAIMED",claim_ref:runtime.claim_id,last_readback_at:runtime.last_readback_at,last_readback_hash:runtime.last_readback_hash,allow_mutation:true,required_action:"FRESH_REVALIDATION"});
         await this.put("task_runtime", runtimes);
         await this.transition(opps, opp, state, "CLAIMED", "WAITING_NEXT_WORKER_ACTION", `ATM runtime claimed ${opp.opportunity_id}`, { execution_job_id: runtime.job_id, receipt_present: true, external_readback: true, reference: runtime.claim_id });
         await this.ctx.storage.setAlarm(Date.now() + SETTLEMENT_ALARM_MS);
@@ -3059,6 +3432,8 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       runtime.verifier_pass = true;
       runtime.stage = "SUBMITTING";
       await this.put("deliverables", ds);
+      await this.journalPendingIntent(opp,runtime,"submit");
+      runtimes[opp.opportunity_id]=runtime;
       await this.put("task_runtime", runtimes);
       const submit = await this.submitExecutionSource(opp, artifacts, runtime);
       if (!submit.ok) throw new Error(`MARKET_SUBMIT_BLOCKED:${submit.error || "UNKNOWN"}`);
@@ -3067,10 +3442,12 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       runtime.submission_reference_code = submit.reference_code || null;
       runtime.submission_receipt = submit;
       runtime.submitted_at = now();
+      runtime.last_readback_at=submit?.fresh_policy?.read_at||runtime.submitted_at;
       runtime.stage = "WAITING_ACCEPTANCE";
-      runtime.external_submission_readback = "PENDING";
+      runtime.external_submission_readback = submit?.external_readback===true ? "PASS" : "PENDING";
       runtime.last_error = null;
       runtime.next_retry_at = null;
+      await this.clearPendingIntent(opp,runtime,{state:"SUBMITTED",submission_ref:runtime.submission_id,last_readback_at:runtime.last_readback_at,allow_mutation:false,required_action:"SETTLEMENT_READBACK"});
       state.submitted = n(state.submitted) + 1;
       state.last_success = now();
       state.status = "WAITING_ACCEPTANCE";
@@ -3081,6 +3458,29 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       return state;
     } catch (e) {
       const msg = String(e?.message || e), runtimes = await this.taskRuntime(), entry = Object.entries(runtimes).find(([_, x]) => String(x?.job_id || "") === String(state.execution_job_id || "")) || Object.entries(runtimes).find(([_, x]) => String(x?.task_id || "") === String(state.selected_task_id || "")), id = entry?.[0] || null, runtime = entry?.[1] || null;
+      if (runtime?.pending_external_intent) {
+        const oppsNow=await this.opportunities(), oppNow=oppsNow.find((x)=>x.opportunity_id===id)||{opportunity_id:id,raw_id:runtime.task_id,source:runtime.source};
+        const prior=await this.recordPendingRuntime(oppNow,runtime);
+        const failed=pendingAfterWriteFailureV1(prior,{operation:runtime.pending_external_intent.operation,error:msg});
+        if(failed.state==="WRITE_UNCERTAIN"){
+          runtime.last_error=msg;
+          runtime.failed_stage=runtime.stage||"UNKNOWN";
+          runtime.write_uncertain=true;
+          runtime.stage="WRITE_UNCERTAIN";
+          runtime.next_poll_at=failed.next_poll_at;
+          runtimes[id]=runtime;
+          await this.put("task_runtime",runtimes);
+          await this.recordPendingRuntime(oppNow,runtime,failed);
+          state.status="WRITE_UNCERTAIN";
+          state.error=msg;
+          await this.put("agentic",state);
+          await this.ctx.storage.setAlarm(Date.now()+SETTLEMENT_ALARM_MS);
+          await this.activity("failed","ATM external write uncertain; mutation frozen pending authoritative readback",{error:msg,opportunity_id:id,operation:runtime.pending_external_intent.operation,execution_actor:RUNTIME_ACTOR,trigger});
+          return state;
+        }
+        runtime.pending_external_intent=null;
+        runtime.pending_external_intent_hash=null;
+      }
       if (runtime) {
         runtime.last_error = msg;
         runtime.failed_stage = runtime.stage || "UNKNOWN";
@@ -3105,7 +3505,7 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
   async status() {
     const [radar, sources, agentic, quota, opps, activity, runtimes, watchdog] = await Promise.all([this.radarState(), this.sources(), this.executionState(), this.quota(), this.opportunities(), this.get("activity", []), this.taskRuntime(), this.economicWatchdogState()]);
     const auto = opps.filter((x) => x.ai_executability === "AI_EXECUTABLE").length, money = await this.moneyLoopStatus();
-    const taskMarket = await this.taskMarketStatus();
+    const [taskMarket,moneyPath] = await Promise.all([this.taskMarketStatus(),this.moneyPathStatus()]);
     const executionEnabled = String(this.env.EXECUTION_ENABLED || "false") === "true";
     const effectiveAgentic = executionEnabled && agentic.status === "DISABLED_KILL_SWITCH" ? { ...agentic, stored_status: agentic.status, status: auto ? "READY_NEXT_CRON" : "IDLE_NO_AUTO_ELIGIBLE_TASK" } : agentic;
     const reconciledAgentic = reconcileAgenticRuntimeTruth(effectiveAgentic, runtimes);
@@ -3124,6 +3524,7 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       task_market: { status: taskMarket.status, open_tasks: taskMarket.task_market.open_tasks, daydreams: taskMarket.daydreams, p1_candidates: taskMarket.p1_candidates },
       payment_capabilities: money.payment_capabilities,
       money_loop: { earnings: money.earnings, queue_states: money.execution_queue.states, human_gate: { status: money.human_gate.status, pending: money.human_gate.pending, approved: money.human_gate.approved }, payment_rails: money.payment_rails },
+      money_path: moneyPath,
       mcp_activity: await this.mcpHeartbeatState(),
       sources,
       activity: activity.slice(0, 20)
@@ -3212,6 +3613,7 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
     }
   }
   async alarm() {
+    const uncertain = await this.reconcileUncertainWrites();
     const settlement = await this.monitorExecutionReadback("do_alarm");
     let watchdog = await this.economicWatchdogTick("do_alarm", true), recovery = null;
     if (watchdog.anomaly !== "NONE" && watchdog.recommended_action === "MULTI_MARKDOWN_ATOMIC_PER_FILE_GENERATION" && watchdog.current_task_open && watchdog.current_task_auto_eligible && watchdog.current_task_zero_owner_cost && ["RETRY_WAIT","ABORTED"].includes(watchdog.runtime_stage)) {
@@ -3220,7 +3622,7 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
     }
     if (watchdog.next_alarm_at) await this.ctx.storage.setAlarm(Date.parse(watchdog.next_alarm_at));
     await this.activity("analyzed", `Economic watchdog ${watchdog.classification}; settlement pending ${settlement.pending}`, { settlement, watchdog:{ classification:watchdog.classification, anomaly:watchdog.anomaly, recommended_action:watchdog.recommended_action, artifact_progress:watchdog.artifact_progress } });
-    return { settlement, watchdog, recovery };
+    return { uncertain, settlement, watchdog, recovery };
   }
   async fetch(req) {
     const u = new URL(req.url), p = u.pathname;
@@ -3255,16 +3657,18 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
     }
     if (p === "/runtime-diagnostics" && req.method === "GET" && u.hostname === "do") return j(await this.runtimeDiagnostics());
     if (p === "/run-now" && req.method === "POST" && u.hostname === "do") {
+      const uncertain = await this.reconcileUncertainWrites();
       const a = await this.runAgentic("RUN_NOW_TEST"), m = await this.monitorExecutionReadback("run_now_post");
-      return j({ ok: true, agentic: a, settlement: m });
+      return j({ ok: true, uncertain, agentic: a, settlement: m });
     }
     if (p === "/__cron" && req.method === "POST" && u.hostname === "do") {
       const radar = await this.refreshRadar("cron");
+      const uncertain = await this.reconcileUncertainWrites();
       const settlement_before = await this.monitorExecutionReadback("cron_pre");
       const a = await this.runAgentic("CRON");
       const h = await this.reconcileHumanReadbacks();
       const settlement_after = await this.monitorExecutionReadback("cron_post");
-      return j({ ok: true, radar: radar.radar, agentic: a, human_readbacks: h, settlement_before, settlement_after });
+      return j({ ok: true, radar: radar.radar, uncertain, agentic: a, human_readbacks: h, settlement_before, settlement_after });
     }
     if (p === "/money-loop") return j(await this.moneyLoopStatus());
     if (p === "/task-market") return j(await this.taskMarketStatus());

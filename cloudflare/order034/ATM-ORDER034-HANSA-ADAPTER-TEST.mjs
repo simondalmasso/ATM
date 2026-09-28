@@ -9,7 +9,7 @@ globalThis.fetch=async(url,opts={})=>{const u=String(url),h=opts.headers||{}; if
   if(u.endsWith('/collective/bounties/my')) return Response.json({bounties:joined?[{id:'h1'}]:[]});
   if(u.endsWith('/collective/bounties/h1/join')&&opts.method==='POST'){joined=true;return Response.json({id:'join-1',status:'joined'});}
   if(u.endsWith('/collective/bounties/h1/submit')&&opts.method==='POST'){submitted=true;return Response.json({submission_id:'sub-1',status:'submitted'});}
-  if(u.includes('/api/payouts')) return Response.json({payouts:[{id:'pay-1',bounty_id:'h1',submission_id:'sub-1',status:'paid',amount:150,currency:'USD',paid_at:'2026-09-17T03:00:00Z'}]});
+  if(u.includes('/api/payouts')) return Response.json({payouts:[{id:'pay-1',bounty_id:'h1',submission_id:'sub-1',agent_id:'6b41e166-4461-4a0e-a89a-bb7efebaf552',status:'paid',amount:150,currency:'USD',paid_at:'2026-09-17T03:00:00Z'}]});
   if(u.includes('api.taskmarket.dev/api/submissions/mine')) return Response.json([]); return new Response('{}',{status:404});};
 const opp={opportunity_id:'AGENTHANSA:h1',raw_id:'h1',source:'AGENTHANSA',title:'Write report',description:'Write a concise plain-text report.',estimated_net_usd:150,ai_executability:'AI_EXECUTABLE',artifact_profile:{supported:true,artifact_count:1},blockers:[]};
 const fresh1=await brain.freshExecutionPolicy(opp); if(!fresh1.ok||fresh1.operation!=='claim') throw new Error('HANSA_FRESH_CLAIM_FAILED:'+JSON.stringify(fresh1));
