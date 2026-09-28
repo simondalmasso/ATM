@@ -266,11 +266,15 @@ function pendingStateFromRuntimeV1(stage){
   return "ACTION_READY";
 }
 function pendingWorkRecordV1(opp={},runtime={}){
-  const state=pendingStateFromRuntimeV1(runtime?.write_uncertain?"WRITE_UNCERTAIN":runtime?.stage);
-  const idempotency=runtime?.pending_external_intent?.idempotency_key||runtime?.submit_idempotency_key||runtime?.claim_idempotency_key||null;
+  const runtimeStage=String(runtime?.stage||"").toUpperCase();
+  const writeIntent=runtime?.pending_external_intent||null;
+  const uncertainBoundary=runtime?.write_uncertain===true||!!writeIntent||["ACQUIRING","SUBMITTING"].includes(runtimeStage);
+  const state=pendingStateFromRuntimeV1(uncertainBoundary?"WRITE_UNCERTAIN":runtime?.stage);
+  const idempotency=writeIntent?.idempotency_key||runtime?.submit_idempotency_key||runtime?.claim_idempotency_key||null;
   return {
     version:"PENDING_WORK_ENGINE_V1",opportunity_id:String(opp?.opportunity_id||runtime?.opportunity_id||""),source:String(runtime?.source||opp?.source||""),task_id:String(runtime?.task_id||opp?.raw_id||""),
     state,application_ref:runtime?.application_id||null,claim_ref:runtime?.claim_id||null,submission_ref:runtime?.submission_id||null,terms_hash:runtime?.terms_hash||opp?.terms_hash||null,idempotency_key:idempotency,
+    write_operation:writeIntent?.operation||null,write_intent:writeIntent,write_intent_hash:runtime?.pending_external_intent_hash||null,
     deadline:opp?.deadline||runtime?.deadline||null,last_readback_hash:runtime?.last_readback_hash||null,last_readback_at:runtime?.last_settlement_check||runtime?.last_readback_at||null,next_poll_at:runtime?.next_poll_at||runtime?.next_retry_at||null,
     attempts:Math.min(3,Math.max(0,n(runtime?.attempts))),human_gate_reason:runtime?.human_gate_reason||null,allow_mutation:state!=="WRITE_UNCERTAIN",required_action:state==="WRITE_UNCERTAIN"?"READBACK_ONLY":"NORMAL",updated_at:now()
   };
@@ -2207,12 +2211,23 @@ var ATMBrain = class extends DurableObject {
   async registerSettlementRef(receipt,opportunityId) {
     const state=await this.settlementRefsState(), ref=String(receipt?.external_ref||"");
     if(!ref)return {ok:false,error:"EXTERNAL_REF_REQUIRED"};
-    if(state.refs?.[ref])return {ok:false,error:"DUPLICATE_EXTERNAL_REF",existing:state.refs[ref]};
     state.refs=state.refs||{};
-    state.refs[ref]={opportunity_id:opportunityId,source:receipt.source,task_id:receipt.task_id,submission_id:receipt.submission_id||null,payee:receipt.payee,amount:receipt.amount,currency:receipt.currency,observed_at:receipt.observed_at,evidence_hash:receipt.evidence_hash};
+    const existing=state.refs[ref]||null;
+    if(existing){
+      const same=String(existing.opportunity_id||"")===String(opportunityId||"")&&
+        String(existing.source||"")===String(receipt?.source||"")&&
+        String(existing.task_id||"")===String(receipt?.task_id||"")&&
+        String(existing.submission_id||"")===String(receipt?.submission_id||"")&&
+        String(existing.payee||"").toLowerCase()===String(receipt?.payee||"").toLowerCase()&&
+        Number(existing.amount)===Number(receipt?.amount)&&
+        String(existing.currency||"").toUpperCase()===String(receipt?.currency||"").toUpperCase();
+      if(same)return {ok:true,ref,replayed:true,existing};
+      return {ok:false,error:"DUPLICATE_EXTERNAL_REF_CONFLICT",existing};
+    }
+    state.refs[ref]={external_ref:ref,opportunity_id:opportunityId,source:receipt.source,task_id:receipt.task_id,submission_id:receipt.submission_id||null,payee:receipt.payee,amount:receipt.amount,currency:receipt.currency,authoritative_readback:receipt.authoritative_readback||null,observed_at:receipt.observed_at,evidence_hash:receipt.evidence_hash};
     state.updated_at=now();
     await this.put("settlement_refs_v1",state);
-    return {ok:true,ref};
+    return {ok:true,ref,replayed:false};
   }
   async reconcileUncertainWrites() {
     const pending=await this.pendingWorkState(true), runtimes=await this.taskRuntime(), opps=await this.opportunities();
@@ -2270,12 +2285,29 @@ var ATMBrain = class extends DurableObject {
       return {...opp,source_evidence_v1:bundle,source_truth_v1:sourceTruthVerdictV1(bundle),economic_truth_v1:economic,money_path_constraint:moneyPathConstraintV1(opp,bundle,economic),expected_realized_usd:economic.expected_realized_usd};
     });
     const items=Object.values(pending.items||{});
-    const withRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&!!x.last_readback_at&&!!x.last_readback_hash).length;
+    const readbackFreshnessMs=30*60e3;
+    const hasReadback=(x)=>!!x?.last_readback_at&&!!x?.last_readback_hash;
+    const hasFreshReadback=(x)=>{
+      if(!hasReadback(x))return false;
+      const at=Date.parse(String(x.last_readback_at||""));
+      return Number.isFinite(at)&&Date.now()-at>=0&&Date.now()-at<=readbackFreshnessMs;
+    };
+    const withRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&hasReadback(x)).length;
+    const withFreshRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&hasFreshReadback(x)).length;
     const sourceProof=opps.filter((x)=>x.money_path_constraint==="SOURCE_PROOF_REQUIRED").length;
     const executorProof=opps.filter((x)=>String(x.money_path_constraint||"").startsWith("EXECUTOR_PROOF:")).length;
     const waitingHuman=Math.max(items.filter((x)=>x.state==="WAITING_HUMAN").length,opps.filter((x)=>x.money_path_constraint==="WAITING_HUMAN").length);
-    const accepted=items.filter((x)=>x.state==="ACCEPTED"&&!!x.last_readback_at&&!!x.last_readback_hash).length;
-    const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length, paidExternalUsd=Math.round(paidRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
+    const accepted=items.filter((x)=>x.state==="ACCEPTED"&&hasReadback(x)).length;
+    const acceptedFresh=items.filter((x)=>x.state==="ACCEPTED"&&hasFreshReadback(x)).length;
+    const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length;
+    const usdEquivalentRows=paidRows.filter((x)=>["USD","USDC"].includes(String(x?.currency||"").toUpperCase()));
+    const paidExternalUsd=Math.round(usdEquivalentRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
+    const paidExternalNonUsd={};
+    for(const row of paidRows){
+      const currency=String(row?.currency||"UNKNOWN").toUpperCase();
+      if(["USD","USDC"].includes(currency))continue;
+      paidExternalNonUsd[currency]=Math.round((n(paidExternalNonUsd[currency])+n(row?.amount))*100)/100;
+    }
     const unresolvedPending=items.some((x)=>["WRITE_UNCERTAIN","APPLIED","CLAIMED","WAITING_REPLY"].includes(x.state));
     let nextBinding="EMPTY_ADMISSIBLE_DEMAND";
     if(unresolvedPending)nextBinding="PENDING_WORK";
@@ -2294,9 +2326,13 @@ var ATMBrain = class extends DurableObject {
     return {
       version:"MONEY_PATH_V1",source_bundles:opps.filter((x)=>x.source_evidence_v1?.version==="SOURCE_EVIDENCE_V1").length,
       APPLIED_WITH_READBACK:withRef("APPLIED","application_ref"),CLAIMED_WITH_READBACK:withRef("CLAIMED","claim_ref"),SUBMITTED_WITH_READBACK:withRef("SUBMITTED","submission_ref"),
-      ACCEPTED_WITH_READBACK:accepted,PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
+      ACCEPTED_WITH_READBACK:accepted,
+      APPLIED_WITH_FRESH_READBACK:withFreshRef("APPLIED","application_ref"),CLAIMED_WITH_FRESH_READBACK:withFreshRef("CLAIMED","claim_ref"),SUBMITTED_WITH_FRESH_READBACK:withFreshRef("SUBMITTED","submission_ref"),ACCEPTED_WITH_FRESH_READBACK:acceptedFresh,
+      READBACK_FRESHNESS:{fresh_window_ms:readbackFreshnessMs,historical_fields:"*_WITH_READBACK",fresh_fields:"*_WITH_FRESH_READBACK"},
+      PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
       EMPTY_ADMISSIBLE_DEMAND:emptyAdmissible,EXPECTED_REALIZED_USD_PER_HOUR:"UNKNOWN",next_binding_constraint:nextBinding,owner_spend_usd:0,
-      worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},earnings_paid_external_usd:paidExternalUsd
+      worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},
+      earnings_paid_external_usd:paidExternalUsd,earnings_paid_external_non_usd:paidExternalNonUsd,earnings_paid_external_currency_policy:"USD_AND_USDC_1_TO_1_ONLY_NO_FX"
     };
   }
   async browserUsage() {
@@ -2891,9 +2927,8 @@ var ATMBrain = class extends DurableObject {
     const paidStatus=["paid","settled","completed"].includes(payoutStatus);
     const receiptBase={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee,amount,currency,status:paidStatus?"PAID":payoutStatus.toUpperCase(),external_ref:externalRef,authoritative_readback:"AGENTHANSA_PAYOUTS_API",observed_at:now()};
     const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
-    const refs=await this.settlementRefsState();
     const expected={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:String(AGENTHANSA_AGENT_ID),amount:n(read.bounty?.reward_amount),currency:String(read.bounty?.currency || "")};
-    const settlementMatch=settlementReceiptMatchV1(settlementReceipt,expected,Object.keys(refs.refs||{}));
+    const settlementMatch=settlementReceiptMatchV1(settlementReceipt,expected,[]);
     const paid=!!payout && paidStatus && settlementMatch.paid===true;
     const accepted = paid || (!!own && ["accepted","approved","winner","paid","settled","completed"].includes(submissionStatus));
     return { ok:true, accepted, paid, amount, currency, submission_id:own?.id || own?.submission_id || runtime.submission_id, submission_status:submissionStatus || null, payout_id:payout?.id || null, payout_status:payoutStatus || null, paid_at:payout?.paid_at || payout?.settled_at || payout?.completed_at || null, payout_readback_error:payoutData?.error || null, settlement_receipt:settlementReceipt, settlement_match:settlementMatch };
@@ -2959,8 +2994,7 @@ var ATMBrain = class extends DurableObject {
         if (settlement && amountUsdc > 0) {
           const receiptBase={source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,amount:amountUsdc,currency:"USDC",status:"PAID",external_ref:settlement,authoritative_readback:"TASKMARKET_AWARD_SETTLEMENT",observed_at:row.at};
           const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
-          const refs=await this.settlementRefsState();
-          const settlementMatch=settlementReceiptMatchV1(settlementReceipt,{source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,currency:"USDC"},Object.keys(refs.refs||{}));
+          const settlementMatch=settlementReceiptMatchV1(settlementReceipt,{source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,currency:"USDC"},[]);
           const registered=settlementMatch.paid?await this.registerSettlementRef(settlementReceipt,oppId):{ok:false,error:"SETTLEMENT_MATCH_FAILED"};
           if(registered.ok){
             runtime.stage = "PAID";
@@ -2999,14 +3033,16 @@ var ATMBrain = class extends DurableObject {
     await this.put("task_runtime", runtimes);
     await this.put("opportunities", opps);
     if (checked) await this.put("execution_readbacks", reads.slice(0, 500));
-    if (pending > 0) await this.ctx.storage.setAlarm(Date.now() + SETTLEMENT_ALARM_MS);
+    const pendingEngine=await this.pendingWorkState();
+    const writeUncertainPending=Object.values(pendingEngine.items||{}).filter((x)=>x?.state==="WRITE_UNCERTAIN").length;
+    if (pending > 0 || writeUncertainPending > 0) await this.ctx.storage.setAlarm(Date.now() + SETTLEMENT_ALARM_MS);
     else {
       try {
         await this.ctx.storage.deleteAlarm();
       } catch {
       }
     }
-    const result = { checked, pending, accepted, paid, rejected, submission_feed_ok: subRead.ok, submission_feed_error: subRead.error || null, trigger, at: now() };
+    const result = { checked, pending, write_uncertain_pending:writeUncertainPending, accepted, paid, rejected, submission_feed_ok: subRead.ok, submission_feed_error: subRead.error || null, trigger, at: now() };
     await this.put("settlement_watcher", result);
     return result;
   }
@@ -3416,6 +3452,11 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       await this.appendTaskEvent(opp, "EVALUATING", { execution_job_id: runtime.job_id, external_status: fresh.task?.status || fresh.bounty?.status || opp.source_status || null });
       await this.transition(opps, opp, state, "AUTO_ELIGIBLE", "AUTO_ELIGIBLE", `ATM runtime selected ${opp.opportunity_id}`, { execution_job_id: runtime.job_id, dispatch_id: dispatch.dispatch_id, execution_actor: RUNTIME_ACTOR, arq_execution: false, action_cost_usdc: 0 });
       if (fresh.operation === "claim") {
+        const claimFresh=await this.freshExecutionPolicy(opp);
+        const claimRecord=pendingExisting||pendingWorkRecordV1(opp,runtime);
+        const claimGuard=pendingWriteGuardV1(claimRecord,{terms_hash:claimFresh?.terms_hash||fresh.terms_hash,deadline:opp.deadline,last_readback_at:claimFresh?.read_at||null,max_readback_age_ms:30*60e3});
+        if(!claimFresh?.ok||claimFresh.operation!=="claim")throw new Error(`CLAIM_REVALIDATION_BLOCKED:${claimFresh?.error||claimFresh?.operation||"UNKNOWN"}`);
+        if(!claimGuard.allow_mutation)throw new Error(`PENDING_WRITE_GUARD:${claimGuard.blockers.join("|")}`);
         state.status = "ACQUIRING";
         runtime.stage = "ACQUIRING";
         await this.put("agentic", state);
@@ -3478,6 +3519,11 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       runtime.deliverable_ids = deliverableIds;
       runtime.deliverable_id = deliverableIds[0] || null;
       runtime.verifier_pass = true;
+      const pendingForSubmit=(await this.pendingWorkState()).items?.[opp.opportunity_id]||pendingWorkRecordV1(opp,runtime);
+      const submitFresh=await this.freshExecutionPolicy(opp);
+      const submitGuard=pendingWriteGuardV1(pendingForSubmit,{terms_hash:submitFresh?.terms_hash||fresh.terms_hash,deadline:opp.deadline,last_readback_at:submitFresh?.read_at||null,max_readback_age_ms:30*60e3});
+      if(!submitFresh?.ok||submitFresh.operation!=="submit")throw new Error(`SUBMIT_REVALIDATION_BLOCKED:${submitFresh?.error||submitFresh?.operation||"UNKNOWN"}`);
+      if(!submitGuard.allow_mutation)throw new Error(`PENDING_WRITE_GUARD:${submitGuard.blockers.join("|")}`);
       runtime.stage = "SUBMITTING";
       await this.put("deliverables", ds);
       await this.journalPendingIntent(opp,runtime,"submit");

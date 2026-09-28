@@ -1,134 +1,96 @@
-# ATM CURRENT CHECKPOINT — ORDER-060
+# ATM CURRENT CHECKPOINT — ORDER-061 ACTIVE
 
 Updated: 2026-09-28
-Status: ORDER-060 is merged, deployed, live-verified and ready for AUD.
-Purpose: present-tense handoff for a fresh GPT agent starting from zero inside this project.
+Status: implementation complete on feature bytes; final checkpoint CI / review / merge / deploy still pending.
+Active issue: #87 — ATM-ORDER-061 — idempotent uncertain-write recovery + settlement commit consistency.
+PR: #88 — draft until final checkpoint head passes CI.
+Branch: order061-recovery-consistency-v1.
+Base GitHub main when work started: b64139d8c86d37953ec17fcaa1becfec11e77ead.
+Production runtime before ORDER-061: c257b5a42f7a4384e8da0b96b52a30359eb30620.
+Latest functional green head before this checkpoint update: 8b53ea270945dda293f5412972770d8a41d570d2.
+Functional-head CI: 36412181289 = SUCCESS.
 
-## Canon and invariants
-- GitHub source authority: https://github.com/simondalmasso/ATM
-- GitLab is downstream mirror only; do not author there and do not use GitLab runners.
-- Production: https://atm.simondalmasso44.workers.dev/
-- AGENTS.md, AUD_CANON.md and ARQ_CANON.md remain authoritative.
+## Invariants in force
 - OWNER_SPEND_USD=0.
-- Public MCP remains READ_ONLY.
-- Never install or run Julia/Laya/Lev/Jev, DCP, SkillOpt or OpenScience on the owner's PC.
-- Never treat candidate/provider presence as executor proof.
-- Never count DCC, prizes, submissions, balances or promises as USD PAID without exact authoritative settlement readback.
-
-## ORDER-060 completed state
-- Issue: #81 — CLOSED/completed.
-- PR: #82 — MERGED.
-- Feature branch: order060-runtime-capability-intake-v1.
-- Feature head: 2b8d29148363331e130a0e3068d6699f5b4227e5.
-- Runtime merge SHA: c257b5a42f7a4384e8da0b96b52a30359eb30620.
-- PR-head ATM CI: 36389099930 = SUCCESS.
-- Post-merge ATM CI: 36389150176 = SUCCESS.
-- GitLab downstream mirror: 36389150060 = SUCCESS.
-- Cloudflare deploy: 36389175783 = SUCCESS.
-- Cloudflare candidate version: f15d4773-12e0-41e5-b272-cb1c3d77ab8b.
-- Rollback/main previous version: 0686269d-3b69-4ad5-9c02-812145ce9c9d.
-- Candidate exact-SHA smoke: PASS.
-- Production exact-SHA smoke: PASS.
-- Rollback step: SKIPPED.
-- Signer deployment steps: SKIPPED because signer bytes did not change.
-- GitHub main runtime SHA and GitLab main are both c257b5a42f7a4384e8da0b96b52a30359eb30620.
-
-## Live production truth
-- /health git_sha = c257b5a42f7a4384e8da0b96b52a30359eb30620.
-- runtime = RUNNING.
-- execution_enabled = true.
-- durable_object = true.
-- galaxy_radar.version = ATM-ORDER-060-V1.
-- system_one_providers = JULIA_1, LAYA, LEV, JEV.
-- external_capability_candidates = DCP, SKILLOPT, OPENSCIENCE.
-- Every new candidate/provider remains proven=false and runtime_mounted=false.
-- Every new candidate/provider has owner_pc_allowed=false.
-- JULIA_1/LAYA/LEV cloudflare_worker_fit = NO_DIRECT_RUNTIME.
-- JEV cloudflare_worker_fit = REMOTE_CALL_ONLY and zero-cost endpoint is not proven.
-- DCP/SKILLOPT/OPENSCIENCE cloudflare_worker_fit = NO_DIRECT_RUNTIME.
-- zero_spend.out_of_pocket_spend_usd = 0.
-- money_path.owner_spend_usd = 0.
-- money_path.PAID_EXTERNAL = 0.
-- money_path.WORKERS_PROVEN = [].
-- money_path.next_binding_constraint = PENDING_WORK.
-- Workers AI live ATM quota readback: calls_used=0, reserved_neurons=0, safe_neuron_budget=9500, free_allocation_neurons=10000.
-- Production UI contains both META GLOBAL AI DEVELOPER HACKATHON and SUPERTEAM ARGENTINA · ROAD TO COLOSSEUM.
-- Superteam state shown live: REGISTRATION SUBMITTED · PENDING APPROVAL.
-- No user email/sender PII is persisted.
-
-## Implemented contracts
-- SYSTEM_ONE_PROVIDER_REGISTRY_V1 includes Julia-1, Laya, Lev and Jev as fail-closed advisory/provider candidates.
-- Laya direct policy role remains KILLED from prior replay evidence.
-- EXTERNAL_CAPABILITY_CANDIDATES_V1 includes DCP, SkillOpt and OpenScience.
-- DCP is a compute-worker candidate only; DCC is not USD and count_as_paid_usd=false.
-- SkillOpt is an offline skill optimizer only; it cannot promote executors or change money/policy gates.
-- OpenScience is an external scientific executor candidate only; Ace, paid provider API, paid remote compute and paid BYOK routes are blocked.
-- DCP and OpenScience appear in WORKER_PROVEN_REGISTRY_V1 with proven=false.
-- ATM Worker-side inference remains native Workers AI @cf/zai-org/glm-4.7-flash.
-
-## Cloudflare Free feasibility
-- Workers Free isolate memory limit: 128 MB.
-- Workers Free normal-request CPU limit: 10 ms.
-- Workers AI free allocation: 10,000 neurons/day.
-- ATM internal safe budget: 9,500 neurons/day; hard model call cap: 240.
-- ORDER-060 deployed bundle: 422.34 KiB upload / 107.35 KiB gzip.
-- Direct Julia/Laya/Lev/DCP/SkillOpt/OpenScience runtimes do not fit the Cloudflare Worker execution model safely; they are not mounted.
-- Only Cloudflare-native Worker/Workers AI execution is considered active in this order.
-
-## Verification passed
-- Every Node command declared in .github/workflows/ci.yml: PASS.
-- Python compileall: PASS.
-- Python unittest: 3/3 PASS.
-- secret_doctor.py: PASS.
-- payout_doctor.py: PASS.
-- all research/current/*.json parse: PASS.
-- git diff --check: PASS.
-- No new public mutation MCP tool.
-- No new external POST route.
+- UNKNOWN != YES.
+- Public MCP READ_ONLY.
 - No signer/wallet/transfer/withdrawal/x402 authority expansion.
+- No new executor promotion.
 - No runtime installed on owner PC.
-- No owner spend.
+- GitHub is source/deploy authority; GitLab mirror only.
+- PAID only from exact authoritative external settlement tied to ATM work.
 
-## Files delivered by ORDER-060
-- .github/workflows/ci.yml
-- cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js
-- cloudflare/order034/ATM-ORDER034-WIN101-UI-CANDIDATE.js
-- cloudflare/order034/ATM-ORDER034-WIN101-UI-TEST.mjs
-- cloudflare/order034/ATM-ORDER060-CAPABILITY-INTAKE-TEST.mjs
-- research/current/candidate-ledger.jsonl
-- research/current/external-worker-candidates.json
-- research/current/capability-optimizer-candidates.json
-- research/current/superteam-colosseum-salta-watch.json
-- research/current/system-one-provider-candidates.json
-- docs/superpowers/plans/2026-09-28-order060-capability-intake-v1.md
-- progress.md
+## ORDER-061 fixes now implemented
+1. Restart recovery:
+   - persisted pending_external_intent, ACQUIRING, SUBMITTING or write_uncertain recovers as WRITE_UNCERTAIN;
+   - recovered uncertain work is allow_mutation=false / READBACK_ONLY;
+   - write operation + intent + intent hash survive pending reconstruction.
+2. Mutation guards:
+   - claim path performs freshExecutionPolicy + pendingWriteGuardV1 before journal/write;
+   - submit path performs freshExecutionPolicy + pendingWriteGuardV1 before journal/write;
+   - changed terms, expired deadline, stale/uncertain state fail closed.
+3. Settlement replay:
+   - same external settlement ref for same opportunity/source/task/submission/payee/amount/currency is idempotent and returns replayed=true;
+   - same ref tied to a different identity fails as DUPLICATE_EXTERNAL_REF_CONFLICT;
+   - Daydreams/Hansa receipt validation no longer pre-rejects an exact replay before registerSettlementRef can reconcile it;
+   - appendLedgerEvent remains exactly-once per opportunity/stage, so replay converges without duplicate PAID ledger rows.
+4. Alarm ownership:
+   - monitorExecutionReadback checks pending_work_v1 for WRITE_UNCERTAIN before deleting an alarm;
+   - unresolved uncertain writes keep/re-arm SETTLEMENT_ALARM_MS polling even without submission_id.
+5. Money units:
+   - earnings_paid_external_usd includes USD and USDC only;
+   - non-USD settlements are exposed separately in earnings_paid_external_non_usd;
+   - no FX guessing; policy string is USD_AND_USDC_1_TO_1_ONLY_NO_FX.
+6. Readback freshness:
+   - historical *_WITH_READBACK counters are preserved;
+   - *_WITH_FRESH_READBACK counters use an explicit 30-minute window;
+   - READBACK_FRESHNESS metadata documents both semantics.
+7. Research hygiene:
+   - capability-optimizer-candidates.json, superteam-colosseum-salta-watch.json and system-one-provider-candidates.json are plain UTF-8 without BOM.
 
-## Exact continuation for a fresh GPT agent
-1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md and this progress.md first.
-2. Fetch issue #81 and PR #82 and confirm the evidence above rather than relying on chat memory.
-3. Read current GitHub main and production /health. A docs-only checkpoint merge may make GitHub main newer than c257b5a; production runtime must remain c257b5a until another runtime-changing order deploys.
-4. Verify GitLab main equals current GitHub main before declaring mirror parity.
-5. Read production /api/status and keep these truths separate:
-   - provider/candidate registry membership is not executor proof,
-   - runtime_mounted=false means not running,
-   - PROVEN=false means do not route task execution to it,
-   - PAID_EXTERNAL is the only realized external-money count.
-6. Treat ORDER-060 as complete. Do not reopen it merely to mount heavy runtimes.
-7. Reconcile AUD_CANON/ARQ_CANON with the closed ORDER-060 state. If canon names a new active order, execute only that order.
-8. If canon has no new active order yet, use the live next_binding_constraint=PENDING_WORK as evidence for AUD selection; do not invent a parallel ARQ.
-9. For any new work, create/assign one GitHub issue before edits, branch from fresh main, use TDD, exact-head CI, protected merge, canonical exact-SHA deployment only when runtime bytes change, production readback, mirror parity, and a new present-tense checkpoint here.
-10. Before the chat/session ends or after every material state transition (commit, PR, merge, deploy, blocker), update progress.md with:
-   - current order,
-   - branch/head/main/prod SHAs,
-   - CI/deploy IDs,
-   - live money/executor truth,
-   - exact next commands/actions for a zero-context GPT.
+## Recorded TDD chain
+- CI 36411401252 RED: RESTART_DID_NOT_FREEZE_UNCERTAIN_WRITE.
+- c5ae4d54830d2563364dc42704f5afc486435783 fixed restart freeze.
+- CI 36411604229 RED: CLAIM_PATH_MISSING_PENDING_WRITE_GUARD.
+- 47058ae2b9b0e2ea9eff321f6031cc2cb1615d28 + f8309edcd22c8d32a7affd4910b990c3d7eea254 wired/verified claim+submit guards.
+- CI 36411758633 RED: EXACT_SETTLEMENT_REPLAY_NOT_IDEMPOTENT.
+- da3b1e537d3190840ce28ca8b522560cc9dd8a42 fixed settlement replay ownership.
+- CI 36411875321 RED: WRITE_UNCERTAIN_ALARM_WAS_LOST.
+- bf572de2aff66998019b3e331b1a2cea9532b10f fixed alarm ownership.
+- CI 36412017058 RED: NON_USD_MISLABELED_AS_USD.
+- 9b2bf19e927d96fbfccf40e11a9f1cd4652e786c fixed currency aggregation.
+- CI 36412110916 RED: FRESH_READBACK_COUNT_INCORRECT.
+- ba4f358666a0de13325ae99ea251eba509b4ca26 added fresh readback metrics.
+- CI 36412110916 then reached UTF8_BOM_PRESENT.
+- 90c8001d94e955668de9c501a6edb8d98958166c / 26be32c15c3687c4d8305c80af67ee5f0dcc6619 / 8b53ea270945dda293f5412972770d8a41d570d2 removed the three BOMs.
+- CI 36412181289 GREEN: Worker behavior PASS, Python policy PASS, Repository integrity PASS.
 
-## Hard prohibitions carried forward
-- Do not install these candidate runtimes on owner PC.
-- Do not claim Julia/Laya/Lev/Jev/DCP/SkillOpt/OpenScience are working executors.
-- Do not change PROVEN=false without a separate bounded E2E contract and independent receipt.
-- Do not spend owner money or use paid API/compute fallback.
-- Do not bypass human gates.
-- Do not widen signer or wallet authority.
-- Do not bypass canonical GitHub exact-SHA deploy workflow.
+## Exact continuation for a zero-context GPT
+1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md, this file, issue #87 and PR #88.
+2. Resolve current GitHub main and PR #88 head. If main advanced beyond b64139d, inspect drift before merge; do not blindly rebase over runtime changes.
+3. Require the CI run attached to the current PR head (including this checkpoint commit) to finish SUCCESS.
+4. Inspect PR changed files and unresolved review threads. Confirm no new external POST route, no public MCP mutation, no signer/wallet authority change and no unrelated executor promotion.
+5. Mark PR #88 ready for review only after current-head CI is green.
+6. Merge only through protected GitHub PR with expected exact head SHA.
+7. Because runtime bytes changed, require post-merge ATM CI SUCCESS on the merge SHA.
+8. Require canonical ATM Cloudflare Deploy to:
+   - detect main runtime change,
+   - upload candidate without traffic,
+   - stage 0%,
+   - pass candidate exact-SHA smoke,
+   - promote exact version,
+   - pass production exact-SHA smoke,
+   - skip rollback.
+9. Production readback must show runtime RUNNING on the merge SHA and:
+   - OWNER_SPEND_USD=0,
+   - PAID_EXTERNAL not invented,
+   - WRITE_UNCERTAIN semantics visible if present,
+   - earnings_paid_external_usd excludes non-USD currencies,
+   - fresh readback counters exist.
+10. Verify GitLab main SHA equals GitHub main SHA; never use GitLab runner.
+11. Add final evidence comment to issue #87: PR, exact head, merge SHA, all CI/deploy IDs, production SHA, rollback version, mirror parity, OWNER_SPEND_USD=0, PAID_EXTERNAL truth.
+12. Update progress.md again on a docs-only checkpoint if needed; docs-only merge must not redeploy runtime.
+13. Mark ORDER_061_STATUS=READY_FOR_AUD only after all evidence is complete.
+
+## Stop conditions
+- Owner money, paid dependency, private-key exposure, human financial signature, protection bypass or scope expansion => stop/human gate.
