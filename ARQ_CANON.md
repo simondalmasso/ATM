@@ -6,87 +6,90 @@
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
 ## LAST_VERIFIED / BRANCH / HEAD
-- Verified: **2026-09-27T20:39-03:00**.
-- GitHub `main` runtime/deployed HEAD: `147fb81fb659c7a888154dbee97cda27dc53e907`.
-- Main required `verify`: **PASS** (run `36359359467`).
-- Cloudflare exact-SHA deployment: **PASS** (run `36359377106`).
-- GitLab downstream mirror: **PASS** (run `36359359489`), main SHA parity verified.
+- Verified: **2026-09-27T23:13-03:00**.
+- GitHub `main` runtime/deployed HEAD: `fd29053bbf3933ca24d29f69cd5990e94efc6348`.
+- Main required `verify`: **PASS** (run `36369417166`).
+- Cloudflare exact-SHA deployment: **PASS** (run `36369435116`).
+- GitLab downstream mirror: **PASS** (run `36369417164`).
+- Fresh live readback: runtime `RUNNING`, exact SHA `fd29053...`, `PAID=0`, owner spend `0`, auto-eligible `0`.
 
 ## CANONICAL LINKS
 - Contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
 - Ruleset: https://github.com/simondalmasso/ATM/rules/23903496
 - Completed ORDER-055: https://github.com/simondalmasso/ATM/issues/62
-- Merged ORDER-055 PR: https://github.com/simondalmasso/ATM/pull/63
-- Mirror implementation: https://github.com/simondalmasso/ATM/pull/74
+- Post-055 hardening: https://github.com/simondalmasso/ATM/pull/76
+- Worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
+- Architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
 - GitLab mirror: https://gitlab.com/simondalmasso/ATM
-- Pending skills order: https://github.com/simondalmasso/ATM/issues/55
-- Parked research: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
 
 ## CURRENT STATE
-- **Work only in GitHub. GitLab is mirror-only.**
-- `.github/workflows/mirror-gitlab.yml` automatically syncs GitHub branches/tags to GitLab using repo-scoped SSH credentials stored only in GitHub Actions.
-- No ongoing PC, Remote Desktop, SentinelX or GitLab-runner dependency exists for mirroring.
-- ORDER-055 is complete and deployed.
-- Galaxy hard rules: deterministic capability taxonomy; skill != executor; missing/unknown executor or owner-spend truth fails closed; trading/gambling and owner-funded spend remain blocked; fresh source readbacks reapply capability/spend truth.
-- Laya/System2/GLM and upstream repos are advisory/source evidence only unless a future order proves a bounded executor.
+- **Work only in GitHub. GitLab is downstream mirror-only.**
+- ORDER-055 + post-055 source-truth hardening are complete and deployed.
+- Galaxy hard rules: capability taxonomy; skill != executor; `UNKNOWN != YES`; owner-spend/source/payout/executor truth all fail closed.
+- DAYDREAMS uses source-specific TaskMarket evidence; AGENTHANSA uses fresh explicit fields/readbacks.
+- Laya/System2/GLM and upstream repos remain advisory/source evidence unless a future order proves a bounded executor.
 - Public MCP stays read-only.
-- Latest authoritative money truth remains `PAID=0` unless a newer external receipt proves settlement.
+- SeneX and boqa are READ_ONLY worker candidates only; **do not modify their repos**.
+- m0kill may be consumed only as READ_ONLY research/killtest/negative-memory input; Moneykiller GitLab is archive.
+- Latest authoritative money truth remains `PAID=0`.
 
 ## DONE
 - GitHub canonical migration + Cloudflare exact-SHA deployment control.
 - Automatic GitHub -> GitLab downstream mirror with SHA-parity readback.
 - ORDER-054 AgentBounties read-only source; Xento WATCH_ONLY.
 - ORDER-055 Galaxy Radar capability/executor hardening.
-- ORDER-058 Meta hackathon WATCHLIST.
+- Post-055 source/payout-truth hardening.
 - Existing install-free skill broker.
+- External worker candidates inventoried without mutating upstream repos.
 
 ## ACTIVE WORK / WHERE_TO_RESUME
-**No active ARQ order.** Single-ARQ mode is mandatory. Wait for one explicit AUD order; do not choose multiple backlog items yourself.
+**No active implementation order after this canon refresh. Single-ARQ mode is mandatory.**
 
-## WHAT_TO_DO_NOW
+## WHAT TO DO NOW
 When AUD gives the next order:
 1. Resolve live GitHub `main` first.
-2. Read `AGENTS.md`, this file, and the order Issue.
-3. Create/use exactly one bounded branch for that order.
-4. Verify existing evidence before editing.
-5. Fix only in-scope root causes; add deterministic tests.
-6. Required `verify` must pass on exact PR head.
-7. Merge only through protected GitHub PR.
-8. If runtime bytes changed, require exact-SHA Cloudflare candidate/production smoke.
-9. Verify GitLab mirror run succeeds and GitLab `main` equals GitHub `main`.
-10. Return final evidence to AUD and stop.
+2. Read `AGENTS.md`, this file, the selected order, and worker registry if relevant.
+3. Use exactly one bounded branch.
+4. Verify evidence before editing.
+5. Treat SeneX/boqa/m0kill as READ_ONLY unless the order explicitly promotes one through a bounded contract.
+6. Add deterministic tests before behavior change.
+7. Required `verify` must pass on exact PR head.
+8. Merge only through protected GitHub PR.
+9. If runtime bytes changed, require exact-SHA Cloudflare candidate/production smoke.
+10. Verify GitLab mirror success and stop.
 
 ## PENDING
-- #55 ORDER-053: not started.
-- #65 ORDER-056 and #66 ORDER-057: parked; never parallelize them.
-- MQL5 K2: separate explicit human-authorized host experiment only.
+- External LLM architecture proposals from the canonical handoff; AUD must choose one next order.
+- #55 ORDER-053 remains pending.
+- #65/#66 remain parked.
+- SeneX/boqa integration remains unimplemented by design until an explicit order proves a safe worker contract.
 
 ## BLOCKERS / RISKS
 - No proven cash machine; no unsupported revenue projections.
-- Fresh dynamic status is required before economic claims.
-- A library/skill/repo does not prove execution capability.
-- Legacy open PRs are not authority.
+- Fresh dynamic status required before economic claims.
+- Worker availability != executor truth.
+- boqa requires authorized scope; SeneX is PAPER-only.
+- Oracle capacity must be freshly inventoried before any compute plan.
 
-## WHAT_NOT_TO_REPEAT
-- Do not redo ORDER-054/055/058.
-- Do not create work in GitLab or manually duplicate GitHub changes there.
-- Do not create a second mirror mechanism.
-- Do not execute #55/#65/#66 concurrently.
-- Do not install JEV/Laya/Browser Use/desktop runtimes merely because they were researched.
-- Do not give model/advisory output authority over hard economic/safety gates.
-- Do not revive x402/Bazaar as a demand engine absent materially new evidence.
+## WHAT_NOT_TO REPEAT
+- Do not redo ORDER-054/055 or PR #76.
+- Do not create work in GitLab.
+- Do not modify SeneX/boqa to make ATM integration easier.
+- Do not install framework/runtime candidates merely because they were researched.
+- Do not give model/advisory output authority over economic/safety gates.
+- Do not run pending orders concurrently.
 
 ## DO_NOT_TOUCH
-Private signer/raw keys, payout destination, wallet/card/withdrawal actions, GitLab runners/deploys, direct GitHub `main`, force-push, unrelated files, stale legacy PRs without AUD authorization.
+Private signer/raw keys, payout destination, wallet/card/withdrawal actions, SeneX/boqa repos, GitLab runners/deploys, direct GitHub `main`, force-push, unrelated files.
 
 ## AUTHORITIES / GATES
-`AGENTS.md` + current GitHub `main` are source authority. GitLab is downstream mirror only. Required GitHub `verify` gate and protected-main rules remain mandatory.  
+`AGENTS.md` + current GitHub `main` are source authority. Required GitHub `verify` and protected-main rules are mandatory.  
 Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh task readback before mutation, independent CHECK, authoritative settlement only for PAID.
 
 ## ACCEPTANCE / STOP CONDITIONS
-**COMPLETE** only with exact-head CI green, protected merge, deploy/smoke when runtime changed, GitLab mirror success + main SHA parity, and no unsupported money claim.
+**COMPLETE** only with exact-head CI green, protected merge, deploy/smoke when runtime changed, mirror success, and no unsupported money claim.
 
-**STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, or scope expansion.
+**STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
 
 ## NEXT EXACT ACTION
-Wait for the next single AUD order. Do not start parked backlog on your own.
+Wait for AUD to compare the external model proposals and issue one exact implementation order. Do not self-promote SeneX/boqa or redesign ATM without that order.
