@@ -6,15 +6,15 @@
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
 ## LAST_VERIFIED / BRANCH / HEAD
-- Verified: **2026-09-27T23:13-03:00**.
-- Canonical branch: `main`.
-- Runtime/deployed HEAD: `fd29053bbf3933ca24d29f69cd5990e94efc6348`.
+- Verified: **2026-09-28**, with fresh live readback before ORDER-059 issuance.
+- Canonical branch: `main` @ `e1065e2761ba13d36ccbaacfc66eb16d40cf0f26`.
+- Runtime/deployed HEAD remains `fd29053bbf3933ca24d29f69cd5990e94efc6348` (latest main change is docs/research-only).
 - Main CI run `36369417166`: **PASS**.
 - Cloudflare deploy run `36369435116`: **PASS**.
 - Candidate exact-SHA smoke: **PASS**.
 - Production exact-SHA smoke: **PASS**.
 - GitHub -> GitLab mirror run `36369417164`: **PASS**.
-- Fresh live readback: runtime `RUNNING`, git SHA exact `fd29053...`, `PAID=0`, owner spend `0`, current auto-eligible `0`.
+- Fresh live readback: runtime `RUNNING`, `raw_found=43`, `admitted=0`, `human_assistable=38`, `auto_eligible=0`, `claimed=3`, `submitted=1`, `accepted=0`, `PAID=0`, settlement watcher `pending=1`, owner spend `0`.
 
 ## CANONICAL LINKS
 - Operating contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
@@ -26,6 +26,7 @@
 - GitLab downstream mirror: https://gitlab.com/simondalmasso/ATM
 - External worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
 - External LLM architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
+- Active ORDER-059: https://github.com/simondalmasso/ATM/issues/78
 - Pending ORDER-053: https://github.com/simondalmasso/ATM/issues/55
 - Parked research: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
 
@@ -55,10 +56,10 @@
 - SeneX + boqa registered in ATM only as READ_ONLY worker candidates; m0kill/Moneykiller classified without creating a second authority.
 
 ## ACTIVE WORK
-**NONE after this docs/canon refresh. Single-ARQ mode remains authoritative.**
+**ATM-ORDER-059 (#78) is the single active implementation order.** AUD selected targeted incremental adaptation after comparing external proposals against fresh LIVE evidence. No redesign, no new executor promotion, and no parallel ARQ.
 
 ## PENDING
-- Collect independent architecture proposals using `docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md`, then AUD selects exactly one next implementation order.
+- ORDER-059 implementation/audit cycle: source-intake truth, durable pending work, receive-only settlement readback, worker-contract schema/registry with every new worker defaulting `PROVEN=false`.
 - ORDER-053 (#55): skill intake/manifest expansion remains pending; do not automatically execute it in parallel.
 - ORDER-056 (#65) and ORDER-057 (#66): parked research.
 - SeneX/boqa worker promotion requires separate evidence-bound order; READ_ONLY until then.
@@ -88,4 +89,4 @@ Priority: current GitHub `main` + `AGENTS.md` + active ruleset + exact external 
 Hard economics: `MIN_REWARD_USD>=100`; owner out-of-plan spend `0`; fresh source readback before ACQUIRE/SUBMIT; independent CHECK; PAID only from authoritative external settlement tied to ATM work.
 
 ## NEXT EXACT ACTION
-Send the canonical short handoff to external reasoning models, compare proposals against current evidence and hard gates, and issue exactly **one** next ATM implementation order. Do not implement SeneX/boqa integration or any redesign merely from a model suggestion.
+ARQ executes **only ATM-ORDER-059 (#78)** from current GitHub `main`, on one bounded branch and PR. Required `verify` must pass; runtime-byte changes require exact-SHA candidate/production smoke + rollback; docs-only changes must skip deploy. Do not run #55/#65/#66 in parallel and do not promote SeneX/boqa or any executor without the order's bounded proof.
