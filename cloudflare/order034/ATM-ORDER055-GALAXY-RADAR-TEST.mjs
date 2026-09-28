@@ -50,7 +50,7 @@ if(!has(classify("Run CPU compute simulation"),"COMPUTE_CPU")) throw new Error("
 const base=(over={})=>({
   opportunity_id:"TEST:1",raw_id:"1",source:"DAYDREAMS",title:"Research task",description:"Write a short research report",
   source_status:"open",estimated_net_usd:150,capability_class:"PURE_LLM",artifact_profile:{supported:true},
-  eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true},
+  eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true,newcomer_access_proven:true,argentina_or_global_eligibility_proven:true,exact_deliverable_and_acceptance_proven:true,competition_known:true,deadline_known:true},
   economics:{estimated_task_cost_usd:0,task_execution_spend_required:false},blockers:[],ai_executability:"AI_EXECUTABLE",
   automatic_action_level:"RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST",...over
 });
@@ -58,6 +58,16 @@ const base=(over={})=>({
 const textOpp=mod.applyGalaxyCapabilityTruth(base());
 if(textOpp.executor_truth!=="PROVEN") throw new Error("TEXT_EXECUTOR_NOT_PROVEN");
 if(textOpp.ai_executability!=="AI_EXECUTABLE") throw new Error("GALAXY_REGRESSED_PROVEN_TEXT_EXECUTION");
+
+const unknownSourceTruth=mod.applyGalaxyCapabilityTruth(base({
+  source:"AGENTHANSA",
+  deadline:null,
+  eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true}
+}));
+if(unknownSourceTruth.eligibility?.source_truth_proven!==false) throw new Error("UNKNOWN_SOURCE_TRUTH_TREATED_AS_YES");
+if(unknownSourceTruth.galaxy_status==="ACTIVE") throw new Error("UNKNOWN_SOURCE_FIELDS_PROMOTED_ACTIVE");
+if(unknownSourceTruth.ai_executability==="AI_EXECUTABLE") throw new Error("UNKNOWN_SOURCE_FIELDS_LEFT_EXECUTABLE");
+if(mod.executionCandidateAdmitted(unknownSourceTruth,{AGENTHANSA_API_KEY:"test"})) throw new Error("UNKNOWN_SOURCE_FIELDS_ADMITTED");
 
 for(const [cap,title] of [
   ["VIDEO","Produce a Remotion video"],
