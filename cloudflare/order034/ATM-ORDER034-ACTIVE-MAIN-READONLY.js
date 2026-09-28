@@ -2211,12 +2211,23 @@ var ATMBrain = class extends DurableObject {
   async registerSettlementRef(receipt,opportunityId) {
     const state=await this.settlementRefsState(), ref=String(receipt?.external_ref||"");
     if(!ref)return {ok:false,error:"EXTERNAL_REF_REQUIRED"};
-    if(state.refs?.[ref])return {ok:false,error:"DUPLICATE_EXTERNAL_REF",existing:state.refs[ref]};
     state.refs=state.refs||{};
-    state.refs[ref]={opportunity_id:opportunityId,source:receipt.source,task_id:receipt.task_id,submission_id:receipt.submission_id||null,payee:receipt.payee,amount:receipt.amount,currency:receipt.currency,observed_at:receipt.observed_at,evidence_hash:receipt.evidence_hash};
+    const existing=state.refs[ref]||null;
+    if(existing){
+      const same=String(existing.opportunity_id||"")===String(opportunityId||"")&&
+        String(existing.source||"")===String(receipt?.source||"")&&
+        String(existing.task_id||"")===String(receipt?.task_id||"")&&
+        String(existing.submission_id||"")===String(receipt?.submission_id||"")&&
+        String(existing.payee||"").toLowerCase()===String(receipt?.payee||"").toLowerCase()&&
+        Number(existing.amount)===Number(receipt?.amount)&&
+        String(existing.currency||"").toUpperCase()===String(receipt?.currency||"").toUpperCase();
+      if(same)return {ok:true,ref,replayed:true,existing};
+      return {ok:false,error:"DUPLICATE_EXTERNAL_REF_CONFLICT",existing};
+    }
+    state.refs[ref]={external_ref:ref,opportunity_id:opportunityId,source:receipt.source,task_id:receipt.task_id,submission_id:receipt.submission_id||null,payee:receipt.payee,amount:receipt.amount,currency:receipt.currency,authoritative_readback:receipt.authoritative_readback||null,observed_at:receipt.observed_at,evidence_hash:receipt.evidence_hash};
     state.updated_at=now();
     await this.put("settlement_refs_v1",state);
-    return {ok:true,ref};
+    return {ok:true,ref,replayed:false};
   }
   async reconcileUncertainWrites() {
     const pending=await this.pendingWorkState(true), runtimes=await this.taskRuntime(), opps=await this.opportunities();
@@ -2895,9 +2906,8 @@ var ATMBrain = class extends DurableObject {
     const paidStatus=["paid","settled","completed"].includes(payoutStatus);
     const receiptBase={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee,amount,currency,status:paidStatus?"PAID":payoutStatus.toUpperCase(),external_ref:externalRef,authoritative_readback:"AGENTHANSA_PAYOUTS_API",observed_at:now()};
     const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
-    const refs=await this.settlementRefsState();
     const expected={source:"AGENTHANSA",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:String(AGENTHANSA_AGENT_ID),amount:n(read.bounty?.reward_amount),currency:String(read.bounty?.currency || "")};
-    const settlementMatch=settlementReceiptMatchV1(settlementReceipt,expected,Object.keys(refs.refs||{}));
+    const settlementMatch=settlementReceiptMatchV1(settlementReceipt,expected,[]);
     const paid=!!payout && paidStatus && settlementMatch.paid===true;
     const accepted = paid || (!!own && ["accepted","approved","winner","paid","settled","completed"].includes(submissionStatus));
     return { ok:true, accepted, paid, amount, currency, submission_id:own?.id || own?.submission_id || runtime.submission_id, submission_status:submissionStatus || null, payout_id:payout?.id || null, payout_status:payoutStatus || null, paid_at:payout?.paid_at || payout?.settled_at || payout?.completed_at || null, payout_readback_error:payoutData?.error || null, settlement_receipt:settlementReceipt, settlement_match:settlementMatch };
@@ -2963,8 +2973,7 @@ var ATMBrain = class extends DurableObject {
         if (settlement && amountUsdc > 0) {
           const receiptBase={source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,amount:amountUsdc,currency:"USDC",status:"PAID",external_ref:settlement,authoritative_readback:"TASKMARKET_AWARD_SETTLEMENT",observed_at:row.at};
           const settlementReceipt={...receiptBase,evidence_hash:await sha256Hex(stableJson(receiptBase))};
-          const refs=await this.settlementRefsState();
-          const settlementMatch=settlementReceiptMatchV1(settlementReceipt,{source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,currency:"USDC"},Object.keys(refs.refs||{}));
+          const settlementMatch=settlementReceiptMatchV1(settlementReceipt,{source:"DAYDREAMS",task_id:String(runtime.task_id),submission_id:String(runtime.submission_id),payee:TASKMARKET_WORKER_ADDRESS,currency:"USDC"},[]);
           const registered=settlementMatch.paid?await this.registerSettlementRef(settlementReceipt,oppId):{ok:false,error:"SETTLEMENT_MATCH_FAILED"};
           if(registered.ok){
             runtime.stage = "PAID";
