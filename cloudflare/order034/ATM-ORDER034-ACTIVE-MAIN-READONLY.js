@@ -342,7 +342,7 @@ function applyGalaxyCapabilityTruth(opp, advisory = null) {
   const missing = [];
   if (!required.length) missing.push("REQUIRED_CAPABILITIES_UNKNOWN");
   for (const r of requirements) if (!r.proven) missing.push(`EXECUTOR_CAPABILITY_${r.status === "UNKNOWN" ? "UNKNOWN" : "UNAVAILABLE"}_${r.capability}`);
-  const blockers = uniq([...originalBlockers, ...missing]);
+  const capabilityBlockers = uniq([...originalBlockers, ...missing]);
   const executorTruth = required.length && requirements.every((x) => x.proven) ? "PROVEN" : requirements.some((x) => x.status === "UNKNOWN") || !required.length ? "UNKNOWN" : "BLOCKED";
   const openNow = galaxyOpenNow(opp);
   const newcomer = typeof opp?.eligibility?.newcomer_access_proven === "boolean" ? opp.eligibility.newcomer_access_proven : null;
@@ -350,14 +350,26 @@ function applyGalaxyCapabilityTruth(opp, advisory = null) {
   const automation = typeof opp?.eligibility?.terms_allow_automation === "boolean" ? opp.eligibility.terms_allow_automation : null;
   const deliverableAcceptance = typeof opp?.eligibility?.exact_deliverable_and_acceptance_proven === "boolean" ? opp.eligibility.exact_deliverable_and_acceptance_proven : null;
   const competition = typeof opp?.eligibility?.competition_known === "boolean" ? opp.eligibility.competition_known : null;
-  const ownerSpend = galaxyOwnerSpendTruth(opp, blockers);
+  const deadlineKnown = typeof opp?.eligibility?.deadline_known === "boolean" ? opp.eligibility.deadline_known : !!opp?.deadline;
   const payoutPath = typeof opp?.eligibility?.payout_path_known === "boolean" ? opp.eligibility.payout_path_known : null;
   const payoutRail = opp.source === "DAYDREAMS" ? "BASE_USDC_TASKMARKET" : opp.source === "AGENTBOUNTIES" ? "BASE_USDC_CANONICAL_SETTLEMENT" : null;
   const payoutReadback = opp?.eligibility?.payout_readback || (opp.source === "DAYDREAMS" ? "TASKMARKET_EXTERNAL_SETTLEMENT_WATCHER" : null);
-  let ai = opp.ai_executability === "AI_EXECUTABLE" && executorTruth === "PROVEN" && !blockers.length ? "AI_EXECUTABLE" : "BLOCKED";
+  const sourceGateBlockers = [];
+  if (openNow !== true) sourceGateBlockers.push(openNow === false ? "TASK_STATE_NOT_WRITABLE" : "OPEN_NOW_UNKNOWN");
+  if (newcomer !== true) sourceGateBlockers.push("NEWCOMER_ACCESS_UNKNOWN");
+  if (geo !== true) sourceGateBlockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
+  if (automation !== true) sourceGateBlockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
+  if (deliverableAcceptance !== true) sourceGateBlockers.push("EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN");
+  if (competition !== true) sourceGateBlockers.push("COMPETITION_UNKNOWN");
+  if (deadlineKnown !== true) sourceGateBlockers.push("DEADLINE_UNKNOWN");
+  if (payoutPath !== true || !payoutRail) sourceGateBlockers.push("PAYOUT_RAIL_UNKNOWN");
+  if (!payoutReadback) sourceGateBlockers.push("PAYOUT_READBACK_UNKNOWN");
+  const blockers = uniq([...capabilityBlockers, ...sourceGateBlockers]);
+  const ownerSpend = galaxyOwnerSpendTruth(opp, blockers);
+  const sourceTruth = openNow === true && newcomer === true && geo === true && automation === true && deliverableAcceptance === true && competition === true && deadlineKnown === true && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE");
+  const payoutTruth = payoutPath === true && !!payoutRail && !!payoutReadback && Number(opp.estimated_net_usd) > 0;
+  let ai = opp.ai_executability === "AI_EXECUTABLE" && executorTruth === "PROVEN" && sourceTruth && payoutTruth && ownerSpend.known && ownerSpend.zero === true && !blockers.length ? "AI_EXECUTABLE" : "BLOCKED";
   if (advisory?.decision && String(advisory.decision).toUpperCase() === "PROMOTE" && opp.ai_executability !== "AI_EXECUTABLE") ai = "BLOCKED";
-  const sourceTruth = openNow === true && automation === true && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE");
-  const payoutTruth = payoutPath === true && Number(opp.estimated_net_usd) > 0;
   const active = ai === "AI_EXECUTABLE" && sourceTruth && payoutTruth && ownerSpend.known && ownerSpend.zero === true && executorTruth === "PROVEN";
   const skills = recommendGalaxySkills(opp, required, originalBlockers);
   return {
@@ -401,7 +413,9 @@ function executionCandidateAdmitted(opp, env = {}) {
   const a = executionAdapterCapabilities(opp?.source, env);
   const galaxyExecutorOk = opp?.executor_truth === "PROVEN";
   const galaxySpendOk = opp?.owner_spend?.known === true && opp?.owner_spend?.zero === true;
-  return !!(a.complete_lifecycle && galaxyExecutorOk && galaxySpendOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
+  const galaxySourceOk = opp?.eligibility?.source_truth_proven === true;
+  const galaxyPayoutOk = opp?.eligibility?.payout_truth_proven === true;
+  return !!(a.complete_lifecycle && galaxyExecutorOk && galaxySpendOk && galaxySourceOk && galaxyPayoutOk && opp?.ai_executability === "AI_EXECUTABLE" && n(opp?.estimated_net_usd) >= MIN_PRIMARY_REWARD_USD && opp?.artifact_profile?.supported === true && !(opp?.blockers || []).length);
 }
 __name(executionCandidateAdmitted, "executionCandidateAdmitted");
 __name2(executionCandidateAdmitted, "executionCandidateAdmitted");
@@ -429,7 +443,7 @@ __name(reconcileWatchdogRuntimeTruth, "reconcileWatchdogRuntimeTruth");
 __name2(reconcileWatchdogRuntimeTruth, "reconcileWatchdogRuntimeTruth");
 function blockerType(code) {
   const c = String(code || "");
-  const sourceRequirement = new Set(["GITHUB_REQUIRED", "SOCIAL_OR_PUBLICATION_REQUIRED", "OUTREACH_REQUIRED", "HUMAN_INTERACTION_REQUIRED", "KYC_OR_IDENTITY_REQUIRED", "WALLET_SIGN_REQUIRED", "PRIVATE_OR_HISTORICAL_CONTEXT_REQUIRED", "MULTI_DAY_EXECUTION_REQUIRED", "TASK_EXPIRED", "SUBMISSION_WINDOW_CLOSED", "TASK_STATE_NOT_WRITABLE", "WORKER_IDENTITY_NOT_ELIGIBLE", "HUMAN_ONLY_LISTING", "AGENT_ACCESS_NOT_ALLOWED", "NO_WORKER_PENDING_ACTION", "REQUIRED_FIELDS_MISSING", "NEWCOMER_ACCESS_UNKNOWN", "ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN", "EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN", "COMPETITION_UNKNOWN", "DEADLINE_UNKNOWN", "PAYOUT_RAIL_UNKNOWN"]);
+  const sourceRequirement = new Set(["GITHUB_REQUIRED", "SOCIAL_OR_PUBLICATION_REQUIRED", "OUTREACH_REQUIRED", "HUMAN_INTERACTION_REQUIRED", "KYC_OR_IDENTITY_REQUIRED", "WALLET_SIGN_REQUIRED", "PRIVATE_OR_HISTORICAL_CONTEXT_REQUIRED", "MULTI_DAY_EXECUTION_REQUIRED", "TASK_EXPIRED", "SUBMISSION_WINDOW_CLOSED", "TASK_STATE_NOT_WRITABLE", "WORKER_IDENTITY_NOT_ELIGIBLE", "HUMAN_ONLY_LISTING", "AGENT_ACCESS_NOT_ALLOWED", "NO_WORKER_PENDING_ACTION", "REQUIRED_FIELDS_MISSING", "NEWCOMER_ACCESS_UNKNOWN", "ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN", "EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN", "COMPETITION_UNKNOWN", "DEADLINE_UNKNOWN", "PAYOUT_RAIL_UNKNOWN", "PAYOUT_READBACK_UNKNOWN", "OPEN_NOW_UNKNOWN"]);
   const economic = new Set(["CAPITAL_REQUIRED", "BLOCKED_OWNER_SPEND", "TASK_EXECUTION_SPEND_REQUIRED", "PAID_API_REQUIRED", "FREE_ACTION_NOT_EXPLICIT", "BELOW_MIN_REWARD_USD", "EXPECTED_NET_NOT_POSITIVE_OR_UNKNOWN"]);
   const policy = new Set(["AUTOMATION_NOT_PROVEN_ALLOWED", "FIRST_E2E_CAPABILITY_NOT_ALLOWED", "PAID_SANDBOX_DISABLED", "HTTP_URL_NOT_PUBLIC_HTTPS", "HTTP_EGRESS_HOST_NOT_ALLOWLISTED", "ACCOUNT_FARMING_OR_BULK_ACCOUNT_CREATION", "CAPTCHA_BYPASS_OR_ANTI_ABUSE_EVASION", "SMS_PHONE_VERIFICATION_ABUSE", "PROXY_ROTATION_OR_ANTI_ABUSE_EVASION", "SPAM_OR_FAKE_ENGAGEMENT", "CREDENTIAL_HARVESTING"]);
   if (sourceRequirement.has(c)) return "SOURCE_REQUIREMENT";
@@ -2140,7 +2154,7 @@ var ATMBrain = class extends DurableObject {
     const clean = uniq(blockers);
     const galaxyNormalized = applyGalaxyCapabilityTruth({ ...normalized, blockers:clean });
     const finalBlockers = uniq([...(galaxyNormalized.blockers || []), ...clean]);
-    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN" && galaxyNormalized.owner_spend?.known === true && galaxyNormalized.owner_spend?.zero === true, task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
+    return { ok:finalBlockers.length===0 && galaxyNormalized.executor_truth === "PROVEN" && galaxyNormalized.owner_spend?.known === true && galaxyNormalized.owner_spend?.zero === true && galaxyNormalized.eligibility?.source_truth_proven === true && galaxyNormalized.eligibility?.payout_truth_proven === true, task:bounty, bounty, normalized:galaxyNormalized, blockers:finalBlockers, terms_hash, pending_action_snapshot_hash, read_at:read.read_at, operation, action_cost_usdc:0, agent_id:auth.agent_id };
   }
   async freshExecutionPolicy(opp, operation = null) {
     if (opp?.source === "DAYDREAMS") return await this.freshTaskmarketPolicy(opp, operation);
