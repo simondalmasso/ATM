@@ -3012,14 +3012,16 @@ var ATMBrain = class extends DurableObject {
     await this.put("task_runtime", runtimes);
     await this.put("opportunities", opps);
     if (checked) await this.put("execution_readbacks", reads.slice(0, 500));
-    if (pending > 0) await this.ctx.storage.setAlarm(Date.now() + SETTLEMENT_ALARM_MS);
+    const pendingEngine=await this.pendingWorkState();
+    const writeUncertainPending=Object.values(pendingEngine.items||{}).filter((x)=>x?.state==="WRITE_UNCERTAIN").length;
+    if (pending > 0 || writeUncertainPending > 0) await this.ctx.storage.setAlarm(Date.now() + SETTLEMENT_ALARM_MS);
     else {
       try {
         await this.ctx.storage.deleteAlarm();
       } catch {
       }
     }
-    const result = { checked, pending, accepted, paid, rejected, submission_feed_ok: subRead.ok, submission_feed_error: subRead.error || null, trigger, at: now() };
+    const result = { checked, pending, write_uncertain_pending:writeUncertainPending, accepted, paid, rejected, submission_feed_ok: subRead.ok, submission_feed_error: subRead.error || null, trigger, at: now() };
     await this.put("settlement_watcher", result);
     return result;
   }
