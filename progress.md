@@ -1,96 +1,105 @@
-# ATM CURRENT CHECKPOINT — ORDER-061 ACTIVE
+# ATM CURRENT CHECKPOINT — ORDER-061 COMPLETE
 
 Updated: 2026-09-28
-Status: implementation complete on feature bytes; final checkpoint CI / review / merge / deploy still pending.
-Active issue: #87 — ATM-ORDER-061 — idempotent uncertain-write recovery + settlement commit consistency.
-PR: #88 — draft until final checkpoint head passes CI.
-Branch: order061-recovery-consistency-v1.
-Base GitHub main when work started: b64139d8c86d37953ec17fcaa1becfec11e77ead.
-Production runtime before ORDER-061: c257b5a42f7a4384e8da0b96b52a30359eb30620.
-Latest functional green head before this checkpoint update: 8b53ea270945dda293f5412972770d8a41d570d2.
-Functional-head CI: 36412181289 = SUCCESS.
+Status: ORDER-061 is merged, deployed, live-verified, mirrored and READY_FOR_AUD.
 
-## Invariants in force
+## Canon / invariants
+- GitHub is source and deploy authority: https://github.com/simondalmasso/ATM
+- GitLab is downstream mirror only; no GitLab runners.
+- Production: https://atm.simondalmasso44.workers.dev/
 - OWNER_SPEND_USD=0.
 - UNKNOWN != YES.
-- Public MCP READ_ONLY.
+- Public MCP is READ_ONLY.
+- PAID only from exact authoritative settlement tied to ATM work.
 - No signer/wallet/transfer/withdrawal/x402 authority expansion.
-- No new executor promotion.
 - No runtime installed on owner PC.
-- GitHub is source/deploy authority; GitLab mirror only.
-- PAID only from exact authoritative external settlement tied to ATM work.
+- No recurring/scheduled ChatGPT task exists for ATM; the mistakenly created hourly task was disabled.
 
-## ORDER-061 fixes now implemented
-1. Restart recovery:
-   - persisted pending_external_intent, ACQUIRING, SUBMITTING or write_uncertain recovers as WRITE_UNCERTAIN;
-   - recovered uncertain work is allow_mutation=false / READBACK_ONLY;
-   - write operation + intent + intent hash survive pending reconstruction.
-2. Mutation guards:
-   - claim path performs freshExecutionPolicy + pendingWriteGuardV1 before journal/write;
-   - submit path performs freshExecutionPolicy + pendingWriteGuardV1 before journal/write;
-   - changed terms, expired deadline, stale/uncertain state fail closed.
-3. Settlement replay:
-   - same external settlement ref for same opportunity/source/task/submission/payee/amount/currency is idempotent and returns replayed=true;
-   - same ref tied to a different identity fails as DUPLICATE_EXTERNAL_REF_CONFLICT;
-   - Daydreams/Hansa receipt validation no longer pre-rejects an exact replay before registerSettlementRef can reconcile it;
-   - appendLedgerEvent remains exactly-once per opportunity/stage, so replay converges without duplicate PAID ledger rows.
-4. Alarm ownership:
-   - monitorExecutionReadback checks pending_work_v1 for WRITE_UNCERTAIN before deleting an alarm;
-   - unresolved uncertain writes keep/re-arm SETTLEMENT_ALARM_MS polling even without submission_id.
-5. Money units:
-   - earnings_paid_external_usd includes USD and USDC only;
-   - non-USD settlements are exposed separately in earnings_paid_external_non_usd;
-   - no FX guessing; policy string is USD_AND_USDC_1_TO_1_ONLY_NO_FX.
-6. Readback freshness:
-   - historical *_WITH_READBACK counters are preserved;
-   - *_WITH_FRESH_READBACK counters use an explicit 30-minute window;
-   - READBACK_FRESHNESS metadata documents both semantics.
-7. Research hygiene:
-   - capability-optimizer-candidates.json, superteam-colosseum-salta-watch.json and system-one-provider-candidates.json are plain UTF-8 without BOM.
+## ORDER-061 final evidence
+- Issue #87: CLOSED.
+- PR #88: MERGED.
+- Exact feature head: edfc8c38aee05a5b01bbe11c608319ad2eccdef4.
+- Runtime merge SHA: 47c029199d904f12ea7ce929b33478db1b3a7546.
+- PR-head CI: 36412293727 = SUCCESS.
+- Post-merge CI: 36412458835 = SUCCESS.
+- GitLab mirror: 36412458851 = SUCCESS.
+- Cloudflare deploy: 36412493716 = SUCCESS.
+- Candidate version: f566a50a-5f86-47da-8f3a-3f20f8e5cc56.
+- Rollback/previous version: a629a888-0d69-4387-8457-058e1ccf76db.
+- Candidate exact-SHA smoke: PASS.
+- Production exact-SHA smoke: PASS.
+- Rollback executed: NO.
+- Signer changed: NO.
+- GitHub runtime main and GitLab main were both 47c029199d904f12ea7ce929b33478db1b3a7546 before this docs-only checkpoint.
 
-## Recorded TDD chain
-- CI 36411401252 RED: RESTART_DID_NOT_FREEZE_UNCERTAIN_WRITE.
-- c5ae4d54830d2563364dc42704f5afc486435783 fixed restart freeze.
-- CI 36411604229 RED: CLAIM_PATH_MISSING_PENDING_WRITE_GUARD.
-- 47058ae2b9b0e2ea9eff321f6031cc2cb1615d28 + f8309edcd22c8d32a7affd4910b990c3d7eea254 wired/verified claim+submit guards.
-- CI 36411758633 RED: EXACT_SETTLEMENT_REPLAY_NOT_IDEMPOTENT.
-- da3b1e537d3190840ce28ca8b522560cc9dd8a42 fixed settlement replay ownership.
-- CI 36411875321 RED: WRITE_UNCERTAIN_ALARM_WAS_LOST.
-- bf572de2aff66998019b3e331b1a2cea9532b10f fixed alarm ownership.
-- CI 36412017058 RED: NON_USD_MISLABELED_AS_USD.
-- 9b2bf19e927d96fbfccf40e11a9f1cd4652e786c fixed currency aggregation.
-- CI 36412110916 RED: FRESH_READBACK_COUNT_INCORRECT.
-- ba4f358666a0de13325ae99ea251eba509b4ca26 added fresh readback metrics.
-- CI 36412110916 then reached UTF8_BOM_PRESENT.
-- 90c8001d94e955668de9c501a6edb8d98958166c / 26be32c15c3687c4d8305c80af67ee5f0dcc6619 / 8b53ea270945dda293f5412972770d8a41d570d2 removed the three BOMs.
-- CI 36412181289 GREEN: Worker behavior PASS, Python policy PASS, Repository integrity PASS.
+## What ORDER-061 fixes
+1. Restart recovery
+   - pending_external_intent, ACQUIRING, SUBMITTING or write_uncertain recover as WRITE_UNCERTAIN.
+   - uncertain work is allow_mutation=false and READBACK_ONLY.
+   - write operation/intent/hash survive reconstruction.
+2. Mutation idempotency guard
+   - claim and submit paths perform freshExecutionPolicy + pendingWriteGuardV1 before journal/write.
+   - changed terms, expired deadline, stale readback or uncertainty fail closed.
+3. Settlement replay convergence
+   - same external ref + same ATM identity is idempotent.
+   - same ref + different identity is DUPLICATE_EXTERNAL_REF_CONFLICT.
+   - replay can continue local convergence after a partial crash.
+   - PAID ledger remains exactly once per opportunity/stage.
+4. Alarm ownership
+   - WRITE_UNCERTAIN keeps/re-arms polling even without submission_id.
+5. Money units
+   - earnings_paid_external_usd sums USD/USDC only.
+   - non-USD receipts are reported under earnings_paid_external_non_usd.
+   - no FX guessing; policy=USD_AND_USDC_1_TO_1_ONLY_NO_FX.
+6. Readback freshness
+   - historical *_WITH_READBACK remains for compatibility.
+   - *_WITH_FRESH_READBACK uses a 30-minute window.
+7. JSON hygiene
+   - ORDER-060 research JSON files are plain UTF-8 without BOM.
+
+## TDD evidence
+- 36411401252 RED: restart did not freeze uncertain write.
+- 36411604229 RED: mutation path missing pending guard.
+- 36411758633 RED: exact settlement replay not idempotent.
+- 36411875321 RED: WRITE_UNCERTAIN alarm lost.
+- 36412017058 RED: non-USD mislabeled as USD.
+- 36412110916 RED: fresh-readback metric absent; then BOM detected.
+- 36412181289 GREEN: functional implementation.
+- 36412293727 GREEN: final PR head.
+
+## Live production truth after ORDER-061
+- /health runtime=RUNNING.
+- /health git_sha=47c029199d904f12ea7ce929b33478db1b3a7546.
+- execution_enabled=true; durable_object=true.
+- agentic status=IDLE_NO_AUTO_ELIGIBLE_TASK.
+- claimed=3; submitted=1; accepted=0; paid=0.
+- settlement watcher: pending=1; write_uncertain_pending=0; paid=0.
+- money_path:
+  - PAID_EXTERNAL=0
+  - owner_spend_usd=0
+  - SUBMITTED_WITH_READBACK=1
+  - SUBMITTED_WITH_FRESH_READBACK=1
+  - READBACK_FRESHNESS.fresh_window_ms=1800000
+  - earnings_paid_external_usd=0
+  - earnings_paid_external_non_usd={}
+  - next_binding_constraint=PENDING_WORK
+- Workers AI: calls_used=0; reserved_neurons=0; safe budget=9500; free allocation=10000.
+- No actual payout was fabricated or used to prove recovery; settlement crash/replay coverage is deterministic/synthetic.
 
 ## Exact continuation for a zero-context GPT
-1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md, this file, issue #87 and PR #88.
-2. Resolve current GitHub main and PR #88 head. If main advanced beyond b64139d, inspect drift before merge; do not blindly rebase over runtime changes.
-3. Require the CI run attached to the current PR head (including this checkpoint commit) to finish SUCCESS.
-4. Inspect PR changed files and unresolved review threads. Confirm no new external POST route, no public MCP mutation, no signer/wallet authority change and no unrelated executor promotion.
-5. Mark PR #88 ready for review only after current-head CI is green.
-6. Merge only through protected GitHub PR with expected exact head SHA.
-7. Because runtime bytes changed, require post-merge ATM CI SUCCESS on the merge SHA.
-8. Require canonical ATM Cloudflare Deploy to:
-   - detect main runtime change,
-   - upload candidate without traffic,
-   - stage 0%,
-   - pass candidate exact-SHA smoke,
-   - promote exact version,
-   - pass production exact-SHA smoke,
-   - skip rollback.
-9. Production readback must show runtime RUNNING on the merge SHA and:
-   - OWNER_SPEND_USD=0,
-   - PAID_EXTERNAL not invented,
-   - WRITE_UNCERTAIN semantics visible if present,
-   - earnings_paid_external_usd excludes non-USD currencies,
-   - fresh readback counters exist.
-10. Verify GitLab main SHA equals GitHub main SHA; never use GitLab runner.
-11. Add final evidence comment to issue #87: PR, exact head, merge SHA, all CI/deploy IDs, production SHA, rollback version, mirror parity, OWNER_SPEND_USD=0, PAID_EXTERNAL truth.
-12. Update progress.md again on a docs-only checkpoint if needed; docs-only merge must not redeploy runtime.
-13. Mark ORDER_061_STATUS=READY_FOR_AUD only after all evidence is complete.
+1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md and this progress.md first.
+2. Fetch issue #87 and PR #88; treat ORDER-061 as complete.
+3. Resolve current GitHub main. This docs-only checkpoint merge will make GitHub main newer than runtime SHA 47c0291; production must remain 47c0291 until a later runtime-changing order deploys.
+4. Verify GitLab main equals current GitHub main before declaring mirror parity.
+5. Read production /health and /api/status. Keep runtime SHA separate from docs-only main SHA.
+6. Do not reopen ORDER-061 unless new evidence falsifies one of its tested contracts.
+7. Current economic binding is PENDING_WORK: one submitted item has fresh readback and is still pending settlement; PAID_EXTERNAL=0.
+8. AUD_CANON.md and ARQ_CANON.md are historically stale around ORDER-059/060. Reconcile them before selecting a new implementation order; current GitHub main + AGENTS.md + this checkpoint + live receipts outrank stale prose.
+9. Select exactly one next order. Do not run ORDER-053/056/057 or worker promotion in parallel unless AUD explicitly selects it.
+10. For every new order: create/assign issue first, branch from fresh main, TDD red→green, exact-head CI, protected PR merge, exact-SHA Cloudflare deploy only if runtime bytes changed, production readback, GitLab mirror parity.
+11. Before every material transition or chat end, update progress.md in present tense with current issue/branch/head/main/prod SHAs, CI/deploy IDs, money truth, blocker, and exact continuation steps.
+12. Never install Julia/Laya/Lev/Jev, DCP, SkillOpt or OpenScience on owner PC; candidates remain PROVEN=false until separate bounded E2E proof.
+13. Never create a scheduled ChatGPT/automation task unless the user explicitly requests one again.
 
-## Stop conditions
-- Owner money, paid dependency, private-key exposure, human financial signature, protection bypass or scope expansion => stop/human gate.
+## Immediate next action
+AUD should reconcile stale canon against completed ORDER-059/060/061 and live PENDING_WORK evidence, then issue one next bounded order. Do not invent a new executor or payment claim.
