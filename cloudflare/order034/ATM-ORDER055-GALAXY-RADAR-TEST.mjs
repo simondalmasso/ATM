@@ -47,10 +47,13 @@ if(!has(classify("Automate a Windows desktop app"),"DESKTOP")) throw new Error("
 if(!has(classify("Call REST API endpoint","", "HTTP_TOOL"),"API_HTTP")) throw new Error("API_CLASSIFICATION_FAILED");
 if(!has(classify("Run CPU compute simulation"),"COMPUTE_CPU")) throw new Error("COMPUTE_CLASSIFICATION_FAILED");
 
+const futureDeadline=()=>new Date(Date.now()+7*24*60*60*1000).toISOString();
 const base=(over={})=>({
   opportunity_id:"TEST:1",raw_id:"1",source:"DAYDREAMS",title:"Research task",description:"Write a short research report",
   source_status:"open",estimated_net_usd:150,capability_class:"PURE_LLM",artifact_profile:{supported:true},
+  deadline:futureDeadline(),mode:"bounty",
   eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true,newcomer_access_proven:true,argentina_or_global_eligibility_proven:true,exact_deliverable_and_acceptance_proven:true,competition_known:true,deadline_known:true},
+  raw_meta:{task_visibility:"public",has_access_password:false,submission_window_open:true,worker_pending_actions:[{role:"worker",action:"submit",requiresPayment:false,paymentAmount:"0"}]},
   economics:{estimated_task_cost_usd:0,task_execution_spend_required:false},blockers:[],ai_executability:"AI_EXECUTABLE",
   automatic_action_level:"RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST",...over
 });
@@ -58,6 +61,11 @@ const base=(over={})=>({
 const textOpp=mod.applyGalaxyCapabilityTruth(base());
 if(textOpp.executor_truth!=="PROVEN") throw new Error("TEXT_EXECUTOR_NOT_PROVEN");
 if(textOpp.ai_executability!=="AI_EXECUTABLE") throw new Error("GALAXY_REGRESSED_PROVEN_TEXT_EXECUTION");
+if(textOpp.eligibility?.source_truth_proven!==true||textOpp.source_truth_basis?.strategy!=="DAYDREAMS_TASKMARKET_SOURCE_SPECIFIC") throw new Error("DAYDREAMS_SOURCE_SPECIFIC_TRUTH_NOT_PROVEN");
+
+const malformedDeadline=mod.applyGalaxyCapabilityTruth(base({deadline:"not-a-date"}));
+if(malformedDeadline.eligibility?.source_truth_proven!==false) throw new Error("MALFORMED_DEADLINE_TREATED_AS_KNOWN");
+if(!malformedDeadline.blockers.includes("DEADLINE_UNKNOWN")) throw new Error("MALFORMED_DEADLINE_NOT_BLOCKED");
 
 const unknownSourceTruth=mod.applyGalaxyCapabilityTruth(base({
   source:"AGENTHANSA",
