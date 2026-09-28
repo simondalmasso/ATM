@@ -141,8 +141,56 @@ var WORKER_PROVEN_REGISTRY_V1 = Object.freeze(Object.fromEntries([
   ["ORACLE",["COMPUTE_CPU"]],
   ["BROWSER",["BROWSER"]],
   ["CODE",["CODE"]],
-  ["GITHUB",["GITHUB"]]
+  ["GITHUB",["GITHUB"]],
+  ["DCP",["COMPUTE_CPU"]],
+  ["OPENSCIENCE",["SCIENTIFIC","DATA","CODE"]]
 ].map(([id,caps])=>[id,newWorkerRegistryEntryV1(id,caps)])));
+
+var SYSTEM_ONE_PROVIDER_REGISTRY_V1 = Object.freeze({
+  JULIA_1:Object.freeze({
+    id:"JULIA_1",source:"SupersonicLabs/Julia-1-ONNX",model:"SupersonicLabs/Julia-1-ONNX",license:"Apache-2.0",
+    provider_kind:"LOCAL_DECISION_MODEL",protocol:"TYPED_DECISION_OPTIONS",host_requirement:"EXTERNAL_NON_OWNER_CPU_OR_BROWSER_ONNX",
+    owner_pc_allowed:false,cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"MODEL_ARTIFACT_EXCEEDS_ISOLATE_MEMORY_AND_CPU_BUDGET",runtime_mounted:false,proven:false,zero_cost_proven:true,max_owner_cost_usd:0,authority:"ADVISORY_ONLY",hard_gate_authority:false,
+    limits:["NO_EXTERNAL_KNOWLEDGE","NO_MULTI_STEP_REASONING","MAX_OPTIONS_BOUNDED","ATM_REPLAY_REQUIRED_BEFORE_USE"]
+  }),
+  LAYA:Object.freeze({
+    id:"LAYA",source:"he-jev/laya",model:"convaiinnovations/laya",license:"Apache-2.0",provider_kind:"LOCAL_DECISION_MODEL",
+    protocol:"TYPED_DECISIONS",host_requirement:"EXTERNAL_NON_OWNER_PYTHON",owner_pc_allowed:false,cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"PYTHON_MODEL_RUNTIME_EXCEEDS_FREE_WORKER_LIMITS",runtime_mounted:false,proven:false,zero_cost_proven:true,max_owner_cost_usd:0,
+    authority:"ADVISORY_ONLY",hard_gate_authority:false,direct_policy_role:"KILLED",benchmark_status:"ATM_REPLAY_REJECTED_PROMOTION_AUTHORITY"
+  }),
+  LEV:Object.freeze({
+    id:"LEV",source:"interfaze-ai/lev",model:"Qwen/Qwen3.5-4B+interfaze-ai/lev",license:"Apache-2.0",provider_kind:"LOCAL_DECISION_MODEL",
+    protocol:"/v1/systemone",host_requirement:"EXTERNAL_NON_OWNER_PYTHON_GPU_PREFERRED",owner_pc_allowed:false,local_requirements:{python_min:"3.12",cuda_realtime:true,base_model_gb_approx:8},
+    cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"QWEN3_5_4B_PLUS_ADAPTER_EXCEEDS_WORKER_MEMORY",runtime_mounted:false,proven:false,zero_cost_proven:"CONDITIONAL_EXTERNAL_HARDWARE",max_owner_cost_usd:0,authority:"ADVISORY_ONLY",hard_gate_authority:false
+  }),
+  JEV:Object.freeze({
+    id:"JEV",source:"TypeSafe/Jev",model:"Jev",license:"EXTERNAL_PROVIDER_TERMS",provider_kind:"REMOTE_COMPATIBLE_PROTOCOL",
+    protocol:"/v1/systemone",host_requirement:"EXTERNAL_API_OR_COMPATIBLE_NON_OWNER_HOST",owner_pc_allowed:false,cloudflare_worker_fit:"REMOTE_CALL_ONLY",cloudflare_reason:"NO_ZERO_COST_JEV_ENDPOINT_PROVEN",runtime_mounted:false,proven:false,zero_cost_proven:false,max_owner_cost_usd:0,
+    authority:"ADVISORY_ONLY",hard_gate_authority:false,blockers:["ZERO_COST_ENDPOINT_NOT_PROVEN","ATM_REPLAY_REQUIRED"]
+  })
+});
+
+var EXTERNAL_CAPABILITY_CANDIDATES_V1 = Object.freeze({
+  DCP:Object.freeze({
+    id:"DCP",source:"dcp-worker",role:"EXTERNAL_COMPUTE_WORKER_CANDIDATE",capabilities:["COMPUTE_CPU","WEBGPU","WASM"],
+    host_requirement:"EXTERNAL_NON_OWNER_NODE_PLUS_DCP_EVALUATOR",owner_pc_allowed:false,cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"NATIVE_DCP_EVALUATOR_REQUIRED",runtime_mounted:false,proven:false,max_owner_cost_usd:0,
+    value_unit:"DCC",count_as_paid_usd:false,settlement_authority:false,
+    blockers:["EXTERNAL_HOST_NOT_MOUNTED","DCC_TO_USD_SETTLEMENT_NOT_PROVEN","PAYOUT_READBACK_NOT_INTEGRATED","HOST_MARGINAL_COST_NOT_PROVEN_ZERO"],
+    authority:{spend:false,financial_mutation:false,settlement:false,policy_override:false}
+  }),
+  SKILLOPT:Object.freeze({
+    id:"SKILLOPT",source:"microsoft/SkillOpt",role:"OFFLINE_SKILL_OPTIMIZER",runtime_mounted:false,proven:false,max_owner_cost_usd:0,
+    backend_policy:"EXTERNAL_NON_OWNER_OR_ALREADY_AUTHENTICATED_ZERO_INCREMENTAL_COST_ONLY",owner_pc_allowed:false,cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"PYTHON_OPTIMIZATION_LOOP_NOT_WORKER_RUNTIME",held_out_validation_required:true,can_promote_executor:false,can_change_policy:false,
+    adoption:"REVIEWED_VALIDATED_SKILL_REVISION_ONLY",blockers:["NO_ATM_BENCHMARK_WIRED","NO_AUTONOMOUS_ADOPTION"],
+    authority:{spend:false,financial_mutation:false,settlement:false,policy_override:false}
+  }),
+  OPENSCIENCE:Object.freeze({
+    id:"OPENSCIENCE",source:"synthetic-sciences/openscience",role:"EXTERNAL_SCIENTIFIC_EXECUTOR_CANDIDATE",capabilities:["SCIENTIFIC","DATA","CODE"],
+    host_requirement:"EXTERNAL_NON_OWNER_CLI_WORKSPACE",allowed_cost_mode:"EXTERNAL_ZERO_COST_HOST_WITH_LOCAL_MODEL_COMPUTE_ONLY",owner_pc_allowed:false,cloudflare_worker_fit:"NO_DIRECT_RUNTIME",cloudflare_reason:"SHELL_PYTHON_R_FILESYSTEM_RUNTIME_REQUIRED",runtime_mounted:false,proven:false,max_owner_cost_usd:0,
+    blocked_routes:["ACE_WALLET","PAID_PROVIDER_API","PAID_REMOTE_COMPUTE","BYOK_PAID_API"],blockers:["EXTERNAL_HOST_NOT_MOUNTED","BOUNDED_JOB_RECEIPT_NOT_PROVEN"],
+    authority:{spend:false,financial_mutation:false,settlement:false,policy_override:false}
+  })
+});
 
 function sourceEvidenceBundleV1(opp={},state={}){
   const owner=opp?.owner_spend&&typeof opp.owner_spend==="object"?opp.owner_spend:{known:typeof opp?.eligibility?.owner_spend_zero==="boolean",zero:opp?.eligibility?.owner_spend_zero===true,amount_usd:opp?.eligibility?.owner_spend_zero===true?0:null};
@@ -3519,7 +3567,7 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       agentic_execution: { ...reconciledAgentic, execution_enabled: executionEnabled, execution_actor: RUNTIME_ACTOR, arq_execution: false, worker_address: TASKMARKET_WORKER_ADDRESS, agent_identity_ready: taskMarket.daydreams.signer.ready, agent_identity_id: TASKMARKET_AGENT_ID, signer_ready: taskMarket.daydreams.signer.ready, signer_authenticated: taskMarket.daydreams.signer.authenticated, ladder: EXECUTION_LADDER, auto_eligible_now: auto, automatically_executable_now: auto, settlement_watcher: await this.get("settlement_watcher", { checked: 0, pending: 0, status: "READY_NO_PENDING_SUBMISSIONS" }) },
       durable: { backend: "Durable Object SQLite", thread_memory: true, tool_state: true, opportunities: true, idempotency: true, quota: true, settlement_watcher: true, economic_watchdog: true, do_alarm: true },
       economic_watchdog: reconciledWatchdog,
-      galaxy_radar: { version:"ATM-ORDER-055-V1", policy:"SOURCE_TRUTH_AND_PAYOUT_TRUTH_AND_EXECUTOR_TRUTH_REQUIRED_UNKNOWN_NE_YES", capability_taxonomy:GALAXY_CAPABILITY_TAXONOMY, executor_capabilities:EXECUTOR_CAPABILITIES, passive_sources:GALAXY_PASSIVE_SOURCES, advisory_tech:GALAXY_ADVISORY_TECH, skill_count:ATM_SKILLS.length, skills_are_executors:false, laya_hard_gate_authority:false, mql5_k2_preserved:true },
+      galaxy_radar: { version:"ATM-ORDER-060-V1", policy:"SOURCE_TRUTH_AND_PAYOUT_TRUTH_AND_EXECUTOR_TRUTH_REQUIRED_UNKNOWN_NE_YES", capability_taxonomy:GALAXY_CAPABILITY_TAXONOMY, executor_capabilities:EXECUTOR_CAPABILITIES, passive_sources:GALAXY_PASSIVE_SOURCES, advisory_tech:GALAXY_ADVISORY_TECH, system_one_providers:SYSTEM_ONE_PROVIDER_REGISTRY_V1, external_capability_candidates:EXTERNAL_CAPABILITY_CANDIDATES_V1, skill_count:ATM_SKILLS.length, skills_are_executors:false, laya_hard_gate_authority:false, mql5_k2_preserved:true },
       zero_spend: { out_of_pocket_spend_usd: 0, auto_purchase: false, auto_refill: false, paid_fallback: false },
       task_market: { status: taskMarket.status, open_tasks: taskMarket.task_market.open_tasks, daydreams: taskMarket.daydreams, p1_candidates: taskMarket.p1_candidates },
       payment_capabilities: money.payment_capabilities,

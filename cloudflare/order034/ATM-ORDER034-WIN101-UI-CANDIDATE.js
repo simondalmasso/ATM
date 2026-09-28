@@ -64,6 +64,13 @@ function shellHtml() {
     <small>NOT YET EARNABLE · application not submitted · acceptance/prize/payout unknown · reverify official rules before action.</small>
     <small><a href="https://dev.meta.ai/events/global-hackathon" target="_blank" rel="noopener noreferrer">Official Meta event page</a> · verified 2026-09-25</small>
   </div>
+  <div class="truthrule">
+    <span>SUPERTEAM ARGENTINA · ROAD TO COLOSSEUM</span>
+    <b class="warn">REGISTRATION SUBMITTED · PENDING APPROVAL</b>
+    <small>Argentina track · online cohort · $10K prize pool · submissions close 13 OCT · 03:59 AR.</small>
+    <small>NOT YET EARNED · approval pending · project/dual submission still required · owner spend $0.</small>
+    <small><a href="https://luma.com/3qmbyb6h" target="_blank" rel="noopener noreferrer">Official Superteam hub</a> · <a href="https://luma.com/mdkd5y3q" target="_blank" rel="noopener noreferrer">registration evidence link</a> · verified 2026-09-28</small>
+  </div>
 </div></section>
 <section class="window"><div class="titlebar"><span>EXECUTION QUEUE</span><span id="queueSummary">—</span></div><div class="body"><div class="table" id="queue"></div></div></section>
 <div class="split">

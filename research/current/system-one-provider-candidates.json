@@ -1,0 +1,48 @@
+﻿{
+  "schema": "SYSTEM_ONE_PROVIDER_REGISTRY_V1",
+  "verified_at": "2026-09-28",
+  "owner_spend_usd": 0,
+  "authority": "ADVISORY_ONLY",
+  "providers": {
+    "JULIA_1": {
+      "source": "https://huggingface.co/SupersonicLabs/Julia-1-ONNX",
+      "reference": "https://supersoniclabs.ia.br/julia-1/",
+      "runtime": "external non-owner ONNX host only",
+      "proven": false,
+      "runtime_mounted": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "zero_cost_software_path": true,
+      "notes": "144.3M parameter decision model; ATM replay and bounded host receipt required before use."
+    },
+    "LAYA": {
+      "source": "https://github.com/he-jev/laya",
+      "proven": false,
+      "runtime_mounted": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "direct_policy_role": "KILLED",
+      "notes": "Prior ATM replay produced unacceptable false promotion rates; may remain advisory only."
+    },
+    "LEV": {
+      "source": "https://huggingface.co/interfaze-ai/lev",
+      "protocol": "/v1/systemone",
+      "runtime": "external non-owner Python 3.12+, GPU preferred for realtime",
+      "proven": false,
+      "runtime_mounted": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "NO_DIRECT_RUNTIME",
+      "notes": "Qwen3.5-4B adapter; no paid inference route is authorized."
+    },
+    "JEV": {
+      "source": "TypeSafe/Jev compatible protocol",
+      "protocol": "/v1/systemone",
+      "proven": false,
+      "runtime_mounted": false,
+      "owner_pc_allowed": false,
+      "cloudflare_worker_fit": "REMOTE_CALL_ONLY",
+      "zero_cost_endpoint_proven": false,
+      "notes": "No paid remote endpoint is authorized under ATM zero-spend policy."
+    }
+  }
+}

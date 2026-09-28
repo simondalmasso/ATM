@@ -1,6 +1,6 @@
 {
   "schema_version": "atm/external-worker-candidates-v1",
-  "verified_at": "2026-09-28T02:13:00Z",
+  "verified_at": "2026-09-28T06:40:00Z",
   "policy": {
     "repos_read_only": true,
     "repo_mutation_allowed": false,
@@ -90,6 +90,32 @@
       "state": "HISTORICAL_ARCHIVE_ONLY",
       "economic_source": false,
       "note": "Historical/archive counterpart to m0kill. Do not create a second active control plane in ATM."
+    },
+    {
+      "id": "DCP",
+      "source": "https://www.npmjs.com/package/dcp-worker",
+      "state": "EXTERNAL_COMPUTE_WORKER_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "suggested_capabilities": ["COMPUTE_CPU", "WEBGPU", "WASM"],
+      "host_requirement": "EXTERNAL_NON_OWNER_NODE_PLUS_DCP_EVALUATOR",
+      "value_unit": "DCC",
+      "count_as_paid_usd": false,
+      "blockers": ["EXTERNAL_HOST_NOT_MOUNTED", "DCC_TO_USD_SETTLEMENT_NOT_PROVEN", "PAYOUT_READBACK_NOT_INTEGRATED", "HOST_MARGINAL_COST_NOT_PROVEN_ZERO"],
+      "proposed_atm_integration": "External bounded non-owner host only; DCC never counts as USD PAID without exact authoritative conversion/withdrawal readback."
+    },
+    {
+      "id": "OPENSCIENCE",
+      "repository": "https://github.com/synthetic-sciences/openscience",
+      "state": "EXTERNAL_SCIENTIFIC_EXECUTOR_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "suggested_capabilities": ["SCIENTIFIC", "DATA", "CODE"],
+      "allowed_cost_mode": "EXTERNAL_ZERO_COST_HOST_WITH_LOCAL_MODEL_COMPUTE_ONLY",
+      "forbidden_routes": ["ACE_WALLET", "PAID_PROVIDER_API", "PAID_REMOTE_COMPUTE", "BYOK_PAID_API"],
+      "proposed_atm_integration": "Future bounded non-owner host with request/result/receipt contract; no paid model or compute route."
     }
   ]
 }

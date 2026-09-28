@@ -1,0 +1,37 @@
+﻿{
+  "candidate": "Superteam Argentina Hackathon | Road to Colosseum",
+  "verified_at": "2026-09-28",
+  "official_url": "https://luma.com/3qmbyb6h",
+  "user_registration_evidence_url": "https://luma.com/mdkd5y3q",
+  "classification": "WATCH_HACKATHON_APPROVAL_PENDING",
+  "public_state": {
+    "scope": "ARGENTINA",
+    "format": "ONLINE_COHORT_WITH_OPTIONAL_LOCAL_BUILD_STATION",
+    "cash_prize_pool_usd": 10000,
+    "submission_deadline_local": "2026-10-13T03:59:00-03:00",
+    "dual_submission_required": true
+  },
+  "user_state": {
+    "registration_submitted": true,
+    "approval": "PENDING",
+    "accepted": false,
+    "pii_persisted": false,
+    "evidence_type": "USER_PROVIDED_CONFIRMATION"
+  },
+  "money_truth": {
+    "paid_usd": 0,
+    "earned_usd": 0,
+    "owner_spend_usd": 0,
+    "prize_pool_is_not_individual_expected_payout": true,
+    "payout_readback": "NOT_PROVEN"
+  },
+  "blockers": [
+    "APPROVAL_PENDING",
+    "PROJECT_NOT_SUBMITTED",
+    "COLOSSEUM_SUBMISSION_REQUIRED",
+    "SUPERTEAM_EARN_SUBMISSION_REQUIRED",
+    "PAYOUT_READBACK_NOT_PROVEN"
+  ],
+  "atm_decision": "WATCH_ONLY; do not count prize pool as earnings or auto-eligible work",
+  "next_action": "Wait for approval readback; if approved, preserve owner-spend zero and verify exact project/submission/payout requirements before any promotion."
+}
