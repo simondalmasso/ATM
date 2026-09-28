@@ -2290,7 +2290,15 @@ var ATMBrain = class extends DurableObject {
     const executorProof=opps.filter((x)=>String(x.money_path_constraint||"").startsWith("EXECUTOR_PROOF:")).length;
     const waitingHuman=Math.max(items.filter((x)=>x.state==="WAITING_HUMAN").length,opps.filter((x)=>x.money_path_constraint==="WAITING_HUMAN").length);
     const accepted=items.filter((x)=>x.state==="ACCEPTED"&&!!x.last_readback_at&&!!x.last_readback_hash).length;
-    const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length, paidExternalUsd=Math.round(paidRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
+    const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length;
+    const usdEquivalentRows=paidRows.filter((x)=>["USD","USDC"].includes(String(x?.currency||"").toUpperCase()));
+    const paidExternalUsd=Math.round(usdEquivalentRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
+    const paidExternalNonUsd={};
+    for(const row of paidRows){
+      const currency=String(row?.currency||"UNKNOWN").toUpperCase();
+      if(["USD","USDC"].includes(currency))continue;
+      paidExternalNonUsd[currency]=Math.round((n(paidExternalNonUsd[currency])+n(row?.amount))*100)/100;
+    }
     const unresolvedPending=items.some((x)=>["WRITE_UNCERTAIN","APPLIED","CLAIMED","WAITING_REPLY"].includes(x.state));
     let nextBinding="EMPTY_ADMISSIBLE_DEMAND";
     if(unresolvedPending)nextBinding="PENDING_WORK";
@@ -2311,7 +2319,8 @@ var ATMBrain = class extends DurableObject {
       APPLIED_WITH_READBACK:withRef("APPLIED","application_ref"),CLAIMED_WITH_READBACK:withRef("CLAIMED","claim_ref"),SUBMITTED_WITH_READBACK:withRef("SUBMITTED","submission_ref"),
       ACCEPTED_WITH_READBACK:accepted,PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
       EMPTY_ADMISSIBLE_DEMAND:emptyAdmissible,EXPECTED_REALIZED_USD_PER_HOUR:"UNKNOWN",next_binding_constraint:nextBinding,owner_spend_usd:0,
-      worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},earnings_paid_external_usd:paidExternalUsd
+      worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},
+      earnings_paid_external_usd:paidExternalUsd,earnings_paid_external_non_usd:paidExternalNonUsd,earnings_paid_external_currency_policy:"USD_AND_USDC_1_TO_1_ONLY_NO_FX"
     };
   }
   async browserUsage() {
