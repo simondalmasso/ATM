@@ -26,5 +26,8 @@ Hard rules:
 17. Do not add research/provider/agent frameworks unless live runtime routing consumes them and economic benefit is demonstrated.
 18. Do not create recurring Windows Scheduled Tasks for ATM.
 19. GitHub main is source authority; production deploy requires exact-main-SHA CI success, non-production version smoke, exact-version promotion, production SHA readback, and rollback-on-failure.
-20. GitLab is archival/read-only after ORDER-051; it must not consume runner minutes or deploy production. GitHub remains the sole source/deploy authority. Do not claim automatic GitHub->GitLab mirroring unless a live mirror is independently verified.
+20. GitLab is a downstream mirror only after ORDER-051; it must not be authored in, consume runner minutes, or deploy production. GitHub remains the sole source/deploy authority. The GitHub Actions mirror may copy refs and must verify main-SHA parity.
 21. Persist operational truth in Worker state and external receipts, not chat memory.
+22. SeneX and boqa are external READ_ONLY worker candidates only; ATM must not modify their repositories or treat them as proven executors until a separate bounded E2E contract is independently proven.
+23. m0kill may be consumed READ_ONLY as opportunity-research/killtest/negative-memory input; Moneykiller GitLab is historical/archive evidence, not funded demand or settlement authority.
+24. An external worker may never expand ATM policy, spend owner money, sign/withdraw, claim PAID, or bypass HUMAN_GATE; worker output is evidence/advisory until deterministic ATM readback accepts it.
