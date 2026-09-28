@@ -48,10 +48,16 @@ const uncertainRuntime={
 // Actual claim/submit mutation paths must call the guard, not merely define it.
 {
   const source=fs.readFileSync(src,'utf8');
-  const claim=source.slice(source.indexOf('if (fresh.operation === "claim")'),source.indexOf('if (fresh.operation !== "submit")'));
-  const submit=source.slice(source.indexOf('runtime.stage = "SUBMITTING"'),source.indexOf('const submit = await this.submitExecutionSource')+80);
-  if(!claim.includes('pendingWriteGuardV1(')) throw new Error('CLAIM_PATH_MISSING_PENDING_WRITE_GUARD');
-  if(!submit.includes('pendingWriteGuardV1(')) throw new Error('SUBMIT_PATH_MISSING_PENDING_WRITE_GUARD');
+  const claimStart=source.indexOf('if (fresh.operation === "claim")');
+  const claimGuard=source.indexOf('pendingWriteGuardV1(',claimStart);
+  const claimJournal=source.indexOf('journalPendingIntent(opp,runtime,"claim")',claimStart);
+  const claimWrite=source.indexOf('acquireExecutionSource(opp, runtime)',claimStart);
+  if(claimGuard<claimStart||claimGuard>claimJournal||claimGuard>claimWrite) throw new Error('CLAIM_PATH_MISSING_PENDING_WRITE_GUARD');
+  const submitStart=source.indexOf('const pendingForSubmit=');
+  const submitGuard=source.indexOf('pendingWriteGuardV1(',submitStart);
+  const submitJournal=source.indexOf('journalPendingIntent(opp,runtime,"submit")',submitStart);
+  const submitWrite=source.indexOf('submitExecutionSource(opp, artifacts, runtime)',submitStart);
+  if(submitStart<0||submitGuard<submitStart||submitGuard>submitJournal||submitGuard>submitWrite) throw new Error('SUBMIT_PATH_MISSING_PENDING_WRITE_GUARD');
   console.log('ORDER061_MUTATION_GUARDS_WIRED=PASS');
 }
 
