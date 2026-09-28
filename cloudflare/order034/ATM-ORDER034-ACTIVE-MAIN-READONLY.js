@@ -2285,11 +2285,20 @@ var ATMBrain = class extends DurableObject {
       return {...opp,source_evidence_v1:bundle,source_truth_v1:sourceTruthVerdictV1(bundle),economic_truth_v1:economic,money_path_constraint:moneyPathConstraintV1(opp,bundle,economic),expected_realized_usd:economic.expected_realized_usd};
     });
     const items=Object.values(pending.items||{});
-    const withRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&!!x.last_readback_at&&!!x.last_readback_hash).length;
+    const readbackFreshnessMs=30*60e3;
+    const hasReadback=(x)=>!!x?.last_readback_at&&!!x?.last_readback_hash;
+    const hasFreshReadback=(x)=>{
+      if(!hasReadback(x))return false;
+      const at=Date.parse(String(x.last_readback_at||""));
+      return Number.isFinite(at)&&Date.now()-at>=0&&Date.now()-at<=readbackFreshnessMs;
+    };
+    const withRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&hasReadback(x)).length;
+    const withFreshRef=(state,field)=>items.filter((x)=>x.state===state&&!!x[field]&&hasFreshReadback(x)).length;
     const sourceProof=opps.filter((x)=>x.money_path_constraint==="SOURCE_PROOF_REQUIRED").length;
     const executorProof=opps.filter((x)=>String(x.money_path_constraint||"").startsWith("EXECUTOR_PROOF:")).length;
     const waitingHuman=Math.max(items.filter((x)=>x.state==="WAITING_HUMAN").length,opps.filter((x)=>x.money_path_constraint==="WAITING_HUMAN").length);
-    const accepted=items.filter((x)=>x.state==="ACCEPTED"&&!!x.last_readback_at&&!!x.last_readback_hash).length;
+    const accepted=items.filter((x)=>x.state==="ACCEPTED"&&hasReadback(x)).length;
+    const acceptedFresh=items.filter((x)=>x.state==="ACCEPTED"&&hasFreshReadback(x)).length;
     const paidRows=Object.values(refs.refs||{}), paidExternal=paidRows.length;
     const usdEquivalentRows=paidRows.filter((x)=>["USD","USDC"].includes(String(x?.currency||"").toUpperCase()));
     const paidExternalUsd=Math.round(usdEquivalentRows.reduce((sum,x)=>sum+n(x?.amount),0)*100)/100;
@@ -2317,7 +2326,10 @@ var ATMBrain = class extends DurableObject {
     return {
       version:"MONEY_PATH_V1",source_bundles:opps.filter((x)=>x.source_evidence_v1?.version==="SOURCE_EVIDENCE_V1").length,
       APPLIED_WITH_READBACK:withRef("APPLIED","application_ref"),CLAIMED_WITH_READBACK:withRef("CLAIMED","claim_ref"),SUBMITTED_WITH_READBACK:withRef("SUBMITTED","submission_ref"),
-      ACCEPTED_WITH_READBACK:accepted,PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
+      ACCEPTED_WITH_READBACK:accepted,
+      APPLIED_WITH_FRESH_READBACK:withFreshRef("APPLIED","application_ref"),CLAIMED_WITH_FRESH_READBACK:withFreshRef("CLAIMED","claim_ref"),SUBMITTED_WITH_FRESH_READBACK:withFreshRef("SUBMITTED","submission_ref"),ACCEPTED_WITH_FRESH_READBACK:acceptedFresh,
+      READBACK_FRESHNESS:{fresh_window_ms:readbackFreshnessMs,historical_fields:"*_WITH_READBACK",fresh_fields:"*_WITH_FRESH_READBACK"},
+      PAID_EXTERNAL:paidExternal,WAITING_HUMAN:waitingHuman,EXECUTOR_PROOF_REQUIRED:executorProof,SOURCE_PROOF_REQUIRED:sourceProof,
       EMPTY_ADMISSIBLE_DEMAND:emptyAdmissible,EXPECTED_REALIZED_USD_PER_HOUR:"UNKNOWN",next_binding_constraint:nextBinding,owner_spend_usd:0,
       worker_contract:{schema:WORKER_CONTRACT_SCHEMA_V1,registry:WORKER_PROVEN_REGISTRY_V1},
       earnings_paid_external_usd:paidExternalUsd,earnings_paid_external_non_usd:paidExternalNonUsd,earnings_paid_external_currency_policy:"USD_AND_USDC_1_TO_1_ONLY_NO_FX"
