@@ -49,6 +49,7 @@ jobs:
           node cloudflare/order034/ATM-ORDER055-GALAXY-RADAR-TEST.mjs
           node cloudflare/order034/ATM-ORDER059-MONEY-PATH-V1-TEST.mjs
           node cloudflare/order034/ATM-ORDER060-CAPABILITY-INTAKE-TEST.mjs
+          node cloudflare/order034/ATM-ORDER061-RECOVERY-CONSISTENCY-TEST.mjs
           node scripts/order051-smoke-retry-test.mjs
           node scripts/order054-pathgate-unknown-sha-test.mjs
 
