@@ -1,134 +1,70 @@
-# ATM CURRENT CHECKPOINT — ORDER-060
+# ATM CURRENT CHECKPOINT — ORDER-053
 
 Updated: 2026-09-28
-Status: ORDER-060 is merged, deployed, live-verified and ready for AUD.
-Purpose: present-tense handoff for a fresh GPT agent starting from zero inside this project.
+Status: ORDER-053 is the single active implementation order.
+Purpose: zero-context handoff for a fresh GPT agent.
 
-## Canon and invariants
+## Canon
 - GitHub source authority: https://github.com/simondalmasso/ATM
-- GitLab is downstream mirror only; do not author there and do not use GitLab runners.
-- Production: https://atm.simondalmasso44.workers.dev/
-- AGENTS.md, AUD_CANON.md and ARQ_CANON.md remain authoritative.
+- GitLab is downstream mirror only.
+- Production runtime before ORDER-053: c257b5a42f7a4384e8da0b96b52a30359eb30620.
+- Branch start/main: b64139d8c86d37953ec17fcaa1becfec11e77ead.
+- Active issue: #55 ATM-ORDER-053.
+- Active branch: feat/order053-zero-cost-skills-v1.
 - OWNER_SPEND_USD=0.
 - Public MCP remains READ_ONLY.
-- Never install or run Julia/Laya/Lev/Jev, DCP, SkillOpt or OpenScience on the owner's PC.
-- Never treat candidate/provider presence as executor proof.
-- Never count DCC, prizes, submissions, balances or promises as USD PAID without exact authoritative settlement readback.
+- No scheduled ChatGPT task exists.
+- Do not install skill runtimes on the owner's PC.
 
-## ORDER-060 completed state
-- Issue: #81 — CLOSED/completed.
-- PR: #82 — MERGED.
-- Feature branch: order060-runtime-capability-intake-v1.
-- Feature head: 2b8d29148363331e130a0e3068d6699f5b4227e5.
-- Runtime merge SHA: c257b5a42f7a4384e8da0b96b52a30359eb30620.
-- PR-head ATM CI: 36389099930 = SUCCESS.
-- Post-merge ATM CI: 36389150176 = SUCCESS.
-- GitLab downstream mirror: 36389150060 = SUCCESS.
-- Cloudflare deploy: 36389175783 = SUCCESS.
-- Cloudflare candidate version: f15d4773-12e0-41e5-b272-cb1c3d77ab8b.
-- Rollback/main previous version: 0686269d-3b69-4ad5-9c02-812145ce9c9d.
-- Candidate exact-SHA smoke: PASS.
-- Production exact-SHA smoke: PASS.
-- Rollback step: SKIPPED.
-- Signer deployment steps: SKIPPED because signer bytes did not change.
-- GitHub main runtime SHA and GitLab main are both c257b5a42f7a4384e8da0b96b52a30359eb30620.
+## Present state
+- ATM already exposes install-free skill_list, skill_route and skill_get.
+- Installed count before edits: 17.
+- ORDER-053 focused test exists at cloudflare/order034/ATM-ORDER053-SKILL-BROKER-TEST.mjs.
+- Focused test is RED for intended reason: current manifests still use mutable ref=main.
+- Verified MIT sources: obra/superpowers, emilkowalski/skills, mattpocock/skills, addyosmani/agent-skills, cathrynlavery/diagram-design, K-Dense-AI/scientific-agent-skills, DietrichGebert/ponytail.
+- figures4papers repository license is CC BY-NC 4.0; keep REFERENCE_ONLY for a money-making system.
+- last30days SKILL.md is about 257k chars and references external tooling; it exceeds skill_get's 50k context contract. Remove from installed skills, keep reference/source-only.
+- Ponytail ToolCheck = Trusted 98/100; ponytail and ponytail-review are MIT/public/instruction-only/$0 and qualify.
+- Caveman ToolCheck = Caution 71/100; keep reference-only in this order.
+- reverse-skill requires local scripts/router/bootstrap; keep security source/reference-only, not installed.
 
-## Live production truth
-- /health git_sha = c257b5a42f7a4384e8da0b96b52a30359eb30620.
-- runtime = RUNNING.
-- execution_enabled = true.
-- durable_object = true.
-- galaxy_radar.version = ATM-ORDER-060-V1.
-- system_one_providers = JULIA_1, LAYA, LEV, JEV.
-- external_capability_candidates = DCP, SKILLOPT, OPENSCIENCE.
-- Every new candidate/provider remains proven=false and runtime_mounted=false.
-- Every new candidate/provider has owner_pc_allowed=false.
-- JULIA_1/LAYA/LEV cloudflare_worker_fit = NO_DIRECT_RUNTIME.
-- JEV cloudflare_worker_fit = REMOTE_CALL_ONLY and zero-cost endpoint is not proven.
-- DCP/SKILLOPT/OPENSCIENCE cloudflare_worker_fit = NO_DIRECT_RUNTIME.
-- zero_spend.out_of_pocket_spend_usd = 0.
-- money_path.owner_spend_usd = 0.
-- money_path.PAID_EXTERNAL = 0.
-- money_path.WORKERS_PROVEN = [].
-- money_path.next_binding_constraint = PENDING_WORK.
-- Workers AI live ATM quota readback: calls_used=0, reserved_neurons=0, safe_neuron_budget=9500, free_allocation_neurons=10000.
-- Production UI contains both META GLOBAL AI DEVELOPER HACKATHON and SUPERTEAM ARGENTINA · ROAD TO COLOSSEUM.
-- Superteam state shown live: REGISTRATION SUBMITTED · PENDING APPROVAL.
-- No user email/sender PII is persisted.
+## Immutable refs resolved
+- obra/superpowers = 8ca22dba9a94f28898bbce59f2537ff4d87c747d
+- emilkowalski/skills = d16ebe60d09a5ba2afcb7054ede9d0a10c9f6128
+- mattpocock/skills = c55ee46073ed923f86ce59a5eb3b6d895095d1b7
+- addyosmani/agent-skills = 2686b620fc1fed2e8f60c704839c766b8594c6b6
+- cathrynlavery/diagram-design = cea465e7f5ea1043d8dab21a99f2dd3f7f661beb
+- K-Dense-AI/scientific-agent-skills = 49c6e97775eaa18ba791bebe23162a70ae601c18
+- DietrichGebert/ponytail = e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156
 
-## Implemented contracts
-- SYSTEM_ONE_PROVIDER_REGISTRY_V1 includes Julia-1, Laya, Lev and Jev as fail-closed advisory/provider candidates.
-- Laya direct policy role remains KILLED from prior replay evidence.
-- EXTERNAL_CAPABILITY_CANDIDATES_V1 includes DCP, SkillOpt and OpenScience.
-- DCP is a compute-worker candidate only; DCC is not USD and count_as_paid_usd=false.
-- SkillOpt is an offline skill optimizer only; it cannot promote executors or change money/policy gates.
-- OpenScience is an external scientific executor candidate only; Ace, paid provider API, paid remote compute and paid BYOK routes are blocked.
-- DCP and OpenScience appear in WORKER_PROVEN_REGISTRY_V1 with proven=false.
-- ATM Worker-side inference remains native Workers AI @cf/zai-org/glm-4.7-flash.
+## Exact continuation for a fresh GPT
+1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md, issue #55 and this file.
+2. Verify branch/main drift before commit.
+3. Edit ATM_SKILLS in cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js:
+   - pin all installed manifests to immutable 40-char commit refs;
+   - add defaults cost=ZERO, account_required=false, install_required=false, secret_required=false;
+   - use explicit license=MIT;
+   - remove last30days and figures4papers;
+   - add ponytail.minimal and ponytail.review;
+   - keep installed count at 17.
+4. Run node cloudflare/order034/ATM-ORDER053-SKILL-BROKER-TEST.mjs until GREEN without weakening assertions.
+5. Create docs/skills/order053-intake.md covering every issue #55 candidate and reference with source/path/license/cost/runtime/secret/unique value/decision/reason.
+6. Update source catalog notes so SOURCE_ONLY/REFERENCE_ONLY is not confused with installed ATM_SKILL.
+7. Add ORDER-053 test to .github/workflows/ci.yml.
+8. Run all Node CI commands, Python compileall/unittest, secret_doctor, payout_doctor, JSON parse and git diff --check.
+9. Audit staged diff: no new mutation/payment tool, no upstream code execution, no local-PC runtime, no spend.
+10. Commit/push, open PR closing #55, require exact-head CI.
+11. Merge protected PR only after green CI.
+12. Runtime bytes change requires canonical exact-SHA candidate smoke, promotion, production smoke and rollback skipped.
+13. Live verify /health exact SHA, MCP tools/list, skill_list count=17, representative skill_route, at least 3 pinned skill_get calls, SKILL_NOT_FOUND and OWNER_SPEND=0.
+14. Verify GitLab mirror parity with zero GitLab runner use.
+15. Update this checkpoint after every material transition.
 
-## Cloudflare Free feasibility
-- Workers Free isolate memory limit: 128 MB.
-- Workers Free normal-request CPU limit: 10 ms.
-- Workers AI free allocation: 10,000 neurons/day.
-- ATM internal safe budget: 9,500 neurons/day; hard model call cap: 240.
-- ORDER-060 deployed bundle: 422.34 KiB upload / 107.35 KiB gzip.
-- Direct Julia/Laya/Lev/DCP/SkillOpt/OpenScience runtimes do not fit the Cloudflare Worker execution model safely; they are not mounted.
-- Only Cloudflare-native Worker/Workers AI execution is considered active in this order.
-
-## Verification passed
-- Every Node command declared in .github/workflows/ci.yml: PASS.
-- Python compileall: PASS.
-- Python unittest: 3/3 PASS.
-- secret_doctor.py: PASS.
-- payout_doctor.py: PASS.
-- all research/current/*.json parse: PASS.
-- git diff --check: PASS.
-- No new public mutation MCP tool.
-- No new external POST route.
-- No signer/wallet/transfer/withdrawal/x402 authority expansion.
-- No runtime installed on owner PC.
-- No owner spend.
-
-## Files delivered by ORDER-060
-- .github/workflows/ci.yml
-- cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js
-- cloudflare/order034/ATM-ORDER034-WIN101-UI-CANDIDATE.js
-- cloudflare/order034/ATM-ORDER034-WIN101-UI-TEST.mjs
-- cloudflare/order034/ATM-ORDER060-CAPABILITY-INTAKE-TEST.mjs
-- research/current/candidate-ledger.jsonl
-- research/current/external-worker-candidates.json
-- research/current/capability-optimizer-candidates.json
-- research/current/superteam-colosseum-salta-watch.json
-- research/current/system-one-provider-candidates.json
-- docs/superpowers/plans/2026-09-28-order060-capability-intake-v1.md
-- progress.md
-
-## Exact continuation for a fresh GPT agent
-1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md and this progress.md first.
-2. Fetch issue #81 and PR #82 and confirm the evidence above rather than relying on chat memory.
-3. Read current GitHub main and production /health. A docs-only checkpoint merge may make GitHub main newer than c257b5a; production runtime must remain c257b5a until another runtime-changing order deploys.
-4. Verify GitLab main equals current GitHub main before declaring mirror parity.
-5. Read production /api/status and keep these truths separate:
-   - provider/candidate registry membership is not executor proof,
-   - runtime_mounted=false means not running,
-   - PROVEN=false means do not route task execution to it,
-   - PAID_EXTERNAL is the only realized external-money count.
-6. Treat ORDER-060 as complete. Do not reopen it merely to mount heavy runtimes.
-7. Reconcile AUD_CANON/ARQ_CANON with the closed ORDER-060 state. If canon names a new active order, execute only that order.
-8. If canon has no new active order yet, use the live next_binding_constraint=PENDING_WORK as evidence for AUD selection; do not invent a parallel ARQ.
-9. For any new work, create/assign one GitHub issue before edits, branch from fresh main, use TDD, exact-head CI, protected merge, canonical exact-SHA deployment only when runtime bytes change, production readback, mirror parity, and a new present-tense checkpoint here.
-10. Before the chat/session ends or after every material state transition (commit, PR, merge, deploy, blocker), update progress.md with:
-   - current order,
-   - branch/head/main/prod SHAs,
-   - CI/deploy IDs,
-   - live money/executor truth,
-   - exact next commands/actions for a zero-context GPT.
-
-## Hard prohibitions carried forward
-- Do not install these candidate runtimes on owner PC.
-- Do not claim Julia/Laya/Lev/Jev/DCP/SkillOpt/OpenScience are working executors.
-- Do not change PROVEN=false without a separate bounded E2E contract and independent receipt.
-- Do not spend owner money or use paid API/compute fallback.
-- Do not bypass human gates.
-- Do not widen signer or wallet authority.
-- Do not bypass canonical GitHub exact-SHA deploy workflow.
+## Hard prohibitions
+- No scheduled ChatGPT tasks.
+- No local PC installs.
+- No paid APIs or owner-funded compute.
+- No arbitrary upstream code execution.
+- No payment/signing authority expansion.
+- No GitLab runner.
+- No direct push to main.
