@@ -328,6 +328,41 @@ function galaxyOpenNow(opp = {}) {
   if (["closed","expired","cancelled","canceled","paid","settled","rejected"].includes(s)) return false;
   return null;
 }
+function galaxyDeadlineTruth(value) {
+  const raw = String(value || "").trim();
+  const at = raw ? Date.parse(raw) : NaN;
+  return { known:Number.isFinite(at), future:Number.isFinite(at) && at > Date.now(), at:Number.isFinite(at) ? at : null };
+}
+function daydreamsSourceTruthProof(opp = {}, deadlineTruth = galaxyDeadlineTruth(opp?.deadline)) {
+  const meta = opp?.raw_meta || {}, actions = Array.isArray(meta.worker_pending_actions) ? meta.worker_pending_actions : [];
+  const mode = String(opp?.mode || "").toLowerCase(), knownModes = ["bounty","claim","pitch","benchmark","auction"];
+  const publicTask = meta.task_visibility === "public" && meta.has_access_password !== true;
+  const freeWorkerAction = actions.some((a) => ["claim","submit"].includes(String(a?.action || "")) && a?.requiresPayment === false && n(a?.paymentAmount) === 0);
+  const actionWindow = actions.some((a) => {
+    if (!["claim","submit"].includes(String(a?.action || ""))) return false;
+    const after = a?.availableAfter ? Date.parse(String(a.availableAfter)) : NaN;
+    const until = a?.availableUntil ? Date.parse(String(a.availableUntil)) : NaN;
+    return (!Number.isFinite(after) || after <= Date.now()) && (!Number.isFinite(until) || until > Date.now());
+  });
+  const submitWindowOk = actions.some((a) => String(a?.action || "") === "submit") ? meta.submission_window_open === true : true;
+  const taskTermsHydrated = typeof opp?.description === "string" && opp.description.trim().length >= 10;
+  const competitionKnown = knownModes.includes(mode);
+  const geoScope = publicTask ? "TASKMARKET_PUBLIC_PROTOCOL_NO_TASK_LEVEL_GEO_GATE" : null;
+  return {
+    proven: publicTask && freeWorkerAction && actionWindow && submitWindowOk && taskTermsHydrated && competitionKnown && deadlineTruth.known && deadlineTruth.future,
+    newcomer_access_proven: publicTask && freeWorkerAction && actionWindow,
+    argentina_or_global_eligibility_proven: !!geoScope,
+    competition_known: competitionKnown,
+    task_terms_hydrated: taskTermsHydrated,
+    deadline_known: deadlineTruth.known,
+    deadline_future: deadlineTruth.future,
+    public_task: publicTask,
+    free_worker_action: freeWorkerAction,
+    action_window_open: actionWindow,
+    submission_window_open_or_not_applicable: submitWindowOk,
+    geo_scope: geoScope
+  };
+}
 function recommendGalaxySkills(opp = {}, caps = [], preExecutorBlockers = []) {
   const hardBlocked = preExecutorBlockers.some((x) => blockerType(x) !== "INTERNAL_CAPABILITY_GAP");
   if (hardBlocked || typeof ATM_SKILLS === "undefined") return [];
@@ -345,28 +380,38 @@ function applyGalaxyCapabilityTruth(opp, advisory = null) {
   const capabilityBlockers = uniq([...originalBlockers, ...missing]);
   const executorTruth = required.length && requirements.every((x) => x.proven) ? "PROVEN" : requirements.some((x) => x.status === "UNKNOWN") || !required.length ? "UNKNOWN" : "BLOCKED";
   const openNow = galaxyOpenNow(opp);
-  const newcomer = typeof opp?.eligibility?.newcomer_access_proven === "boolean" ? opp.eligibility.newcomer_access_proven : null;
-  const geo = typeof opp?.eligibility?.argentina_or_global_eligibility_proven === "boolean" ? opp.eligibility.argentina_or_global_eligibility_proven : null;
+  const deadlineTruth = galaxyDeadlineTruth(opp?.deadline);
+  const daydreamsProof = opp?.source === "DAYDREAMS" ? daydreamsSourceTruthProof(opp, deadlineTruth) : null;
+  const newcomer = daydreamsProof ? daydreamsProof.newcomer_access_proven : typeof opp?.eligibility?.newcomer_access_proven === "boolean" ? opp.eligibility.newcomer_access_proven : null;
+  const geo = daydreamsProof ? daydreamsProof.argentina_or_global_eligibility_proven : typeof opp?.eligibility?.argentina_or_global_eligibility_proven === "boolean" ? opp.eligibility.argentina_or_global_eligibility_proven : null;
   const automation = typeof opp?.eligibility?.terms_allow_automation === "boolean" ? opp.eligibility.terms_allow_automation : null;
   const deliverableAcceptance = typeof opp?.eligibility?.exact_deliverable_and_acceptance_proven === "boolean" ? opp.eligibility.exact_deliverable_and_acceptance_proven : null;
-  const competition = typeof opp?.eligibility?.competition_known === "boolean" ? opp.eligibility.competition_known : null;
-  const deadlineKnown = typeof opp?.eligibility?.deadline_known === "boolean" ? opp.eligibility.deadline_known : !!opp?.deadline;
+  const competition = daydreamsProof ? daydreamsProof.competition_known : typeof opp?.eligibility?.competition_known === "boolean" ? opp.eligibility.competition_known : null;
+  const deadlineKnown = deadlineTruth.known;
   const payoutPath = typeof opp?.eligibility?.payout_path_known === "boolean" ? opp.eligibility.payout_path_known : null;
   const payoutRail = opp.source === "DAYDREAMS" ? "BASE_USDC_TASKMARKET" : opp.source === "AGENTHANSA" ? "AGENTHANSA_PLATFORM_PAYOUT" : opp.source === "AGENTBOUNTIES" ? "BASE_USDC_CANONICAL_SETTLEMENT" : null;
   const payoutReadback = opp?.eligibility?.payout_readback || (opp.source === "DAYDREAMS" ? "TASKMARKET_EXTERNAL_SETTLEMENT_WATCHER" : null);
   const sourceGateBlockers = [];
   if (openNow !== true) sourceGateBlockers.push(openNow === false ? "TASK_STATE_NOT_WRITABLE" : "OPEN_NOW_UNKNOWN");
-  if (newcomer !== true) sourceGateBlockers.push("NEWCOMER_ACCESS_UNKNOWN");
-  if (geo !== true) sourceGateBlockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
   if (automation !== true) sourceGateBlockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
-  if (deliverableAcceptance !== true) sourceGateBlockers.push("EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN");
-  if (competition !== true) sourceGateBlockers.push("COMPETITION_UNKNOWN");
   if (deadlineKnown !== true) sourceGateBlockers.push("DEADLINE_UNKNOWN");
+  else if (!deadlineTruth.future) sourceGateBlockers.push("TASK_EXPIRED");
   if (payoutPath !== true || !payoutRail) sourceGateBlockers.push("PAYOUT_RAIL_UNKNOWN");
   if (!payoutReadback) sourceGateBlockers.push("PAYOUT_READBACK_UNKNOWN");
+  if (daydreamsProof) {
+    if (!daydreamsProof.newcomer_access_proven) sourceGateBlockers.push("NEWCOMER_ACCESS_UNKNOWN");
+    if (!daydreamsProof.argentina_or_global_eligibility_proven) sourceGateBlockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
+    if (!daydreamsProof.task_terms_hydrated) sourceGateBlockers.push("EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN");
+    if (!daydreamsProof.competition_known) sourceGateBlockers.push("COMPETITION_UNKNOWN");
+  } else {
+    if (newcomer !== true) sourceGateBlockers.push("NEWCOMER_ACCESS_UNKNOWN");
+    if (geo !== true) sourceGateBlockers.push("ARGENTINA_OR_GLOBAL_ELIGIBILITY_UNKNOWN");
+    if (deliverableAcceptance !== true) sourceGateBlockers.push("EXACT_DELIVERABLE_OR_ACCEPTANCE_UNKNOWN");
+    if (competition !== true) sourceGateBlockers.push("COMPETITION_UNKNOWN");
+  }
   const blockers = uniq([...capabilityBlockers, ...sourceGateBlockers]);
   const ownerSpend = galaxyOwnerSpendTruth(opp, blockers);
-  const sourceTruth = openNow === true && newcomer === true && geo === true && automation === true && deliverableAcceptance === true && competition === true && deadlineKnown === true && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE");
+  const sourceTruth = daydreamsProof ? openNow === true && automation === true && daydreamsProof.proven && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE") : openNow === true && newcomer === true && geo === true && automation === true && deliverableAcceptance === true && competition === true && deadlineKnown === true && deadlineTruth.future && !blockers.some((x) => blockerType(x) === "SOURCE_REQUIREMENT" || blockerType(x) === "POLICY_GATE");
   const payoutTruth = payoutPath === true && !!payoutRail && !!payoutReadback && Number(opp.estimated_net_usd) > 0;
   let ai = opp.ai_executability === "AI_EXECUTABLE" && executorTruth === "PROVEN" && sourceTruth && payoutTruth && ownerSpend.known && ownerSpend.zero === true && !blockers.length ? "AI_EXECUTABLE" : "BLOCKED";
   if (advisory?.decision && String(advisory.decision).toUpperCase() === "PROMOTE" && opp.ai_executability !== "AI_EXECUTABLE") ai = "BLOCKED";
@@ -391,6 +436,7 @@ function applyGalaxyCapabilityTruth(opp, advisory = null) {
     skill_recommendations: skills,
     skills_are_executors: false,
     advisory: advisory ? { provider:String(advisory.provider || "UNKNOWN"), authority:"ADVISORY_ONLY", hard_gate_authority:false, decision:advisory.decision || null, confidence:advisory.confidence ?? null, accepted_capability_hints:(advisory.required_capabilities || []).filter((x) => GALAXY_CAPABILITY_TAXONOMY.includes(String(x).toUpperCase())).map((x) => String(x).toUpperCase()), promotion_authority:false } : { provider:null, authority:"ADVISORY_ONLY", hard_gate_authority:false, promotion_authority:false },
+    source_truth_basis: daydreamsProof ? { strategy:"DAYDREAMS_TASKMARKET_SOURCE_SPECIFIC", ...daydreamsProof } : { strategy:"GENERIC_EXPLICIT_FIELDS" },
     galaxy_status: active ? "ACTIVE" : "DISCOVERED_BLOCKED",
     galaxy_version: "ATM-ORDER-055-V1",
     blockers,
@@ -1484,7 +1530,7 @@ function normalize(source, raw) {
   const taskExecutionSpend = sourceExecutionSpendEvidence(title, description);
   const economicView = source === "DAYDREAMS" ? { ...daydreams, worker_action_cost_usdc: daydreams?.action_cost_usdc ?? null, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches } : { estimated_task_cost_usd: 0, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches };
   const blockerContext = { source, raw_id: String(id), title, description, raw, economics: economicView, task_execution_spend: taskExecutionSpend, capability_class: capabilityClass, artifact_profile: artifactProfile, estimated_net_usd: estimatedNet, source_status: status, deadline };
-  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, newcomer_access_proven: source === "AGENTHANSA" ? raw.newcomer_access_proven === true ? true : null : null, argentina_or_global_eligibility_proven: source === "AGENTHANSA" ? raw.argentina_or_global_eligibility_proven === true ? true : null : null, exact_deliverable_and_acceptance_proven: source === "AGENTHANSA" ? raw.exact_deliverable_and_acceptance_proven === true ? true : null : null, competition_known: source === "AGENTHANSA" ? raw.competition_known === true ? true : null : null, deadline_known: deadline ? true : null, payout_readback: source === "AGENTHANSA" ? "AGENTHANSA_PAYOUTS_API_SETTLEMENT_READBACK" : null, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, owner_spend_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost === true : source === "AGENTHANSA" ? !taskExecutionSpend.required && !clean.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x)) : null, payout_path_known: source === "DAYDREAMS" ? true : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { reference_code: raw.referenceCode, mode: raw.mode, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: !!raw.submissionWindowOpen, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
+  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, newcomer_access_proven: source === "AGENTHANSA" ? raw.newcomer_access_proven === true ? true : null : null, argentina_or_global_eligibility_proven: source === "AGENTHANSA" ? raw.argentina_or_global_eligibility_proven === true ? true : null : null, exact_deliverable_and_acceptance_proven: source === "AGENTHANSA" ? raw.exact_deliverable_and_acceptance_proven === true ? true : null : null, competition_known: source === "AGENTHANSA" ? raw.competition_known === true ? true : null : null, deadline_known: Number.isFinite(Date.parse(String(deadline || ""))) ? true : null, payout_readback: source === "AGENTHANSA" ? "AGENTHANSA_PAYOUTS_API_SETTLEMENT_READBACK" : null, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, owner_spend_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost === true : source === "AGENTHANSA" ? !taskExecutionSpend.required && !clean.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x)) : null, payout_path_known: source === "DAYDREAMS" ? true : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { reference_code: raw.referenceCode, mode: raw.mode, task_visibility: raw.taskVisibility || null, submission_visibility: raw.submissionVisibility || null, has_access_password: raw.hasAccessPassword === true, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: raw.submissionWindowOpen === true, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
 }
 __name(normalize, "normalize");
 __name2(normalize, "normalize");
