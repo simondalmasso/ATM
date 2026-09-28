@@ -266,11 +266,15 @@ function pendingStateFromRuntimeV1(stage){
   return "ACTION_READY";
 }
 function pendingWorkRecordV1(opp={},runtime={}){
-  const state=pendingStateFromRuntimeV1(runtime?.write_uncertain?"WRITE_UNCERTAIN":runtime?.stage);
-  const idempotency=runtime?.pending_external_intent?.idempotency_key||runtime?.submit_idempotency_key||runtime?.claim_idempotency_key||null;
+  const runtimeStage=String(runtime?.stage||"").toUpperCase();
+  const writeIntent=runtime?.pending_external_intent||null;
+  const uncertainBoundary=runtime?.write_uncertain===true||!!writeIntent||["ACQUIRING","SUBMITTING"].includes(runtimeStage);
+  const state=pendingStateFromRuntimeV1(uncertainBoundary?"WRITE_UNCERTAIN":runtime?.stage);
+  const idempotency=writeIntent?.idempotency_key||runtime?.submit_idempotency_key||runtime?.claim_idempotency_key||null;
   return {
     version:"PENDING_WORK_ENGINE_V1",opportunity_id:String(opp?.opportunity_id||runtime?.opportunity_id||""),source:String(runtime?.source||opp?.source||""),task_id:String(runtime?.task_id||opp?.raw_id||""),
     state,application_ref:runtime?.application_id||null,claim_ref:runtime?.claim_id||null,submission_ref:runtime?.submission_id||null,terms_hash:runtime?.terms_hash||opp?.terms_hash||null,idempotency_key:idempotency,
+    write_operation:writeIntent?.operation||null,write_intent:writeIntent,write_intent_hash:runtime?.pending_external_intent_hash||null,
     deadline:opp?.deadline||runtime?.deadline||null,last_readback_hash:runtime?.last_readback_hash||null,last_readback_at:runtime?.last_settlement_check||runtime?.last_readback_at||null,next_poll_at:runtime?.next_poll_at||runtime?.next_retry_at||null,
     attempts:Math.min(3,Math.max(0,n(runtime?.attempts))),human_gate_reason:runtime?.human_gate_reason||null,allow_mutation:state!=="WRITE_UNCERTAIN",required_action:state==="WRITE_UNCERTAIN"?"READBACK_ONLY":"NORMAL",updated_at:now()
   };
