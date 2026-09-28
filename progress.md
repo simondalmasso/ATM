@@ -61,3 +61,10 @@ Independent audit reproduced two production P1 recovery risks and two P2 account
 - No new public mutation MCP tools.
 - No scheduled ChatGPT tasks.
 - No local-PC runtime installs.
+
+## CHECKPOINT UPDATE - pre-commit
+- ORDER-062 implementation is present on fix/order062-money-path-recovery.
+- Regression test ATM-ORDER062-RECOVERY-HARDENING-TEST.mjs is GREEN for restart freeze, settlement replay idempotency, conflicting-ref rejection, currency-safe USD, uncertain-alarm preservation, readback semantics, and no-BOM JSON.
+- Full local CI command set is GREEN; Python tests 3/3, secret doctor PASS, payout doctor PASS, strict research JSON parse PASS, git diff --check PASS.
+- Authority audit shows no new external POST and no signer/wallet/transfer/withdrawal/x402 authority additions.
+- Exact next action: stage diff, commit, push, open PR closing #85, require exact-head CI; then protected merge, canonical runtime deploy exact-SHA, live readback, GitLab parity, update this checkpoint, and only then resume ORDER-053 from 9c122b4bd5e20e37e6bf26949c00650cc367e690.
