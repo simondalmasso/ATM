@@ -6,38 +6,42 @@
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
 ## LAST_VERIFIED / BRANCH / HEAD
-- Verified: **2026-09-27T20:39-03:00**.
+- Verified: **2026-09-27T23:13-03:00**.
 - Canonical branch: `main`.
-- Runtime/deployed HEAD: `147fb81fb659c7a888154dbee97cda27dc53e907`.
-- Main CI run `36359359467`: **PASS**.
-- Cloudflare deploy run `36359377106`: **PASS**.
+- Runtime/deployed HEAD: `fd29053bbf3933ca24d29f69cd5990e94efc6348`.
+- Main CI run `36369417166`: **PASS**.
+- Cloudflare deploy run `36369435116`: **PASS**.
 - Candidate exact-SHA smoke: **PASS**.
-- Production exact-SHA smoke: **PASS**; smoke returned the same git SHA and `zero_spend=true`.
+- Production exact-SHA smoke: **PASS**.
+- GitHub -> GitLab mirror run `36369417164`: **PASS**.
+- Fresh live readback: runtime `RUNNING`, git SHA exact `fd29053...`, `PAID=0`, owner spend `0`, current auto-eligible `0`.
 
 ## CANONICAL LINKS
 - Operating contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
 - Main protection ruleset: https://github.com/simondalmasso/ATM/rules/23903496
 - ORDER-055 final issue: https://github.com/simondalmasso/ATM/issues/62
 - ORDER-055 merged PR: https://github.com/simondalmasso/ATM/pull/63
-- GitHub->GitLab mirror PR: https://github.com/simondalmasso/ATM/pull/74
+- Post-055 source-truth hardening PR: https://github.com/simondalmasso/ATM/pull/76
+- GitHub -> GitLab mirror PR: https://github.com/simondalmasso/ATM/pull/74
 - GitLab downstream mirror: https://gitlab.com/simondalmasso/ATM
-- ORDER-054 final evidence: https://github.com/simondalmasso/ATM/issues/58#issuecomment-5824904782
+- External worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
+- External LLM architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
 - Pending ORDER-053: https://github.com/simondalmasso/ATM/issues/55
 - Parked research: https://github.com/simondalmasso/ATM/issues/65 · https://github.com/simondalmasso/ATM/issues/66
 
 ## CURRENT STATE
 - **GitHub is the sole CANON/source of truth and the only place where work is authored.**
-- GitLab is an automatic downstream mirror only. Workflow: `.github/workflows/mirror-gitlab.yml`.
-- Mirror auth uses GitHub Actions secret `GITLAB_MIRROR_SSH_KEY` backed by a repo-scoped GitLab write Deploy Key.
-- Mirror copies GitHub branches/tags, does not prune GitLab-only legacy refs, and verifies GitHub `main` SHA == GitLab `main` SHA.
-- Mirror run `36359359489`: **PASS**; GitLab main readback matched GitHub main at `147fb81...`.
-- GitLab runners/deploys are not used. Local PC / Remote Desktop / SentinelX are not runtime mirror dependencies.
+- GitLab is an automatic downstream mirror only; it does not consume runner minutes or deploy production.
 - Protected GitHub `main`: PR required, required check `verify`, non-fast-forward/deletion blocked, no bypass actors.
 - Production adapters: DAYDREAMS + AGENTHANSA behind deterministic admission; signer remains private/bounded.
-- Public MCP remains read-only; skill broker exists.
-- ORDER-055 Galaxy Radar is merged: deterministic capability taxonomy, executor-truth separation, zero-spend fail-closed admission, passive market/source matrix, Laya/Jev advisory-only.
+- Public MCP remains read-only; install-free skill broker exists.
+- ORDER-055 Galaxy Radar is deployed: deterministic capability taxonomy, executor-truth separation, zero-spend fail-closed admission, passive market/source matrix, Laya/Jev advisory-only.
+- Post-055 hardening now enforces `UNKNOWN != YES` for source/payout truth before execution. DAYDREAMS keeps a source-specific proof path; malformed/expired deadlines fail closed.
 - AgentBounties remains public READ_ONLY discovery; Xento remains WATCH_ONLY.
-- Meta Global AI Developer Hackathon remains WATCH_ONLY; notification != application != acceptance != earnings.
+- **SeneX and boqa are external READ_ONLY worker candidates only. Their repositories were audited but not modified.**
+- SeneX live was observed HTTP 200 and self-declared read-only/PAPER-only. ATM may consider future bounded research/observability use only; never trading/live orders/capital.
+- boqa `/health` was observed HTTP 200, `worker=boqa`, `mode=production`, backend configured. ATM may consider future authorized QA/verification work only after a separate bounded E2E contract proves executor truth.
+- m0kill is a READ_ONLY upstream opportunity-research/killtest/negative-memory candidate. GitLab Moneykiller is historical/archive evidence, not funded demand or settlement authority.
 - Latest authoritative money truth remains **PAID=0** unless a newer external settlement receipt proves otherwise.
 
 ## DONE
@@ -45,30 +49,37 @@
 - GitHub -> GitLab automatic downstream mirror, SHA parity verified.
 - ORDER-054: AgentBounties read-only radar + Xento watch gate.
 - ORDER-055: Galaxy Radar/capability router + bounded Laya/Jev adaptation.
+- Post-055 source/payout truth hardening: PR #76, exact-SHA production PASS.
 - ORDER-058: Meta hackathon watch persistence.
 - Base install-free skill broker: `skill_list`, `skill_route`, `skill_get`.
+- SeneX + boqa registered in ATM only as READ_ONLY worker candidates; m0kill/Moneykiller classified without creating a second authority.
 
 ## ACTIVE WORK
-**NONE. Single-ARQ mode remains authoritative.** Start only one next order after AUD chooses it from current evidence.
+**NONE after this docs/canon refresh. Single-ARQ mode remains authoritative.**
 
 ## PENDING
-- ORDER-053 (#55): skill intake/manifest expansion; not yet executed.
-- ORDER-056 (#65) and ORDER-057 (#66): parked research; do not run in parallel.
-- MQL5 K2 remains a separate future host experiment only with explicit authorization and an eligible physical Windows host.
+- Collect independent architecture proposals using `docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md`, then AUD selects exactly one next implementation order.
+- ORDER-053 (#55): skill intake/manifest expansion remains pending; do not automatically execute it in parallel.
+- ORDER-056 (#65) and ORDER-057 (#66): parked research.
+- SeneX/boqa worker promotion requires separate evidence-bound order; READ_ONLY until then.
+- MQL5 K2 remains a separate future host experiment only with explicit authorization and eligible host.
 
 ## BLOCKERS / RISKS
-- No proven cash machine yet; settled owner money is still unproven beyond `PAID=0` evidence.
-- Dynamic opportunity/money counters must be freshly read before any new economic verdict.
-- Legacy open PRs/issues are historical unless AUD explicitly reactivates them.
-- Never infer executor support from a skill/source/library alone.
+- No proven cash machine yet; authoritative paid money remains 0.
+- Dynamic opportunity/money counters require fresh readback before any economic verdict.
+- A library/skill/source/worker candidate does not prove execution capability.
+- SeneX is PAPER-only and cannot be used as a trading executor.
+- boqa requires explicit authorized target/scope and separate E2E proof before ATM may route work to it.
+- Oracle `atm-vcn` appears residual to ATM, but a separate SeneX Oracle instance was observed active during the last infrastructure audit; do not describe the entire Oracle account as empty without a fresh inventory.
 
 ## DO_NOT_TOUCH
 - No direct GitHub `main`, force-push or ruleset bypass.
 - No development in GitLab; never make GitLab execution/deploy authority.
 - No GitLab runners.
+- No mutation of SeneX or boqa repositories from ATM work.
 - No signer/private-key widening; no wallet/card/payment/withdrawal mutation.
 - No paid APIs, owner-funded credits/deposits/stakes/gas, gambling, trading or mining.
-- No recurring local-PC sync; mirror must remain GitHub Actions -> GitLab.
+- No recurring local-PC sync; mirror remains GitHub Actions -> GitLab.
 - Do not run multiple ARQs in parallel.
 - `PAID != SUBMITTED != ACCEPTED != POTENTIAL`; `UNKNOWN != YES`.
 
@@ -77,4 +88,4 @@ Priority: current GitHub `main` + `AGENTS.md` + active ruleset + exact external 
 Hard economics: `MIN_REWARD_USD>=100`; owner out-of-plan spend `0`; fresh source readback before ACQUIRE/SUBMIT; independent CHECK; PAID only from authoritative external settlement tied to ATM work.
 
 ## NEXT EXACT ACTION
-AUD must perform one fresh evidence pass, select exactly **one** next order, and hand it to the single ARQ. Do not start ORDER-053/056/057 simultaneously.
+Send the canonical short handoff to external reasoning models, compare proposals against current evidence and hard gates, and issue exactly **one** next ATM implementation order. Do not implement SeneX/boqa integration or any redesign merely from a model suggestion.

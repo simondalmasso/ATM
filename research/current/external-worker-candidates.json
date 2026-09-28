@@ -1,0 +1,95 @@
+{
+  "schema_version": "atm/external-worker-candidates-v1",
+  "verified_at": "2026-09-28T02:13:00Z",
+  "policy": {
+    "repos_read_only": true,
+    "repo_mutation_allowed": false,
+    "runtime_executor_authority": false,
+    "owner_spend_usd": 0,
+    "promotion_rule": "A separate ATM order must prove a bounded input/output contract, fresh health, deterministic policy compatibility, no-spend execution, timeout/idempotence, independent verification, and exact readback before executor_truth can become PROVEN."
+  },
+  "candidates": [
+    {
+      "id": "SENEX",
+      "repository": "https://github.com/simondalmasso/SeneX",
+      "observed_main_head": "94bb40d5cc49df6e7785b6c740a697b67f067142",
+      "live": "https://h011-web--senecio-h011--wbjggn89fnf8.code.run/",
+      "live_readback": {
+        "http_status": 200,
+        "observed_surface": "SENEX ORACLE",
+        "declared_mode": "read-only observability / PAPER-only"
+      },
+      "state": "READ_ONLY_WORKER_CANDIDATE",
+      "suggested_capabilities": [
+        "MARKET_RESEARCH",
+        "MARKET_OBSERVABILITY",
+        "EVIDENCE_SCORING"
+      ],
+      "forbidden_roles": [
+        "TRADING_EXECUTOR",
+        "LIVE_ORDER_EXECUTOR",
+        "WALLET_OR_CAPITAL_ACTOR",
+        "ATM_SETTLEMENT_AUTHORITY"
+      ],
+      "upstream_constraints": [
+        "PAPER_ONLY",
+        "ORDERS_DISABLED",
+        "LIVE_CAPITAL_LOCKED",
+        "EDGE_UNPROVEN"
+      ],
+      "proposed_atm_integration": "SHADOW/ADVISORY read-only status/research adapter only after an exact JSON read contract is identified; never route trading or financial mutation through SeneX."
+    },
+    {
+      "id": "BOQA",
+      "repository": "https://github.com/simondalmasso/boqa",
+      "observed_main_head": "ff01c6d441ef60947e346ed0d65646fffd2f521b",
+      "live": "https://boqa.simondalmasso44.workers.dev/",
+      "live_readback": {
+        "health_http_status": 200,
+        "worker": "boqa",
+        "mode": "production",
+        "backend_configured": true
+      },
+      "state": "READ_ONLY_WORKER_CANDIDATE",
+      "suggested_capabilities": [
+        "AUTHORIZED_BROWSER_QA",
+        "SECURITY_VERIFICATION",
+        "EVIDENCE_PRODUCTION",
+        "UNCERTAINTY_GATING"
+      ],
+      "forbidden_roles": [
+        "UNAUTHORIZED_SCANNER",
+        "AUTO_SUBMITTER",
+        "WALLET_OR_PAYMENT_ACTOR",
+        "ATM_SETTLEMENT_AUTHORITY"
+      ],
+      "upstream_constraints": [
+        "AUTHORIZED_SCOPE_REQUIRED",
+        "CUORE_DETERMINISTIC_AUTHORITY",
+        "BRAIN_ADVISORY_ONLY",
+        "NO_LIVE_TARGET_SCAN_FROM_ATM_WITHOUT_SEPARATE_GATE"
+      ],
+      "proposed_atm_integration": "Start with GET-only health/status and shadow capability routing. A future order may prove an authorized bounded QA job contract; until then executor_truth stays UNKNOWN/BLOCKED."
+    },
+    {
+      "id": "M0KILL",
+      "repository": "https://github.com/simondalmasso/m0kill",
+      "observed_main_head": "02ca396f6f35a6945d37ff53537868c7ef57cf69",
+      "state": "READ_ONLY_UPSTREAM_RADAR_CANDIDATE",
+      "suggested_capabilities": [
+        "OPPORTUNITY_RESEARCH",
+        "KILLTEST_EVIDENCE",
+        "NEGATIVE_MEMORY"
+      ],
+      "economic_source": false,
+      "note": "m0kill hunts and falsifies opportunity theses; it is not itself funded external demand. ATM may consume its verified outcomes read-only, never count them as earnings."
+    },
+    {
+      "id": "MONEYKILLER_GITLAB",
+      "repository": "https://gitlab.com/simondalmasso/Moneykiller",
+      "state": "HISTORICAL_ARCHIVE_ONLY",
+      "economic_source": false,
+      "note": "Historical/archive counterpart to m0kill. Do not create a second active control plane in ATM."
+    }
+  ]
+}
