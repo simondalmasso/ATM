@@ -6,12 +6,12 @@
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
 ## LAST_VERIFIED / BRANCH / HEAD
-- Verified: **2026-09-27T23:13-03:00**.
-- GitHub `main` runtime/deployed HEAD: `fd29053bbf3933ca24d29f69cd5990e94efc6348`.
+- Verified: **2026-09-28**, after AUD architecture selection.
+- GitHub `main`: `e1065e2761ba13d36ccbaacfc66eb16d40cf0f26`; production runtime remains `fd29053bbf3933ca24d29f69cd5990e94efc6348` because the latest main delta is docs/research-only.
 - Main required `verify`: **PASS** (run `36369417166`).
 - Cloudflare exact-SHA deployment: **PASS** (run `36369435116`).
 - GitLab downstream mirror: **PASS** (run `36369417164`).
-- Fresh live readback: runtime `RUNNING`, exact SHA `fd29053...`, `PAID=0`, owner spend `0`, auto-eligible `0`.
+- Fresh live readback: runtime `RUNNING`, `raw_found=43`, `admitted=0`, `human_assistable=38`, `auto_eligible=0`, `claimed=3`, `submitted=1`, `accepted=0`, `PAID=0`, settlement watcher `pending=1`, owner spend `0`.
 
 ## CANONICAL LINKS
 - Contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
@@ -21,6 +21,7 @@
 - Worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
 - Architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
 - GitLab mirror: https://gitlab.com/simondalmasso/ATM
+- Active implementation order: https://github.com/simondalmasso/ATM/issues/78
 
 ## CURRENT STATE
 - **Work only in GitHub. GitLab is downstream mirror-only.**
@@ -43,12 +44,12 @@
 - External worker candidates inventoried without mutating upstream repos.
 
 ## ACTIVE WORK / WHERE_TO_RESUME
-**No active implementation order after this canon refresh. Single-ARQ mode is mandatory.**
+**ATM-ORDER-059 (#78) is the only active implementation order.** Start from current GitHub `main`; no parallel ORDER-053/056/057 work.
 
 ## WHAT TO DO NOW
-When AUD gives the next order:
+For ORDER-059:
 1. Resolve live GitHub `main` first.
-2. Read `AGENTS.md`, this file, the selected order, and worker registry if relevant.
+2. Read `AGENTS.md`, this file, `AUD_CANON.md`, and Issue #78 before editing.
 3. Use exactly one bounded branch.
 4. Verify evidence before editing.
 5. Treat SeneX/boqa/m0kill as READ_ONLY unless the order explicitly promotes one through a bounded contract.
@@ -59,7 +60,7 @@ When AUD gives the next order:
 10. Verify GitLab mirror success and stop.
 
 ## PENDING
-- External LLM architecture proposals from the canonical handoff; AUD must choose one next order.
+- Execute ORDER-059 and return its exact final evidence contract for independent AUD.
 - #55 ORDER-053 remains pending.
 - #65/#66 remain parked.
 - SeneX/boqa integration remains unimplemented by design until an explicit order proves a safe worker contract.
@@ -92,4 +93,4 @@ Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh 
 **STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
 
 ## NEXT EXACT ACTION
-Wait for AUD to compare the external model proposals and issue one exact implementation order. Do not self-promote SeneX/boqa or redesign ATM without that order.
+Execute **ATM-ORDER-059 (#78)** only: targeted `MONEY_PATH_V1` adaptation (source truth + durable pending + receive-only settlement + worker-contract schema/registry). No redesign, no new executor promotion, no SeneX/boqa mutation, no GitLab development.
