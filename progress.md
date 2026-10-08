@@ -1,7 +1,7 @@
-# ATM CURRENT CHECKPOINT — ORDER-063 DOCS-ONLY ACTIVE
+# ATM CURRENT CHECKPOINT — ORDER-063 COMPLETE
 
 Updated: 2026-10-08
-Status: ORDER-061 complete and deployed; ORDER-063 (#90) docs-only CANON reconciliation ACTIVE. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
+Status: ORDER-063 (#90 / PR #91) merged and post-merge CI + GitLab mirror parity VERIFIED; docs-only Cloudflare upload/promotion SKIPPED. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
 
 ## Canon / invariants
 - GitHub is source and deploy authority: https://github.com/simondalmasso/ATM
@@ -95,13 +95,14 @@ Status: ORDER-061 complete and deployed; ORDER-063 (#90) docs-only CANON reconci
 - `money_path.WAITING_HUMAN=4` uses max(pending WAITING_HUMAN, opportunity WAITING_HUMAN constraints); `money_loop.queue_states.waiting_human=0` uses current runtime queue state; `human_gate.pending=0` counts active owner-resumable gates. Difference is semantic, not proven bug.
 - Source code: scheduled() invokes /__cron; /__cron invokes refreshRadar; refreshRadar persists radar.last_run; DO alarm runs settlement monitoring but not discovery. Versioned main Wrangler config lacks triggers.crons. The actual Cloudflare deployed schedule and logs have NOT been read, so root cause remains UNKNOWN; no cron repair authorized on this docs-only order.
 - PR #86 closed unmerged, #85 closed as duplicate: superseded by merged/deployed PR #88 ORDER-061. Historical PR #86 is divergent and has BOM/mojibake risk.
-- Single active order #90 on branch docs/order063-canon-reconciliation; required PR-head `verify`/PR metadata pending until created. No code, config, payment or signer change and no scheduled ChatGPT task.
+- ORDER-063 #90 completed via PR #91 head 5827dc7c50663b4cd680a5f8f169be6457a2f460, exact-head CI 37831279789 SUCCESS, protected merge 6e4f179a233dc84361e8e097ce243d6bed586812, main CI 37831490045 SUCCESS, mirror 37831489947 SUCCESS, Cloudflare workflow 37831525088 SUCCESS / runtime upload+promotion SKIPPED. GitLab SHA parity PASS. No code/config/payment/signer change; no scheduled ChatGPT task.
 
 ## Exact continuation for a zero-context GPT
 1. Re-read fresh GitHub main + AGENTS.md + this progress.md. Use live /health and /api/status with cache-busting query keys; reject stale search-provider cached snapshots.
-2. Complete ORDER-063 (#90): exactly three docs files, exact-head `verify`, protected GitHub PR merge, docs-only Cloudflare deploy SKIP, then GitLab mirror SHA parity.
-3. Once #90 completes, AUD selects **one** next evidence-bounded order for read-only actual Cloudflare scheduled-trigger/log diagnosis. Do not change cron before confirming external config.
+2. ORDER-063 (#90) is complete; do not repeat. Keep GitHub main and GitLab mirror parity and document runtime/main SHA separation.
+3. AUD's next single bounded task is read-only Cloudflare deployed scheduled-trigger and invocation/error-log diagnosis. If actual external access is unavailable, mark root cause UNKNOWN and do not change cron or worker.
 4. PAID only from exact authoritative external receipt; keep pending submission settlement readback, minimum reward USD 100, owner out-of-plan spend zero, no executor/wallet authority expansion.
 
 ## Immediate next action
-ORDER-063 (#90) is the only active docs-only work: validate branch docs/order063-canon-reconciliation, exact PR-head CI, protected merge, post-merge mirror. Runtime stays SHA 47c029199d904f12ea7ce929b33478db1b3a7546. After completion, investigate Cloudflare cron trigger read-only before defining a runtime order.
+ORDER-063 documentation reconciliation COMPLETE (#90 closed, PR #91 merged). The checkpoint branch `docs/order063-final-checkpoint` only updates post-merge status in AUD_CANON.md, ARQ_CANON.md and progress.md; it requires another exact-head `verify`, protected merge, docs-only deploy SKIP and mirror parity readback before closing that checkpoint.
+AUD next selects exactly one read-only external Cloudflare cron-trigger/log verification. `MONEY_PATH_V1.next_binding_constraint=PENDING_WORK`; `PAID_EXTERNAL=0`, `owner_spend_usd=0`, `EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN`. Production runtime SHA remains `47c029199d904f12ea7ce929b33478db1b3a7546`.
