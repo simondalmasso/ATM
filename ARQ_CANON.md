@@ -9,7 +9,7 @@
 - Audit baseline GitHub `main` = `9c17b4ba03f022f3c754073ec6ac5a2535ce0faf`; GitLab `main` parity PASS. Resolve fresh main before changes.
 - Live production `/health.git_sha=47c029199d904f12ea7ce929b33478db1b3a7546`; intentional docs-only main/runtime SHA separation after PR #89.
 - Ruleset 23903496 enforcement active; main protected by PR + `verify` and no bypass. Main CI run 36413015246 SUCCESS; GitLab mirror 36413015325 SUCCESS; Cloudflare docs-only workflow 36413051154 SUCCESS (no runtime promotion).
-- ORDER-059 (#78), ORDER-060 (#81), ORDER-061 (#87, merged PR #88) COMPLETED. PR #86 closed unmerged and #85 closed duplicate after diff/functional comparison against ORDER-061.
+- ORDER-059 (#78), ORDER-060 (#81), ORDER-061 (#87, merged PR #88), ORDER-063 (#90, merged PR #91) COMPLETED. PR #86 closed unmerged and #85 closed duplicate after diff/functional comparison against ORDER-061.
 - 2026-10-08 runtime: `claimed=3`, `submitted=1`, `accepted=0`, `paid=0`, `auto_eligible_now=0`, `owner_spend_usd=0`, `EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN`, `next_binding_constraint=PENDING_WORK`.
 - MONEY_PATH_V1: `PAID_EXTERNAL=0`, `SUBMITTED_WITH_FRESH_READBACK=1`, `WAITING_HUMAN=4`, `SOURCE_PROOF_REQUIRED=44`. `money_loop.queue_states.waiting_human=0` and `human_gate.pending=0` count different populations, not a proven bug.
 - Settlement watcher last seen at `2026-10-08T19:11:36.092Z` (`do_alarm`, pending=1, paid=0); discovery last run `2026-10-01T10:30:48.803Z` (DEGRADED, 7 attempted/5 OK/2 failed, 49 raw/0 admitted). Freshness symptom confirmed, root cause UNKNOWN.
@@ -26,7 +26,7 @@
 - Completed ORDER-059: https://github.com/simondalmasso/ATM/issues/78
 - Completed ORDER-060: https://github.com/simondalmasso/ATM/issues/81
 - Completed ORDER-061: https://github.com/simondalmasso/ATM/issues/87 · https://github.com/simondalmasso/ATM/pull/88
-- Active docs-only ORDER-063: https://github.com/simondalmasso/ATM/issues/90
+- Completed docs-only ORDER-063: https://github.com/simondalmasso/ATM/issues/90 · https://github.com/simondalmasso/ATM/pull/91
 
 ## CURRENT STATE
 - **Work only in GitHub. GitLab is downstream mirror-only.**
@@ -48,16 +48,18 @@
 - Existing install-free skill broker.
 - External worker candidates inventoried without mutating upstream repos.
 - ORDER-059/060/061 completed; MONEY_PATH recovery and settlement tests merged as PR #88, deployed at 47c0291. PR #86 closed unmerged; #85 duplicate closed.
+- ORDER-063 (#90 / PR #91) completed as a docs-only protected merge; post-merge GitLab mirror parity verified; Cloudflare upload and promotion skipped.
 
 ## ACTIVE WORK / WHERE_TO_RESUME
-**Single current order: ATM-ORDER-063 (#90), docs-only CANON/progress reconciliation.** Branch `docs/order063-canon-reconciliation`, base GitHub main snapshot `9c17b4ba...`. No separate runtime order while this one is open.
+**ORDER-063 (#90 / PR #91) COMPLETE.** GitHub main after protected merge `6e4f179a233dc84361e8e097ce243d6bed586812`, post-merge CI `37831490045` SUCCESS, mirror `37831489947` SUCCESS, Cloudflare workflow `37831525088` SUCCESS with runtime promotion SKIPPED; production still at `47c029199d904f12ea7ce929b33478db1b3a7546`.
+No runtime implementation order active. Next order must be selected by AUD from new evidence; first investigate the deployed Cloudflare cron in READ_ONLY mode.
 
 ## WHAT TO DO NOW
-1. Re-read current GitHub main, AGENTS.md and issue #90; change only AUD_CANON.md, ARQ_CANON.md and progress.md.
-2. Preserve production SHA distinct from docs-only main; source and money truth remain fail-closed: PAID_EXTERNAL=0, owner spend=0, executor proof not promoted.
-3. Preserve discovery freshness finding as UNKNOWN-root-cause: last_run `2026-10-01T10:30:48.803Z`; settlement DO alarm readback on 2026-10-08. Scheduled handler calls refreshRadar, but deployed Cloudflare trigger/log state has not been read.
-4. Required exact-head `verify` PASS, protected GitHub PR merge, docs-only deploy SKIP, post-merge GitLab parity check.
-5. Once #90 completes, select exactly one bounded **read-only Cloudflare cron configuration/log** audit before any runtime repair.
+1. Re-read GitHub main / AGENTS.md / progress.md and fresh `/health` + `/api/status`, rejecting search-cache responses without current timestamps.
+2. Keep `PAID_EXTERNAL=0`, `PENDING_WORK`, `UNKNOWN != YES`, owner spend 0; continue receive-only settlement readback.
+3. Diagnose discovery freshness with read-only **deployed Cloudflare cron trigger list, schedule settings and scheduled invocation logs**. Source code's scheduled->/__cron->refreshRadar path is confirmed; reason for the 2026-10-01 last-run stall is not.
+4. If genuine trigger/handler failure is proven, create exactly one bounded repair order with tests and external smoke; until then DO NOT change trigger settings or runtime.
+5. Maintain GitHub-only protected development; mirror downstream GitLab and never use runner minutes there.
 
 ## PENDING
 - `MONEY_PATH_V1.next_binding_constraint=PENDING_WORK`: one submitted task awaiting authoritative settlement; `PAID_EXTERNAL=0`.
@@ -94,4 +96,4 @@ Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh 
 **STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
 
 ## NEXT EXACT ACTION
-Complete **ORDER-063 (#90)** through docs-only protected GitHub PR, exact-head `verify` and GitLab SHA mirror readback; no Cloudflare runtime change, no signer change, no new executor promotion. Investigate deployed Cloudflare cron/logs only after reconciling this CANON.
+ORDER-063 docs-only reconciliation is complete. AUD selects one Cloudflare deployed Cron Triggers and scheduled-log **READ_ONLY** forensic check before proposing a runtime order. No automatic claim/submit, paid service, signer/withdrawal widening or speculative executor work.
