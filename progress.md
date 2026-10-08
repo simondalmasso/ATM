@@ -1,7 +1,7 @@
-# ATM CURRENT CHECKPOINT — ORDER-061 COMPLETE
+# ATM CURRENT CHECKPOINT — ORDER-063 DOCS-ONLY ACTIVE
 
-Updated: 2026-09-28
-Status: ORDER-061 is merged, deployed, live-verified, mirrored and READY_FOR_AUD.
+Updated: 2026-10-08
+Status: ORDER-061 complete and deployed; ORDER-063 (#90) docs-only CANON reconciliation ACTIVE. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
 
 ## Canon / invariants
 - GitHub is source and deploy authority: https://github.com/simondalmasso/ATM
@@ -86,20 +86,22 @@ Status: ORDER-061 is merged, deployed, live-verified, mirrored and READY_FOR_AUD
 - Workers AI: calls_used=0; reserved_neurons=0; safe budget=9500; free allocation=10000.
 - No actual payout was fabricated or used to prove recovery; settlement crash/replay coverage is deterministic/synthetic.
 
+## ARQ/AUD live evidence — 2026-10-08
+- Audit main base GitHub 9c17b4ba03f022f3c754073ec6ac5a2535ce0faf; GitLab main exactly the same SHA, mirror parity PASS. Ruleset 23903496 active, PR + `verify` mandatory, bypass never.
+- Runtime SHA 47c029199d904f12ea7ce929b33478db1b3a7546 is intentionally behind docs-only main #89. CI run 36413015246 SUCCESS, mirror run 36413015325 SUCCESS, docs-only Cloudflare workflow 36413051154 SUCCESS (no runtime promotion).
+- Live /health RUNNING, GLM @cf/zai-org/glm-4.7-flash; /api/status discovery DEGRADED, last_run=2026-10-01T10:30:48.803Z, 7 attempted/5 OK/2 failed, 49 raw/0 admitted.
+- Settlement watcher DO alarm last observed 2026-10-08T19:11:36.092Z: checked=1, pending=1, write_uncertain_pending=0, accepted=0, paid=0. Agentic claimed=3, submitted=1, accepted=0, paid=0, auto_eligible_now=0.
+- MONEY_PATH_V1: source_bundles=49, SUBMITTED_WITH_READBACK=1, SUBMITTED_WITH_FRESH_READBACK=1, PAID_EXTERNAL=0, WAITING_HUMAN=4, SOURCE_PROOF_REQUIRED=44, EXECUTOR_PROOF_REQUIRED=1, next_binding_constraint=PENDING_WORK, EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN, owner_spend_usd=0. One pending external submission; no authoritative money earned.
+- `money_path.WAITING_HUMAN=4` uses max(pending WAITING_HUMAN, opportunity WAITING_HUMAN constraints); `money_loop.queue_states.waiting_human=0` uses current runtime queue state; `human_gate.pending=0` counts active owner-resumable gates. Difference is semantic, not proven bug.
+- Source code: scheduled() invokes /__cron; /__cron invokes refreshRadar; refreshRadar persists radar.last_run; DO alarm runs settlement monitoring but not discovery. Versioned main Wrangler config lacks triggers.crons. The actual Cloudflare deployed schedule and logs have NOT been read, so root cause remains UNKNOWN; no cron repair authorized on this docs-only order.
+- PR #86 closed unmerged, #85 closed as duplicate: superseded by merged/deployed PR #88 ORDER-061. Historical PR #86 is divergent and has BOM/mojibake risk.
+- Single active order #90 on branch docs/order063-canon-reconciliation; required PR-head `verify`/PR metadata pending until created. No code, config, payment or signer change and no scheduled ChatGPT task.
+
 ## Exact continuation for a zero-context GPT
-1. Read AGENTS.md, AUD_CANON.md, ARQ_CANON.md and this progress.md first.
-2. Fetch issue #87 and PR #88; treat ORDER-061 as complete.
-3. Resolve current GitHub main. This docs-only checkpoint merge will make GitHub main newer than runtime SHA 47c0291; production must remain 47c0291 until a later runtime-changing order deploys.
-4. Verify GitLab main equals current GitHub main before declaring mirror parity.
-5. Read production /health and /api/status. Keep runtime SHA separate from docs-only main SHA.
-6. Do not reopen ORDER-061 unless new evidence falsifies one of its tested contracts.
-7. Current economic binding is PENDING_WORK: one submitted item has fresh readback and is still pending settlement; PAID_EXTERNAL=0.
-8. AUD_CANON.md and ARQ_CANON.md are historically stale around ORDER-059/060. Reconcile them before selecting a new implementation order; current GitHub main + AGENTS.md + this checkpoint + live receipts outrank stale prose.
-9. Select exactly one next order. Do not run ORDER-053/056/057 or worker promotion in parallel unless AUD explicitly selects it.
-10. For every new order: create/assign issue first, branch from fresh main, TDD red→green, exact-head CI, protected PR merge, exact-SHA Cloudflare deploy only if runtime bytes changed, production readback, GitLab mirror parity.
-11. Before every material transition or chat end, update progress.md in present tense with current issue/branch/head/main/prod SHAs, CI/deploy IDs, money truth, blocker, and exact continuation steps.
-12. Never install Julia/Laya/Lev/Jev, DCP, SkillOpt or OpenScience on owner PC; candidates remain PROVEN=false until separate bounded E2E proof.
-13. Never create a scheduled ChatGPT/automation task unless the user explicitly requests one again.
+1. Re-read fresh GitHub main + AGENTS.md + this progress.md. Use live /health and /api/status with cache-busting query keys; reject stale search-provider cached snapshots.
+2. Complete ORDER-063 (#90): exactly three docs files, exact-head `verify`, protected GitHub PR merge, docs-only Cloudflare deploy SKIP, then GitLab mirror SHA parity.
+3. Once #90 completes, AUD selects **one** next evidence-bounded order for read-only actual Cloudflare scheduled-trigger/log diagnosis. Do not change cron before confirming external config.
+4. PAID only from exact authoritative external receipt; keep pending submission settlement readback, minimum reward USD 100, owner out-of-plan spend zero, no executor/wallet authority expansion.
 
 ## Immediate next action
-AUD should reconcile stale canon against completed ORDER-059/060/061 and live PENDING_WORK evidence, then issue one next bounded order. Do not invent a new executor or payment claim.
+ORDER-063 (#90) is the only active docs-only work: validate branch docs/order063-canon-reconciliation, exact PR-head CI, protected merge, post-merge mirror. Runtime stays SHA 47c029199d904f12ea7ce929b33478db1b3a7546. After completion, investigate Cloudflare cron trigger read-only before defining a runtime order.
