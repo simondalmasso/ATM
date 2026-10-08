@@ -1,7 +1,7 @@
 # ATM CURRENT CHECKPOINT — ORDER-063 COMPLETE
 
 Updated: 2026-10-08
-Status: ORDER-063 (#90 / PR #91) merged and post-merge CI + GitLab mirror parity VERIFIED; docs-only Cloudflare upload/promotion SKIPPED. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
+Status: ORDER-063 (#90 / PRs #91/#92) COMPLETE, post-merge CI + GitLab mirror parity VERIFIED; docs-only Cloudflare upload/promotion SKIPPED. Single next read-only forensic issue ORDER-064 (#93) OPEN/BLOCKED on authenticated Cloudflare Cron Trigger readback. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
 
 ## Canon / invariants
 - GitHub is source and deploy authority: https://github.com/simondalmasso/ATM
@@ -97,12 +97,23 @@ Status: ORDER-063 (#90 / PR #91) merged and post-merge CI + GitLab mirror parity
 - PR #86 closed unmerged, #85 closed as duplicate: superseded by merged/deployed PR #88 ORDER-061. Historical PR #86 is divergent and has BOM/mojibake risk.
 - ORDER-063 #90 completed via PR #91 head 5827dc7c50663b4cd680a5f8f169be6457a2f460, exact-head CI 37831279789 SUCCESS, protected merge 6e4f179a233dc84361e8e097ce243d6bed586812, main CI 37831490045 SUCCESS, mirror 37831489947 SUCCESS, Cloudflare workflow 37831525088 SUCCESS / runtime upload+promotion SKIPPED. GitLab SHA parity PASS. No code/config/payment/signer change; no scheduled ChatGPT task.
 
+## ORDER-063 final checkpoint and ORDER-064 external boundary — 2026-10-08
+- GitHub `main=a6aef9f60db7ecbe7f5ebc848ce245715937efc3` after protected PR #92 merge; GitLab `main` parity PASS (same SHA), mirror run 37833077579 SUCCESS.
+- PR #92 head 53c9fe73e00282ff1f4e3b540b46cccc16b42c76, exact-head CI run 37833007167 SUCCESS; post-merge CI run 37833077403 SUCCESS.
+- Cloudflare docs-only workflow run 37833267398 SUCCESS, Wrangler candidate upload/promotion and production smoke SKIPPED. Production runtime SHA still 47c029199d904f12ea7ce929b33478db1b3a7546 by pre-checkpoint /health plus deploy path gate; no claim of fresh post-merge runtime readback when rate-limited.
+- ORDER-064 issue #93 opened as next **single read-only** evidence task, currently BLOCKED_EXTERNAL_CLOUDFLARE_READBACK. No implementation PR, runtime mutation, new secret authority or scheduled task.
+- `.github/workflows/ci.yml` enforces exactly one Cloudflare-secret/deploy authority workflow `deploy-cloudflare.yml`. A new Cloudflare-secret-using workflow would violate this gate; changing deploy-cloudflare.yml would be a production-relevant change, so avoid that for read-only evidence.
+- Existing GitHub Cloudflare deployment log run 36412493716/job 108895747829 says trigger changes require `wrangler triggers deploy`. This is historical policy output, NOT remote cron existence readback.
+- Actual schedule can only be confirmed by authorized **GET-only** Cloudflare Workers script schedules API (`/accounts/{account_id}/workers/scripts/atm/schedules`) or Cloudflare Dashboard, and scheduled invocation/error logs as needed. No Cloudflare Workers Schedules tool access in this session. Do not solicit or expose a token; owner may provide sanitized response evidence.
+- Source discovery remains last_run=2026-10-01T10:30:48.803Z; last observed settlement DO alarm 2026-10-08T19:11:36.092Z. Missing cron / worker cron failure / state persistence failure are hypotheses, not established causes.
+- Last confirmed `MONEY_PATH_V1.PAID_EXTERNAL=0`, `owner_spend_usd=0`, `next_binding_constraint=PENDING_WORK`; no new external receipt. Hard gates unchanged.
+- Branch `audit/order064-cron-readback` contains this documentation-only blocker checkpoint; exact PR-head CI and protected merge required before considering its document final.
+
 ## Exact continuation for a zero-context GPT
 1. Re-read fresh GitHub main + AGENTS.md + this progress.md. Use live /health and /api/status with cache-busting query keys; reject stale search-provider cached snapshots.
 2. ORDER-063 (#90) is complete; do not repeat. Keep GitHub main and GitLab mirror parity and document runtime/main SHA separation.
-3. AUD's next single bounded task is read-only Cloudflare deployed scheduled-trigger and invocation/error-log diagnosis. If actual external access is unavailable, mark root cause UNKNOWN and do not change cron or worker.
+3. ORDER-064 (#93) is the single OPEN/BLOCKED read-only Cloudflare trigger/log readback. Actual external Workers Scripts Read authorization is unavailable in chat; leave root cause UNKNOWN, do not add secret-enabled workflows, do not change cron or Worker. Continue only after sanitized authorized schedule evidence.
 4. PAID only from exact authoritative external receipt; keep pending submission settlement readback, minimum reward USD 100, owner out-of-plan spend zero, no executor/wallet authority expansion.
 
 ## Immediate next action
-ORDER-063 documentation reconciliation COMPLETE (#90 closed, PR #91 merged). The checkpoint branch `docs/order063-final-checkpoint` only updates post-merge status in AUD_CANON.md, ARQ_CANON.md and progress.md; it requires another exact-head `verify`, protected merge, docs-only deploy SKIP and mirror parity readback before closing that checkpoint.
-AUD next selects exactly one read-only external Cloudflare cron-trigger/log verification. `MONEY_PATH_V1.next_binding_constraint=PENDING_WORK`; `PAID_EXTERNAL=0`, `owner_spend_usd=0`, `EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN`. Production runtime SHA remains `47c029199d904f12ea7ce929b33478db1b3a7546`.
+GitHub `main` and GitLab mirror are aligned at `a6aef9f60db7ecbe7f5ebc848ce245715937efc3`; ORDER-063 and checkpoint complete. ORDER-064 (#93) is **OPEN/BLOCKED** pending external read-only Cloudflare Worker `atm` Cron Trigger schedule evidence (`GET /accounts/{account_id}/workers/scripts/atm/schedules`), then scheduled invocation logs only if necessary. No API token/keys in chat, no new token or authority, no paid service, no workflow with additional CLOUDFLARE_API_TOKEN, no `wrangler triggers deploy` or Cloudflare mutations. One pending submission remains under receive-only settlement readback, PAID_EXTERNAL=0 at last verified status. Preserve exact-ShA production runtime, zero spend, no automatic acquisition or executor promotion.
