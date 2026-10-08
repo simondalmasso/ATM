@@ -5,13 +5,15 @@
 **REPO**: https://github.com/simondalmasso/ATM  
 **LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
 
-## LAST_VERIFIED / BRANCH / HEAD
-- Verified: **2026-09-28**, after AUD architecture selection.
-- GitHub `main`: `e1065e2761ba13d36ccbaacfc66eb16d40cf0f26`; production runtime remains `fd29053bbf3933ca24d29f69cd5990e94efc6348` because the latest main delta is docs/research-only.
-- Main required `verify`: **PASS** (run `36369417166`).
-- Cloudflare exact-SHA deployment: **PASS** (run `36369435116`).
-- GitLab downstream mirror: **PASS** (run `36369417164`).
-- Fresh live readback: runtime `RUNNING`, `raw_found=43`, `admitted=0`, `human_assistable=38`, `auto_eligible=0`, `claimed=3`, `submitted=1`, `accepted=0`, `PAID=0`, settlement watcher `pending=1`, owner spend `0`.
+## LAST_VERIFIED / AUTHORITY (2026-10-08)
+- Audit baseline GitHub `main` = `9c17b4ba03f022f3c754073ec6ac5a2535ce0faf`; GitLab `main` parity PASS. Resolve fresh main before changes.
+- Live production `/health.git_sha=47c029199d904f12ea7ce929b33478db1b3a7546`; intentional docs-only main/runtime SHA separation after PR #89.
+- Ruleset 23903496 enforcement active; main protected by PR + `verify` and no bypass. Main CI run 36413015246 SUCCESS; GitLab mirror 36413015325 SUCCESS; Cloudflare docs-only workflow 36413051154 SUCCESS (no runtime promotion).
+- ORDER-059 (#78), ORDER-060 (#81), ORDER-061 (#87, merged PR #88) COMPLETED. PR #86 closed unmerged and #85 closed duplicate after diff/functional comparison against ORDER-061.
+- 2026-10-08 runtime: `claimed=3`, `submitted=1`, `accepted=0`, `paid=0`, `auto_eligible_now=0`, `owner_spend_usd=0`, `EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN`, `next_binding_constraint=PENDING_WORK`.
+- MONEY_PATH_V1: `PAID_EXTERNAL=0`, `SUBMITTED_WITH_FRESH_READBACK=1`, `WAITING_HUMAN=4`, `SOURCE_PROOF_REQUIRED=44`. `money_loop.queue_states.waiting_human=0` and `human_gate.pending=0` count different populations, not a proven bug.
+- Settlement watcher last seen at `2026-10-08T19:11:36.092Z` (`do_alarm`, pending=1, paid=0); discovery last run `2026-10-01T10:30:48.803Z` (DEGRADED, 7 attempted/5 OK/2 failed, 49 raw/0 admitted). Freshness symptom confirmed, root cause UNKNOWN.
+- Code route `scheduled -> /__cron -> refreshRadar -> radar.last_run`; DO alarm independently monitors settlement. Versioned main Wrangler config has no `triggers.crons`; actual deployed Cloudflare trigger state/logs not yet read back. Do not declare missing cron or change production without external verification.
 
 ## CANONICAL LINKS
 - Contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
@@ -21,7 +23,10 @@
 - Worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
 - Architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
 - GitLab mirror: https://gitlab.com/simondalmasso/ATM
-- Active implementation order: https://github.com/simondalmasso/ATM/issues/78
+- Completed ORDER-059: https://github.com/simondalmasso/ATM/issues/78
+- Completed ORDER-060: https://github.com/simondalmasso/ATM/issues/81
+- Completed ORDER-061: https://github.com/simondalmasso/ATM/issues/87 · https://github.com/simondalmasso/ATM/pull/88
+- Active docs-only ORDER-063: https://github.com/simondalmasso/ATM/issues/90
 
 ## CURRENT STATE
 - **Work only in GitHub. GitLab is downstream mirror-only.**
@@ -42,31 +47,27 @@
 - Post-055 source/payout-truth hardening.
 - Existing install-free skill broker.
 - External worker candidates inventoried without mutating upstream repos.
+- ORDER-059/060/061 completed; MONEY_PATH recovery and settlement tests merged as PR #88, deployed at 47c0291. PR #86 closed unmerged; #85 duplicate closed.
 
 ## ACTIVE WORK / WHERE_TO_RESUME
-**ATM-ORDER-059 (#78) is the only active implementation order.** Start from current GitHub `main`; no parallel ORDER-053/056/057 work.
+**Single current order: ATM-ORDER-063 (#90), docs-only CANON/progress reconciliation.** Branch `docs/order063-canon-reconciliation`, base GitHub main snapshot `9c17b4ba...`. No separate runtime order while this one is open.
 
 ## WHAT TO DO NOW
-For ORDER-059:
-1. Resolve live GitHub `main` first.
-2. Read `AGENTS.md`, this file, `AUD_CANON.md`, and Issue #78 before editing.
-3. Use exactly one bounded branch.
-4. Verify evidence before editing.
-5. Treat SeneX/boqa/m0kill as READ_ONLY unless the order explicitly promotes one through a bounded contract.
-6. Add deterministic tests before behavior change.
-7. Required `verify` must pass on exact PR head.
-8. Merge only through protected GitHub PR.
-9. If runtime bytes changed, require exact-SHA Cloudflare candidate/production smoke.
-10. Verify GitLab mirror success and stop.
+1. Re-read current GitHub main, AGENTS.md and issue #90; change only AUD_CANON.md, ARQ_CANON.md and progress.md.
+2. Preserve production SHA distinct from docs-only main; source and money truth remain fail-closed: PAID_EXTERNAL=0, owner spend=0, executor proof not promoted.
+3. Preserve discovery freshness finding as UNKNOWN-root-cause: last_run `2026-10-01T10:30:48.803Z`; settlement DO alarm readback on 2026-10-08. Scheduled handler calls refreshRadar, but deployed Cloudflare trigger/log state has not been read.
+4. Required exact-head `verify` PASS, protected GitHub PR merge, docs-only deploy SKIP, post-merge GitLab parity check.
+5. Once #90 completes, select exactly one bounded **read-only Cloudflare cron configuration/log** audit before any runtime repair.
 
 ## PENDING
-- Execute ORDER-059 and return its exact final evidence contract for independent AUD.
-- #55 ORDER-053 remains pending.
-- #65/#66 remain parked.
-- SeneX/boqa integration remains unimplemented by design until an explicit order proves a safe worker contract.
+- `MONEY_PATH_V1.next_binding_constraint=PENDING_WORK`: one submitted task awaiting authoritative settlement; `PAID_EXTERNAL=0`.
+- Discovery freshness investigation: Cloudflare live cron trigger + scheduled logs must be verified read-only before any fix.
+- ORDER-053 (#55) pending, #65/#66 parked; no parallel code implementation.
+- SeneX/boqa candidates remain READ_ONLY and unproven; m0kill is negative-memory research only.
 
 ## BLOCKERS / RISKS
 - No proven cash machine; no unsupported revenue projections.
+- Discovery last_run has not advanced since 2026-10-01 despite 2026-10-08 DO alarm activity; never infer absent cron trigger without Cloudflare readback.
 - Fresh dynamic status required before economic claims.
 - Worker availability != executor truth.
 - boqa requires authorized scope; SeneX is PAPER-only.
@@ -93,4 +94,4 @@ Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh 
 **STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
 
 ## NEXT EXACT ACTION
-Execute **ATM-ORDER-059 (#78)** only: targeted `MONEY_PATH_V1` adaptation (source truth + durable pending + receive-only settlement + worker-contract schema/registry). No redesign, no new executor promotion, no SeneX/boqa mutation, no GitLab development.
+Complete **ORDER-063 (#90)** through docs-only protected GitHub PR, exact-head `verify` and GitLab SHA mirror readback; no Cloudflare runtime change, no signer change, no new executor promotion. Investigate deployed Cloudflare cron/logs only after reconciling this CANON.
