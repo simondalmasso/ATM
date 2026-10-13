@@ -2555,8 +2555,10 @@ var ATMBrain = class extends DurableObject {
     opp.terms_hash = termsHash;
     const materialId = String(meta.material_id || meta.acquisition_id || meta.submission_id || "");
     const eventKey = `${opp.opportunity_id}:${transition}:${termsHash}:${materialId}`;
-    if (events.some((x) => x.event_key === eventKey)) return events.find((x) => x.event_key === eventKey);
-    const row = { event_key: eventKey, task_id: opp.opportunity_id, source: opp.source, source_task_id: opp.raw_id, observed_at: now(), terms_hash: termsHash, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode || null, capability_class: opp.capability_class || null, policy_decision: queueSemantics(opp).auto_eligible ? "AUTO_ELIGIBLE" : queueSemantics(opp).human_assistable ? "HUMAN_ASSISTABLE" : "BLOCKED", blockers: opp.blockers || [], blocker_details: opp.blocker_details || blockerDetails(opp.blockers || [], opp), transition, acquisition_attempt: meta.acquisition_attempt || null, acquisition_id: meta.acquisition_id || null, execution_job_id: meta.execution_job_id || null, artifact_hash: meta.artifact_hash || null, submission_id: meta.submission_id || null, external_status: meta.external_status || null, payment_receipt: meta.payment_receipt || null, timestamp: now() };
+    const storedEventKey = await boundedTaskEventKey(eventKey);
+    const priorEvent = events.find((x) => x.event_key === eventKey || x.event_key === storedEventKey);
+    if (priorEvent) return priorEvent;
+    const row = { event_key: storedEventKey, task_id: opp.opportunity_id, source: opp.source, source_task_id: opp.raw_id, observed_at: now(), terms_hash: termsHash, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode || null, capability_class: opp.capability_class || null, policy_decision: queueSemantics(opp).auto_eligible ? "AUTO_ELIGIBLE" : queueSemantics(opp).human_assistable ? "HUMAN_ASSISTABLE" : "BLOCKED", blockers: opp.blockers || [], blocker_details: opp.blocker_details || blockerDetails(opp.blockers || [], opp), transition, acquisition_attempt: meta.acquisition_attempt || null, acquisition_id: meta.acquisition_id || null, execution_job_id: meta.execution_job_id || null, artifact_hash: meta.artifact_hash || null, submission_id: meta.submission_id || null, external_status: meta.external_status || null, payment_receipt: meta.payment_receipt || null, timestamp: now() };
     await this.put("task_events", await boundedTaskEventHistory(events, row));
     return row;
   }
