@@ -33,6 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           node cloudflare/order034/ATM-ORDER034-WIN101-UI-TEST.mjs
+          node cloudflare/order034/ATM-ORDER065-TASK-EVENTS-BOUNDED-TEST.mjs
           node cloudflare/order034/ATM-MCP-HEARTBEAT-TEST.mjs
           node cloudflare/order034/ATM-MCP-PUBLIC-TEST.mjs
           node cloudflare/order034/ATM-ORDER034-PLANNER-JSON-TEST.mjs
