@@ -678,6 +678,193 @@ function executionCandidateAdmitted(opp, env = {}) {
 }
 __name(executionCandidateAdmitted, "executionCandidateAdmitted");
 __name2(executionCandidateAdmitted, "executionCandidateAdmitted");
+
+
+var RSI_DECISION_VERSION_V1 = "ATM-RSI-DECISION-V1";
+var RSI_DECISION_SCHEMA_V1 = "RSI_DECISION_V1";
+var RSI_MAX_CANDIDATES_V1 = 5;
+var RSI_MAX_HISTORY_V1 = 50;
+var RSI_MAX_FEEDBACK_V1 = 5;
+var RSI_MAX_ID_CHARS_V1 = 160;
+var RSI_MAX_RATIONALE_CHARS_V1 = 400;
+var RSI_OUTPUT_TOKENS_V1 = 180;
+var RSI_OUTCOME_VALUES_V1 = new Set(["accepted", "rejected", "paid"]);
+var RSI_EVIDENCE_HASH_RE_V1 = /^[a-f0-9]{64}$/i;
+
+function baselineOpportunityOrderV1(opportunities) {
+  const tier = (opp) => opp?.capability_class === "PURE_LLM" ? 2 : opp?.capability_class === "HTTP_TOOL" ? 1 : 0;
+  return (Array.isArray(opportunities) ? opportunities : []).slice().sort((a, b) => {
+    const ta = tier(a), tb = tier(b);
+    return tb - ta || ((b?.estimated_net_usd || 0) - (a?.estimated_net_usd || 0)) || String(a?.raw_id).localeCompare(String(b?.raw_id));
+  });
+}
+__name(baselineOpportunityOrderV1, "baselineOpportunityOrderV1");
+
+function validateRsiRankingV1(candidateIds, response) {
+  const fail = (error) => ({ ok: false, error });
+  if (!Array.isArray(candidateIds) || candidateIds.length < 1 || candidateIds.length > RSI_MAX_CANDIDATES_V1) return fail("CANDIDATE_COUNT_OUT_OF_RANGE");
+  if (!candidateIds.every((id) => typeof id === "string" && id.length > 0 && id.length <= RSI_MAX_ID_CHARS_V1)) return fail("CANDIDATE_ID_INVALID");
+  if (new Set(candidateIds).size !== candidateIds.length) return fail("CANDIDATE_IDS_NOT_UNIQUE");
+  let parsed = response;
+  if (typeof response === "string") {
+    try { parsed = JSON.parse(response); } catch { return fail("INVALID_JSON"); }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return fail("RESPONSE_NOT_OBJECT");
+  const keys = Object.keys(parsed).sort();
+  if (keys.join(",") !== "ordered_candidate_ids,rationale,version") return fail("SCHEMA_FIELDS_INVALID");
+  if (parsed.version !== RSI_DECISION_SCHEMA_V1) return fail("SCHEMA_VERSION_INVALID");
+  if (typeof parsed.rationale !== "string" || !parsed.rationale.trim() || parsed.rationale.length > RSI_MAX_RATIONALE_CHARS_V1) return fail("RATIONALE_INVALID");
+  if (!Array.isArray(parsed.ordered_candidate_ids) || parsed.ordered_candidate_ids.length !== candidateIds.length) return fail("ORDER_LENGTH_INVALID");
+  const ordered = parsed.ordered_candidate_ids;
+  if (!ordered.every((id) => typeof id === "string" && id.length > 0 && id.length <= RSI_MAX_ID_CHARS_V1)) return fail("ORDER_ID_INVALID");
+  if (new Set(ordered).size !== ordered.length) return fail("ORDER_IDS_NOT_UNIQUE");
+  const allowed = new Set(candidateIds);
+  if (ordered.some((id) => !allowed.has(id))) return fail("ORDER_HAS_UNKNOWN_ID");
+  if (candidateIds.some((id) => !ordered.includes(id))) return fail("ORDER_MISSING_ID");
+  return { ok: true, ordered_candidate_ids: ordered.slice(), rationale: parsed.rationale.trim(), error: null };
+}
+__name(validateRsiRankingV1, "validateRsiRankingV1");
+
+function rsiDecisionStatusV1() {
+  return {
+    version: RSI_DECISION_VERSION_V1,
+    mode: "BOUNDED_GLM_RANKING",
+    authority: "RANKING_ONLY",
+    hard_gate_authority: false,
+    spend_authority: false,
+    signer_authority: false,
+    submission_authority: false,
+    settlement_authority: false,
+    max_candidates: RSI_MAX_CANDIDATES_V1,
+    max_model_calls_per_decision: 1,
+    output_tokens: RSI_OUTPUT_TOKENS_V1,
+    history_limit: RSI_MAX_HISTORY_V1,
+    feedback_limit: RSI_MAX_FEEDBACK_V1,
+    fallback_policy: "DETERMINISTIC_BASELINE",
+    read_only_rank_tool: "DETERMINISTIC_NO_MODEL_CALL"
+  };
+}
+__name(rsiDecisionStatusV1, "rsiDecisionStatusV1");
+
+function rsiOutcomeEvidenceTypeAllowedV1(source, outcome, readbackType) {
+  if (source === "DAYDREAMS") {
+    if (outcome === "paid") return readbackType === "TASKMARKET_AWARD_SETTLEMENT";
+    return ["accepted", "rejected"].includes(outcome) && readbackType === "TASKMARKET_SUBMISSION_READBACK";
+  }
+  if (source === "AGENTHANSA") {
+    if (outcome === "paid") return readbackType === "AGENTHANSA_SETTLEMENT_READBACK";
+    return ["accepted", "rejected"].includes(outcome) && readbackType === "AGENTHANSA_ACCEPTANCE_READBACK";
+  }
+  return false;
+}
+__name(rsiOutcomeEvidenceTypeAllowedV1, "rsiOutcomeEvidenceTypeAllowedV1");
+
+function compactRsiDecisionRecordV1(input = {}) {
+  const outcome = RSI_OUTCOME_VALUES_V1.has(input?.outcome) ? input.outcome : null;
+  const readbackHash = RSI_EVIDENCE_HASH_RE_V1.test(String(input?.readback_hash || "")) ? String(input.readback_hash).toLowerCase() : null;
+  const outcomeObservedAt = String(input?.outcome_observed_at || "").slice(0, 40);
+  const readbackType = String(input?.readback_type || "").slice(0, 64);
+  const amount = Number(input?.paid_amount_usd);
+  const verifiedOutcome = !!outcome &&
+    input?.outcome_source === "AUTHORITATIVE_EXTERNAL_READBACK" &&
+    !!readbackHash &&
+    !!String(input?.source || "").trim() &&
+    !!String(input?.task_id || "").trim() &&
+    typeof input?.selected_opportunity_id === "string" &&
+    input.selected_opportunity_id.length > 0 &&
+    input.selected_opportunity_id.length <= RSI_MAX_ID_CHARS_V1 &&
+    Number.isFinite(Date.parse(outcomeObservedAt)) &&
+    rsiOutcomeEvidenceTypeAllowedV1(String(input?.source || ""), outcome, readbackType) &&
+    (outcome !== "paid" || (Number.isFinite(amount) && amount > 0));
+  const boundedIds = (value) => Array.isArray(value) ? value.filter((id) => typeof id === "string" && id.length > 0 && id.length <= RSI_MAX_ID_CHARS_V1).slice(0, RSI_MAX_CANDIDATES_V1) : [];
+  const validation = input?.validation && typeof input.validation === "object" ? {
+    ok: input.validation.ok === true,
+    error: typeof input.validation.error === "string" ? input.validation.error.slice(0, 80) : null
+  } : { ok: false, error: "UNVERIFIED" };
+  return {
+    decision_id: String(input?.decision_id || "").slice(0, 120),
+    at: String(input?.at || "").slice(0, 40),
+    strategy_version: RSI_DECISION_VERSION_V1,
+    source: String(input?.source || "").slice(0, 40),
+    task_id: String(input?.task_id || "").slice(0, RSI_MAX_ID_CHARS_V1),
+    selected_opportunity_id: typeof input?.selected_opportunity_id === "string" && input.selected_opportunity_id.length <= RSI_MAX_ID_CHARS_V1 ? input.selected_opportunity_id : null,
+    capability_class: String(input?.capability_class || "UNKNOWN").slice(0, 40),
+    baseline_order: boundedIds(input?.baseline_order),
+    proposed_order: boundedIds(input?.proposed_order),
+    validation,
+    outcome: verifiedOutcome ? outcome : null,
+    outcome_source: verifiedOutcome ? "AUTHORITATIVE_EXTERNAL_READBACK" : null,
+    readback_hash: verifiedOutcome ? readbackHash : null,
+    outcome_observed_at: verifiedOutcome ? outcomeObservedAt : null,
+    readback_type: verifiedOutcome ? readbackType : null,
+    paid_amount_usd: verifiedOutcome && outcome === "paid" && Number.isFinite(amount) && amount > 0 ? amount : null
+  };
+}
+__name(compactRsiDecisionRecordV1, "compactRsiDecisionRecordV1");
+
+function appendRsiDecisionHistoryV1(history, decision) {
+  const existing = (Array.isArray(history) ? history : []).slice(0, RSI_MAX_HISTORY_V1 - 1).map(compactRsiDecisionRecordV1);
+  return [compactRsiDecisionRecordV1(decision), ...existing].slice(0, RSI_MAX_HISTORY_V1);
+}
+__name(appendRsiDecisionHistoryV1, "appendRsiDecisionHistoryV1");
+
+function applyVerifiedRsiOutcomeV1(history, evidence) {
+  const rows = (Array.isArray(history) ? history : []).slice(0, RSI_MAX_HISTORY_V1).map(compactRsiDecisionRecordV1);
+  const outcome = String(evidence?.outcome || "");
+  const readbackHash = String(evidence?.readback_hash || "");
+  const observedAt = String(evidence?.observed_at || "");
+  const readbackType = String(evidence?.readback_type || "");
+  const source = String(evidence?.source || "");
+  const taskId = String(evidence?.task_id || "");
+  const opportunityId = String(evidence?.opportunity_id || "");
+  const amount = Number(evidence?.paid_amount_usd);
+  const valid = evidence?.authority === "AUTHORITATIVE_EXTERNAL_READBACK" &&
+    RSI_OUTCOME_VALUES_V1.has(outcome) &&
+    !!source && !!taskId && !!opportunityId &&
+    RSI_EVIDENCE_HASH_RE_V1.test(readbackHash) &&
+    Number.isFinite(Date.parse(observedAt)) &&
+    rsiOutcomeEvidenceTypeAllowedV1(source, outcome, readbackType) &&
+    (outcome !== "paid" || (Number.isFinite(amount) && amount > 0));
+  if (!valid) return { history: rows, updated: false, reason: "AUTHORITATIVE_READBACK_REQUIRED" };
+  const index = rows.findIndex((row) => row.source === source && row.task_id === taskId && row.selected_opportunity_id === opportunityId);
+  if (index < 0) return { history: rows, updated: false, reason: "DECISION_NOT_MATCHED" };
+  const previous = rows[index].outcome;
+  if (previous === "paid" || previous === "rejected" || (previous === "accepted" && outcome !== "paid") || previous === outcome) {
+    return { history: rows, updated: false, reason: "OUTCOME_ALREADY_FINAL_OR_NOT_ADVANCING" };
+  }
+  rows[index] = compactRsiDecisionRecordV1({
+    ...rows[index],
+    outcome,
+    outcome_source: "AUTHORITATIVE_EXTERNAL_READBACK",
+    readback_hash: readbackHash,
+    outcome_observed_at: observedAt,
+    readback_type: readbackType,
+    paid_amount_usd: outcome === "paid" ? amount : null
+  });
+  return { history: rows, updated: true, reason: null };
+}
+__name(applyVerifiedRsiOutcomeV1, "applyVerifiedRsiOutcomeV1");
+
+function rsiOutcomeFeedbackV1(history, limit = RSI_MAX_FEEDBACK_V1) {
+  const cap = Math.max(0, Math.min(RSI_MAX_FEEDBACK_V1, Number.isFinite(Number(limit)) ? Math.floor(Number(limit)) : RSI_MAX_FEEDBACK_V1));
+  if (!cap || !Array.isArray(history)) return [];
+  return history.slice(0, RSI_MAX_HISTORY_V1).map(compactRsiDecisionRecordV1).filter((row) =>
+    RSI_OUTCOME_VALUES_V1.has(row?.outcome) &&
+    row?.outcome_source === "AUTHORITATIVE_EXTERNAL_READBACK" &&
+    RSI_EVIDENCE_HASH_RE_V1.test(String(row?.readback_hash || "")) &&
+    Number.isFinite(Date.parse(String(row?.outcome_observed_at || ""))) &&
+    rsiOutcomeEvidenceTypeAllowedV1(String(row?.source || ""), row?.outcome, String(row?.readback_type || "")) &&
+    (row?.outcome !== "paid" || (Number.isFinite(Number(row?.paid_amount_usd)) && Number(row.paid_amount_usd) > 0)) &&
+    !!row?.source && !!row?.capability_class
+  ).slice(0, cap).map((row) => ({
+    source: String(row.source).slice(0, 40),
+    capability_class: String(row.capability_class).slice(0, 40),
+    outcome: row.outcome,
+    paid_amount_usd: row.outcome === "paid" ? Number(row.paid_amount_usd) : null
+  }));
+}
+__name(rsiOutcomeFeedbackV1, "rsiOutcomeFeedbackV1");
+
 function selectCurrentRuntime(agentic, runtimes = {}) {
   const rows = Object.values(runtimes || {}), jobId = String(agentic?.execution_job_id || ""), taskId = String(agentic?.selected_task_id || "");
   if (jobId) return rows.find((r) => String(r?.job_id || r?.execution_job_id || "") === jobId) || null;
@@ -2942,24 +3129,31 @@ var ATMBrain = class extends DurableObject {
         checked++;
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
         const h = await this.hansaSettlementReadback(runtime), row = { at:now(), trigger, opportunity_id:oppId, task_id:runtime.task_id, submission_id:runtime.submission_id, source:"AGENTHANSA", submission_readback:h.ok ? "PASS" : "PENDING", accepted:h.accepted===true, paid:h.paid===true, amount:h.amount || 0, payout_id:h.payout_id || null, payout_status:h.payout_status || null, error:h.error || h.payout_readback_error || null };
+        let rsiOutcome = null, rsiPaidAmount = null;
         runtime.external_submission_readback = h.ok ? "PASS" : "PENDING"; runtime.last_settlement_check = row.at; runtime.settlement_watcher_trigger = trigger;
         if (h.paid === true && h.amount > 0 && h.settlement_match?.paid === true) {
           const registered=await this.registerSettlementRef(h.settlement_receipt,oppId);
           if(!registered.ok){
             runtime.stage="ACCEPTED"; opp.execution_stage="ACCEPTED"; pending++;
             row.paid=false; row.error=registered.error;
+            if (h.ok === true && h.accepted === true) rsiOutcome = "accepted";
           }else{
             if (!runtime.accepted_at) { runtime.accepted_at = h.paid_at || row.at; accepted++; await this.appendTaskEvent(opp,"ACCEPTED",{ submission_id:runtime.submission_id, external_status:h.submission_status || "ACCEPTED", external_readback:true, reference:runtime.submission_id }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"ACCEPTED",{ receipt_present:true, external_readback:true, reference:runtime.submission_id }); }
             runtime.stage="PAID"; runtime.terminal=true; runtime.paid_at=h.paid_at || row.at; runtime.paid_amount_usd=h.amount; runtime.payment_receipt=h.settlement_receipt; paid++; opp.execution_stage="PAID";
+            if (h.ok === true) { rsiOutcome = "paid"; rsiPaidAmount = h.amount; }
             await this.appendTaskEvent(opp,"PAID",{ submission_id:runtime.submission_id, external_status:"PAID", payment_receipt:runtime.payment_receipt }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:h.amount },"PAID",{ receipt_present:true, external_readback:true, reference:h.settlement_receipt.external_ref });
             await this.recordPendingRuntime(opp,runtime,{state:"PAID",allow_mutation:false,required_action:"NONE",last_readback_at:row.at});
           }
         } else if (h.accepted === true) {
+          if (h.ok === true) rsiOutcome = "accepted";
           if (!runtime.accepted_at) { runtime.accepted_at = row.at; accepted++; await this.appendTaskEvent(opp,"ACCEPTED",{ submission_id:runtime.submission_id, external_status:h.submission_status || "ACCEPTED", external_readback:true, reference:runtime.submission_id }); await this.appendLedgerEvent({ ...opp, estimated_net_usd:n(opp.estimated_net_usd) },"ACCEPTED",{ receipt_present:true, external_readback:true, reference:runtime.submission_id }); }
           runtime.stage="ACCEPTED"; opp.execution_stage="ACCEPTED"; pending++;
         } else { runtime.stage="WAITING_ACCEPTANCE"; opp.execution_stage="SUBMITTED"; pending++; }
         runtime.last_readback_at=row.at;
         runtime.last_readback_hash=await sha256Hex(stableJson(row));
+        if (rsiOutcome) {
+          try { await this.recordRsiOutcomeV1({ authority: "AUTHORITATIVE_EXTERNAL_READBACK", source: "AGENTHANSA", task_id: String(runtime.task_id || ""), opportunity_id: String(oppId), outcome: rsiOutcome, observed_at: row.at, readback_hash: runtime.last_readback_hash, readback_type: rsiOutcome === "paid" ? "AGENTHANSA_SETTLEMENT_READBACK" : "AGENTHANSA_ACCEPTANCE_READBACK", paid_amount_usd: rsiOutcome === "paid" ? rsiPaidAmount : null }); } catch {}
+        }
         await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":"SETTLEMENT_READBACK"});
         runtimes[oppId]=runtime; reads.unshift(row); continue;
       }
@@ -2971,10 +3165,12 @@ var ATMBrain = class extends DurableObject {
       const awards = Array.isArray(task?.awards) ? task.awards : [], award = awards.find((x) => String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
       const exactSubmission = !!sub, taskExact = String(task?.id || runtime.task_id) === String(runtime.task_id), workerExact = exactSubmission && String(sub.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase();
       const row = { at: now(), trigger, opportunity_id: oppId, task_id: runtime.task_id, submission_id: runtime.submission_id, worker_address: TASKMARKET_WORKER_ADDRESS, submission_readback: exactSubmission ? "PASS" : "PENDING", task_readback: taskRead.ok && taskExact ? "PASS" : "PENDING", worker_match: workerExact, submission_rejected_at: sub?.rejectedAt || null, task_status: task?.status || null, task_phase: task?.phase || null, award: award ? { worker_address: award.workerAddress, rank: award.rank, is_primary: award.isPrimary, worker_payment_atomic: award.workerPayment, platform_fee_atomic: award.platformFee, settlement_tx_hash: award.settlementTxHash, settled_at: award.settledAt } : null };
+      let rsiOutcome = null, rsiPaidAmount = null;
       runtime.external_submission_readback = exactSubmission && workerExact ? "PASS" : "PENDING";
       runtime.last_settlement_check = row.at;
       runtime.settlement_watcher_trigger = trigger;
       if (sub?.rejectedAt) {
+        if (subRead.ok === true && exactSubmission && workerExact) rsiOutcome = "rejected";
         runtime.stage = "REJECTED";
         runtime.terminal = true;
         runtime.rejected_at = sub.rejectedAt;
@@ -2982,6 +3178,7 @@ var ATMBrain = class extends DurableObject {
         opp.execution_stage = "REJECTED";
         await this.appendTaskEvent(opp, "REJECTED", { submission_id: runtime.submission_id, external_status: "REJECTED" });
       } else if (exactSubmission && workerExact && award && String(award.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) {
+        if (subRead.ok === true && taskRead.ok && taskExact && exactSubmission && workerExact) rsiOutcome = "accepted";
         const amountAtomic = String(award.workerPayment || "0"), amountUsdc = Number(amountAtomic) / 1e6, settlement = String(award.settlementTxHash || "");
         if (!runtime.accepted_at) {
           runtime.accepted_at = award.settledAt || row.at;
@@ -2999,6 +3196,7 @@ var ATMBrain = class extends DurableObject {
           if(registered.ok){
             runtime.stage = "PAID";
             runtime.terminal = true;
+            if (subRead.ok === true && taskRead.ok && taskExact && exactSubmission && workerExact) { rsiOutcome = "paid"; rsiPaidAmount = amountUsdc; }
             runtime.paid_at = award.settledAt || row.at;
             runtime.paid_amount_usdc = amountUsdc;
             runtime.payment_receipt = settlementReceipt;
@@ -3026,6 +3224,9 @@ var ATMBrain = class extends DurableObject {
       }
       runtime.last_readback_at=row.at;
       runtime.last_readback_hash=await sha256Hex(stableJson(row));
+      if (rsiOutcome) {
+        try { await this.recordRsiOutcomeV1({ authority: "AUTHORITATIVE_EXTERNAL_READBACK", source: "DAYDREAMS", task_id: String(runtime.task_id || ""), opportunity_id: String(oppId), outcome: rsiOutcome, observed_at: row.at, readback_hash: runtime.last_readback_hash, readback_type: rsiOutcome === "paid" ? "TASKMARKET_AWARD_SETTLEMENT" : "TASKMARKET_SUBMISSION_READBACK", paid_amount_usd: rsiOutcome === "paid" ? rsiPaidAmount : null }); } catch {}
+      }
       await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":runtime.stage==="PAID"?"NONE":"SETTLEMENT_READBACK"});
       runtimes[oppId] = runtime;
       reads.unshift(row);
@@ -3233,26 +3434,125 @@ var ATMBrain = class extends DurableObject {
     }
     return { ok: true, urls, evidence };
   }
+  async persistRsiDecisionV1(decision) {
+    let saved = null;
+    await this.ctx.storage.transaction(async (txn) => {
+      const history = await txn.get("rsi_decision_history_v1");
+      const next = appendRsiDecisionHistoryV1(history, decision);
+      await txn.put("rsi_decision_history_v1", next);
+      saved = next[0] || null;
+    });
+    return saved;
+  }
+  async recordRsiOutcomeV1(evidence) {
+    let result = { updated: false, reason: "NOT_RUN" };
+    await this.ctx.storage.transaction(async (txn) => {
+      const history = await txn.get("rsi_decision_history_v1");
+      result = applyVerifiedRsiOutcomeV1(history, evidence);
+      if (result.updated) await txn.put("rsi_decision_history_v1", result.history);
+    });
+    return { updated: result.updated, reason: result.reason || null };
+  }
   async chooseTaskmarketCandidate(opps) {
-    const [runtime, watchdog] = await Promise.all([this.taskRuntime(), this.economicWatchdogState()]), ranked = opps.filter((x) => {
+    const [runtime, watchdog] = await Promise.all([this.taskRuntime(), this.economicWatchdogState()]);
+    const admitted = opps.filter((x) => {
       const r = runtime[x.opportunity_id];
       const revisionRetry = !!r && !r?.submission_id && r?.capability_revision !== CAPABILITY_REVISION;
       const ordinaryRetry = !r?.terminal && n(r?.attempts) < 3 && (!r?.next_retry_at || Date.parse(r.next_retry_at) <= Date.now());
-      const burnBlocked = watchdog?.stop_same_strategy === true && String(watchdog?.task_id||"") === String(r?.task_id||"") && r?.capability_revision === CAPABILITY_REVISION && r?.atomic_strategy === "MULTI_MARKDOWN_ATOMIC_PER_FILE_GENERATION";
+      const burnBlocked = watchdog?.stop_same_strategy === true && String(watchdog?.task_id || "") === String(r?.task_id || "") && r?.capability_revision === CAPABILITY_REVISION && r?.atomic_strategy === "MULTI_MARKDOWN_ATOMIC_PER_FILE_GENERATION";
       return executionCandidateAdmitted(x, this.env) && !r?.submission_id && !burnBlocked && (revisionRetry || ordinaryRetry);
-    }).sort((a, b) => {
-      const ta = a.capability_class === "PURE_LLM" ? 2 : a.capability_class === "HTTP_TOOL" ? 1 : 0, tb = b.capability_class === "PURE_LLM" ? 2 : b.capability_class === "HTTP_TOOL" ? 1 : 0;
-      return tb - ta || (b.estimated_net_usd || 0) - (a.estimated_net_usd || 0) || String(a.raw_id).localeCompare(String(b.raw_id));
     });
+    const baseline = baselineOpportunityOrderV1(admitted);
+    const baselineOrder = baseline.map((x) => String(x?.opportunity_id ?? ""));
+    const candidateRows = baseline.slice(0, RSI_MAX_CANDIDATES_V1);
+    const candidateIds = candidateRows.map((x) => String(x?.opportunity_id ?? ""));
+    let ranked = baseline;
+    let proposedOrder = [];
+    let validation = { ok: false, error: candidateRows.length === 0 ? "NO_ADMITTED_CANDIDATES" : candidateRows.length === 1 ? "SINGLE_CANDIDATE_SKIPPED" : "NOT_ATTEMPTED" };
+    let rankingBasis = "CAPABILITY_TIER_DESC,NET_REWARD_DESC,TASK_ID_ASC";
+    if (candidateRows.length > 1) {
+      const candidateIdsValid = candidateIds.every((id) => id.length > 0 && id.length <= RSI_MAX_ID_CHARS_V1) && new Set(candidateIds).size === candidateIds.length;
+      if (!candidateIdsValid) {
+        validation = { ok: false, error: "CANDIDATE_IDS_INVALID" };
+      } else if (typeof this.env?.AI?.run !== "function") {
+        validation = { ok: false, error: "AI_BINDING_UNAVAILABLE" };
+      } else {
+        const history = await this.get("rsi_decision_history_v1", []);
+        const verifiedOutcomes = rsiOutcomeFeedbackV1(history, RSI_MAX_FEEDBACK_V1);
+        const candidateFacts = candidateRows.map((opp, index) => ({
+          candidate_id: candidateIds[index],
+          source: String(opp?.source || "UNKNOWN").slice(0, 40),
+          capability_class: String(opp?.capability_class || "UNKNOWN").slice(0, 40),
+          estimated_net_usd: Number.isFinite(Number(opp?.estimated_net_usd)) ? Number(opp.estimated_net_usd) : 0
+        }));
+        const system = "You are ATM's bounded RSI ranking advisor. Compare the deterministic baseline with alternatives, critique your first choice against only the supplied structured facts and verified outcome summaries, then return only strict JSON with exactly these fields: version='RSI_DECISION_V1', ordered_candidate_ids=[exact supplied IDs in preferred order], rationale='brief reason under 400 characters'. Do not add candidates, infer eligibility, change rewards, claim payment, or propose actions. Estimated net values are ranking inputs, not verified outcome labels. Verified outcomes are only the supplied external-readback summaries. No prose or code fences.";
+        const user = JSON.stringify({
+          baseline_candidate_ids: candidateIds,
+          candidates: candidateFacts,
+          verified_outcomes: verifiedOutcomes,
+          constraints: { exact_permutation_only: true, maximum_candidates: RSI_MAX_CANDIDATES_V1, authority: "RANKING_ONLY", fallback: "DETERMINISTIC_BASELINE" }
+        });
+        try {
+          const modelResult = await this.runExecutionModelResult([{ role: "system", content: system }, { role: "user", content: user }], RSI_OUTPUT_TOKENS_V1);
+          if (modelOutputLooksTruncated(modelResult.text, modelResult.finish_reason)) {
+            validation = { ok: false, error: "MODEL_OUTPUT_TRUNCATED" };
+          } else {
+            const checked = validateRsiRankingV1(candidateIds, modelResult.text);
+            validation = { ok: checked.ok === true, error: checked.error || null };
+            if (checked.ok) {
+              proposedOrder = checked.ordered_candidate_ids.slice();
+              const byId = new Map(candidateRows.map((opp, index) => [candidateIds[index], opp]));
+              ranked = proposedOrder.map((id) => byId.get(id)).concat(baseline.slice(candidateRows.length));
+              rankingBasis = "RSI_VALIDATED_ORDER_WITH_FRESH_POLICY_READBACK";
+            }
+          }
+        } catch (error) {
+          const errorText = String(error?.message || error);
+          const knownQuotaError = ["FREE_AI_CALL_CAP_REACHED", "FREE_AI_NEURON_BUDGET_REACHED"].find((code) => errorText.includes(code));
+          validation = { ok: false, error: knownQuotaError || "MODEL_ERROR" };
+        }
+      }
+    }
     const rejected = [];
     for (const opp of ranked) {
       const adapter = executionAdapterCapabilities(opp.source, this.env), fresh = await this.freshExecutionPolicy(opp);
       if (fresh.ok && ["submit", "claim"].includes(fresh.operation) && fresh.normalized?.ai_executability === "AI_EXECUTABLE" && fresh.normalized?.estimated_net_usd >= MIN_PRIMARY_REWARD_USD && fresh.normalized?.artifact_profile?.supported) {
         const history = Array.isArray(opp.execution_history) ? opp.execution_history : [], stage = opp.execution_stage || "DISCOVERED";
         Object.assign(opp, fresh.normalized, { terms_hash: fresh.terms_hash, pending_action_snapshot_hash: fresh.pending_action_snapshot_hash, execution_history: history, execution_stage: stage, freshness_at: fresh.read_at });
-        return { ok: true, opp, fresh, adapter, ranking_basis: "CAPABILITY_TIER_DESC,NET_REWARD_DESC,TASK_ID_ASC", candidate_count: ranked.length, rejected };
+        try {
+          await this.persistRsiDecisionV1({
+            decision_id: now() + "-" + String(opp.opportunity_id || "").slice(0, 40),
+            at: now(),
+            source: String(opp.source || ""),
+            task_id: String(opp.raw_id || ""),
+            selected_opportunity_id: String(opp.opportunity_id || ""),
+            capability_class: String(opp.capability_class || "UNKNOWN"),
+            baseline_order: baselineOrder.slice(0, RSI_MAX_CANDIDATES_V1),
+            proposed_order: proposedOrder,
+            validation
+          });
+        } catch {
+          return { ok: false, error: "RSI_DECISION_AUDIT_PERSIST_FAILED", candidate_count: ranked.length, rejected };
+        }
+        return {
+          ok: true, opp, fresh, adapter,
+          ranking_basis: rankingBasis,
+          decision_engine_version: RSI_DECISION_VERSION_V1,
+          ranking_mode: proposedOrder.length ? "RSI_VALIDATED" : "DETERMINISTIC_BASELINE",
+          candidate_count: ranked.length, rejected
+        };
       }
       rejected.push({ task_id: opp.raw_id, error: fresh.error || fresh.blockers?.[0] || "FRESH_POLICY_BLOCKED" });
+    }
+    try {
+      await this.persistRsiDecisionV1({
+        decision_id: now() + "-no-selection", at: now(), source: "", task_id: "",
+        selected_opportunity_id: null, capability_class: "UNKNOWN",
+        baseline_order: baselineOrder.slice(0, RSI_MAX_CANDIDATES_V1),
+        proposed_order: proposedOrder, validation
+      });
+    } catch {
+      return { ok: false, error: "RSI_DECISION_AUDIT_PERSIST_FAILED", candidate_count: ranked.length, rejected };
     }
     return { ok: false, error: "ZERO_CURRENT_AUTO_ELIGIBLE_TASK", candidate_count: ranked.length, rejected };
   }
@@ -3600,6 +3900,14 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
     const [radar, sources, agentic, quota, opps, activity, runtimes, watchdog] = await Promise.all([this.radarState(), this.sources(), this.executionState(), this.quota(), this.opportunities(), this.get("activity", []), this.taskRuntime(), this.economicWatchdogState()]);
     const auto = opps.filter((x) => x.ai_executability === "AI_EXECUTABLE").length, money = await this.moneyLoopStatus();
     const [taskMarket,moneyPath] = await Promise.all([this.taskMarketStatus(),this.moneyPathStatus()]);
+    const rsiHistory = await this.get("rsi_decision_history_v1", []);
+    const verifiedRsiOutcomes = Array.isArray(rsiHistory) ? rsiHistory.slice(0, RSI_MAX_HISTORY_V1).map(compactRsiDecisionRecordV1).filter((x) => RSI_OUTCOME_VALUES_V1.has(x?.outcome) && x?.outcome_source === "AUTHORITATIVE_EXTERNAL_READBACK" && RSI_EVIDENCE_HASH_RE_V1.test(String(x?.readback_hash || ""))).length : 0;
+    const decisionEngine = {
+      ...rsiDecisionStatusV1(),
+      history_records: Array.isArray(rsiHistory) ? Math.min(RSI_MAX_HISTORY_V1, rsiHistory.length) : 0,
+      verified_outcomes: verifiedRsiOutcomes,
+      last_decision_at: Array.isArray(rsiHistory) ? rsiHistory[0]?.at || null : null
+    };
     const executionEnabled = String(this.env.EXECUTION_ENABLED || "false") === "true";
     const effectiveAgentic = executionEnabled && agentic.status === "DISABLED_KILL_SWITCH" ? { ...agentic, stored_status: agentic.status, status: auto ? "READY_NEXT_CRON" : "IDLE_NO_AUTO_ELIGIBLE_TASK" } : agentic;
     const reconciledAgentic = reconcileAgenticRuntimeTruth(effectiveAgentic, runtimes);
@@ -3613,6 +3921,7 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
       agentic_execution: { ...reconciledAgentic, execution_enabled: executionEnabled, execution_actor: RUNTIME_ACTOR, arq_execution: false, worker_address: TASKMARKET_WORKER_ADDRESS, agent_identity_ready: taskMarket.daydreams.signer.ready, agent_identity_id: TASKMARKET_AGENT_ID, signer_ready: taskMarket.daydreams.signer.ready, signer_authenticated: taskMarket.daydreams.signer.authenticated, ladder: EXECUTION_LADDER, auto_eligible_now: auto, automatically_executable_now: auto, settlement_watcher: await this.get("settlement_watcher", { checked: 0, pending: 0, status: "READY_NO_PENDING_SUBMISSIONS" }) },
       durable: { backend: "Durable Object SQLite", thread_memory: true, tool_state: true, opportunities: true, idempotency: true, quota: true, settlement_watcher: true, economic_watchdog: true, do_alarm: true },
       economic_watchdog: reconciledWatchdog,
+      decision_engine: decisionEngine,
       galaxy_radar: { version:"ATM-ORDER-060-V1", policy:"SOURCE_TRUTH_AND_PAYOUT_TRUTH_AND_EXECUTOR_TRUTH_REQUIRED_UNKNOWN_NE_YES", capability_taxonomy:GALAXY_CAPABILITY_TAXONOMY, executor_capabilities:EXECUTOR_CAPABILITIES, passive_sources:GALAXY_PASSIVE_SOURCES, advisory_tech:GALAXY_ADVISORY_TECH, system_one_providers:SYSTEM_ONE_PROVIDER_REGISTRY_V1, external_capability_candidates:EXTERNAL_CAPABILITY_CANDIDATES_V1, skill_count:ATM_SKILLS.length, skills_are_executors:false, laya_hard_gate_authority:false, mql5_k2_preserved:true },
       zero_spend: { out_of_pocket_spend_usd: 0, auto_purchase: false, auto_refill: false, paid_fallback: false },
       task_market: { status: taskMarket.status, open_tasks: taskMarket.task_market.open_tasks, daydreams: taskMarket.daydreams, p1_candidates: taskMarket.p1_candidates },
@@ -3658,7 +3967,10 @@ HTTP_GET_EVIDENCE=${JSON.stringify(http.evidence)}`;
     if (name === "rank_opportunities") {
       let r = opps;
       if (args?.ai_only) r = r.filter((x) => x.ai_executability === "AI_EXECUTABLE");
-      return { results: r.sort((a, b) => (b.estimated_net_usd || 0) - (a.estimated_net_usd || 0)).slice(0, 50) };
+      return {
+        results: r.slice().sort((a, b) => (b.estimated_net_usd || 0) - (a.estimated_net_usd || 0)).slice(0, 50),
+        decision_engine: { ...rsiDecisionStatusV1(), ranking_mode: "DETERMINISTIC_READ_ONLY", inference_invoked: false, ranking_basis: "ESTIMATED_NET_USD_DESC" }
+      };
     }
     if (name === "rejected_opportunities") return { results: opps.filter((x) => x.blockers?.length).slice(0, Math.min(100, n(args?.limit) || 50)) };
     if (name === "agentic_status") return await this.executionState();
