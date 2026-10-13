@@ -101,6 +101,21 @@ if (persistedNewest.payment_receipt?.status !== "SETTLED") throw new Error("SETT
 if ((persistedNewest.blocker_details?.[0]?.safe_evidence_excerpt_or_hash || "").length > 240) {
   throw new Error("SAFE_EVIDENCE_EXCERPT_NOT_BOUNDED");
 }
+const longIdentity = {
+  ...opp,
+  opportunity_id: "DAYDREAMS:" + "x".repeat(2_000),
+  raw_id: "long-task",
+  terms_hash: "long-terms",
+  blocker_details: []
+};
+await brain.appendTaskEvent(longIdentity, "DISCOVERED", {});
+const writesAfterLongIdentity = writes.length;
+const persistedLongEvent = store.get("task_events").at(-1);
+if (!persistedLongEvent?.event_key?.startsWith("sha256:")) throw new Error("LONG_EVENT_KEY_NOT_HASHED");
+const replayedLong = await brain.appendTaskEvent(longIdentity, "DISCOVERED", {});
+if (writes.length !== writesAfterLongIdentity) throw new Error("LONG_EVENT_REPLAY_NOT_IDEMPOTENT");
+if (replayedLong.event_key !== persistedLongEvent.event_key) throw new Error("LONG_EVENT_REPLAY_KEY_CHANGED");
+
 console.log(JSON.stringify({
   ok: true,
   test: "ORDER-065_TASK_EVENTS_BOUNDED_TO_STORAGE_BUDGET",
@@ -110,5 +125,6 @@ console.log(JSON.stringify({
   storedBytes: bytes,
   maxStoredBytes: 750_000,
   retainedRows: saved.length,
-  maxRows: 2_000
+  maxRows: 2_000,
+  longEventReplayIdempotent: true
 }, null, 2));
