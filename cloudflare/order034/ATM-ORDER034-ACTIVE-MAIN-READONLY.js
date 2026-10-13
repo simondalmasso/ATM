@@ -758,6 +758,94 @@ function blockerDetails(codes, context = {}) {
 }
 __name(blockerDetails, "blockerDetails");
 __name2(blockerDetails, "blockerDetails");
+const TASK_EVENT_HISTORY_MAX_ROWS = 2e3;
+const TASK_EVENT_HISTORY_MAX_BYTES = 750e3;
+const TASK_EVENT_HISTORY_MAX_DETAILS = 24;
+const TASK_EVENT_KEY_MAX_CHARS = 512;
+function boundedTaskEventText(value, max = 240) {
+  if (value === null || value === void 0) return null;
+  return String(value).slice(0, max);
+}
+__name(boundedTaskEventText, "boundedTaskEventText");
+function boundedTaskEventValue(value, depth = 0) {
+  if (value === null || value === void 0) return null;
+  if (typeof value === "string") return value.slice(0, 240);
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.slice(0, 12).map((item) => boundedTaskEventValue(item, depth + 1));
+  if (typeof value === "object") {
+    if (depth >= 2) return "[TRUNCATED]";
+    const entries = Object.entries(value).filter(([key]) => !["evidence", "__proto__", "constructor", "prototype"].includes(key.toLowerCase())).slice(0, 12);
+    const out = {};
+    for (const [key, child] of entries) out[String(key).slice(0, 64)] = boundedTaskEventValue(child, depth + 1);
+    const allowedCount = Object.keys(value).filter((key) => !["evidence", "__proto__", "constructor", "prototype"].includes(key.toLowerCase())).length;
+    if (allowedCount > entries.length) out._truncated_fields = allowedCount - entries.length;
+    return out;
+  }
+  return String(value).slice(0, 240);
+}
+__name(boundedTaskEventValue, "boundedTaskEventValue");
+async function boundedTaskEventKey(value) {
+  const key = String(value || "");
+  return key.length <= TASK_EVENT_KEY_MAX_CHARS ? key : `sha256:${await sha256Hex(key)}`;
+}
+__name(boundedTaskEventKey, "boundedTaskEventKey");
+async function compactTaskEventRow(row = {}) {
+  const rawKey = String(row?.event_key || "");
+  const details = Array.isArray(row?.blocker_details) ? row.blocker_details.slice(0, TASK_EVENT_HISTORY_MAX_DETAILS).map((detail) => ({
+    code: boundedTaskEventText(detail?.code, 96),
+    type: boundedTaskEventText(detail?.type, 64),
+    evidence_kind: boundedTaskEventText(detail?.evidence_kind, 64),
+    evidence_path_or_predicate: boundedTaskEventText(detail?.evidence_path_or_predicate, 160),
+    safe_evidence_excerpt_or_hash: boundedTaskEventText(detail?.safe_evidence_excerpt_or_hash, 240),
+    observed_at: boundedTaskEventText(detail?.observed_at, 40),
+    source_task_id: boundedTaskEventText(detail?.source_task_id, 160),
+    terms_hash: boundedTaskEventText(detail?.terms_hash, 128)
+  })) : [];
+  return {
+    event_key: await boundedTaskEventKey(rawKey),
+    task_id: boundedTaskEventText(row?.task_id, 192),
+    source: boundedTaskEventText(row?.source, 64),
+    source_task_id: boundedTaskEventText(row?.source_task_id, 192),
+    observed_at: boundedTaskEventText(row?.observed_at, 40),
+    terms_hash: boundedTaskEventText(row?.terms_hash, 128),
+    reward: typeof row?.reward === "number" && Number.isFinite(row.reward) ? row.reward : boundedTaskEventText(row?.reward, 80),
+    currency: boundedTaskEventText(row?.currency, 24),
+    mode: boundedTaskEventText(row?.mode, 80),
+    capability_class: boundedTaskEventText(row?.capability_class, 96),
+    policy_decision: boundedTaskEventText(row?.policy_decision, 40),
+    blockers: Array.isArray(row?.blockers) ? row.blockers.slice(0, TASK_EVENT_HISTORY_MAX_DETAILS).map((item) => boundedTaskEventText(item, 128)) : [],
+    blocker_details: details,
+    transition: boundedTaskEventText(row?.transition, 64),
+    acquisition_attempt: boundedTaskEventValue(row?.acquisition_attempt),
+    acquisition_id: boundedTaskEventText(row?.acquisition_id, 192),
+    execution_job_id: boundedTaskEventText(row?.execution_job_id, 192),
+    artifact_hash: boundedTaskEventText(row?.artifact_hash, 128),
+    submission_id: boundedTaskEventText(row?.submission_id, 192),
+    external_status: boundedTaskEventText(row?.external_status, 96),
+    payment_receipt: boundedTaskEventValue(row?.payment_receipt),
+    timestamp: boundedTaskEventText(row?.timestamp, 40)
+  };
+}
+__name(compactTaskEventRow, "compactTaskEventRow");
+async function boundedTaskEventHistory(events, nextEvent) {
+  const candidates = [...(Array.isArray(events) ? events : []), nextEvent].slice(-TASK_EVENT_HISTORY_MAX_ROWS);
+  const retainedNewestFirst = [];
+  let totalBytes = 2;
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const row = await compactTaskEventRow(candidates[i]);
+    const rowBytes = new TextEncoder().encode(JSON.stringify(row)).byteLength;
+    const nextBytes = totalBytes + rowBytes + (retainedNewestFirst.length ? 1 : 0);
+    if (nextBytes > TASK_EVENT_HISTORY_MAX_BYTES) {
+      if (!retainedNewestFirst.length) throw new Error("TASK_EVENT_ROW_EXCEEDS_STORAGE_BUDGET");
+      break;
+    }
+    retainedNewestFirst.push(row);
+    totalBytes = nextBytes;
+  }
+  return retainedNewestFirst.reverse();
+}
+__name(boundedTaskEventHistory, "boundedTaskEventHistory");
 function randomHex(bytes = 32) {
   const a = new Uint8Array(bytes);
   crypto.getRandomValues(a);
@@ -2467,10 +2555,11 @@ var ATMBrain = class extends DurableObject {
     opp.terms_hash = termsHash;
     const materialId = String(meta.material_id || meta.acquisition_id || meta.submission_id || "");
     const eventKey = `${opp.opportunity_id}:${transition}:${termsHash}:${materialId}`;
-    if (events.some((x) => x.event_key === eventKey)) return events.find((x) => x.event_key === eventKey);
-    const row = { event_key: eventKey, task_id: opp.opportunity_id, source: opp.source, source_task_id: opp.raw_id, observed_at: now(), terms_hash: termsHash, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode || null, capability_class: opp.capability_class || null, policy_decision: queueSemantics(opp).auto_eligible ? "AUTO_ELIGIBLE" : queueSemantics(opp).human_assistable ? "HUMAN_ASSISTABLE" : "BLOCKED", blockers: opp.blockers || [], blocker_details: opp.blocker_details || blockerDetails(opp.blockers || [], opp), transition, acquisition_attempt: meta.acquisition_attempt || null, acquisition_id: meta.acquisition_id || null, execution_job_id: meta.execution_job_id || null, artifact_hash: meta.artifact_hash || null, submission_id: meta.submission_id || null, external_status: meta.external_status || null, payment_receipt: meta.payment_receipt || null, timestamp: now() };
-    events.push(row);
-    await this.put("task_events", events.slice(-2e3));
+    const storedEventKey = await boundedTaskEventKey(eventKey);
+    const priorEvent = events.find((x) => x.event_key === eventKey || x.event_key === storedEventKey);
+    if (priorEvent) return priorEvent;
+    const row = { event_key: storedEventKey, task_id: opp.opportunity_id, source: opp.source, source_task_id: opp.raw_id, observed_at: now(), terms_hash: termsHash, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode || null, capability_class: opp.capability_class || null, policy_decision: queueSemantics(opp).auto_eligible ? "AUTO_ELIGIBLE" : queueSemantics(opp).human_assistable ? "HUMAN_ASSISTABLE" : "BLOCKED", blockers: opp.blockers || [], blocker_details: opp.blocker_details || blockerDetails(opp.blockers || [], opp), transition, acquisition_attempt: meta.acquisition_attempt || null, acquisition_id: meta.acquisition_id || null, execution_job_id: meta.execution_job_id || null, artifact_hash: meta.artifact_hash || null, submission_id: meta.submission_id || null, external_status: meta.external_status || null, payment_receipt: meta.payment_receipt || null, timestamp: now() };
+    await this.put("task_events", await boundedTaskEventHistory(events, row));
     return row;
   }
   async observeTaskEvents(opps) {
