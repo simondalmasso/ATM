@@ -8,7 +8,6 @@ const sourcePath = path.join(here, "ATM-ORDER034-ACTIVE-MAIN-READONLY.js");
 const tmp = path.join(os.tmpdir(), `atm-order065-task-events-${process.pid}-${Date.now()}.mjs`);
 let code = fs.readFileSync(sourcePath, "utf8")
   .replace('import { DurableObject } from "cloudflare:workers";', 'class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }');
-code += "\nexport { ATMBrain };\n";
 fs.writeFileSync(tmp, code, "utf8");
 process.on("exit", () => { try { fs.unlinkSync(tmp); } catch {} });
 const { ATMBrain } = await import(pathToFileURL(tmp).href + "?v=" + Date.now());
