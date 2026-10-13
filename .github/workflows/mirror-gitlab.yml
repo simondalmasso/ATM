@@ -34,21 +34,86 @@ jobs:
           ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Sync GitHub branches and tags to GitLab
+      - name: Sync non-divergent GitHub branches and tags to GitLab
+        id: sync
         shell: bash
         run: |
           set -euo pipefail
           git remote add gitlab git@gitlab.com:simondalmasso/ATM.git
 
-          # Refresh every GitHub branch and tag. Do not prune GitLab-only legacy refs.
+          # Refresh GitHub refs without deleting GitLab-only legacy refs.
           git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' --force
+          git fetch gitlab '+refs/heads/*:refs/remotes/gitlab/*' '+refs/tags/*:refs/remotes/gitlab-tags/*' --force
 
+          skipped_branches=()
+          synced_branches=()
           while IFS= read -r branch; do
             [ -n "$branch" ] || continue
-            git push gitlab "refs/remotes/origin/$branch:refs/heads/$branch"
+            local_ref="refs/remotes/origin/$branch"
+            remote_ref="refs/remotes/gitlab/$branch"
+            if git show-ref --verify --quiet "$remote_ref"; then
+              if git merge-base --is-ancestor "$remote_ref" "$local_ref"; then
+                git push gitlab "$local_ref:refs/heads/$branch"
+                synced_branches+=("$branch")
+              elif git rev-parse "$remote_ref" >/dev/null 2>&1 && [ "$(git rev-parse "$remote_ref")" = "$(git rev-parse "$local_ref")" ]; then
+                synced_branches+=("$branch")
+              else
+                echo "::warning::Skipping divergent GitLab-only/advanced branch without force: $branch"
+                skipped_branches+=("$branch")
+              fi
+            else
+              git push gitlab "$local_ref:refs/heads/$branch"
+              synced_branches+=("$branch")
+            fi
           done < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | grep -v '^HEAD$' | sort)
 
-          git push gitlab --tags
+          skipped_tags=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            local_tag="refs/tags/$tag"
+            remote_tag="refs/remotes/gitlab-tags/$tag"
+            if git show-ref --verify --quiet "$remote_tag"; then
+              local_oid="$(git rev-parse "$local_tag^{object}")"
+              remote_oid="$(git rev-parse "$remote_tag^{object}")"
+              if [ "$local_oid" = "$remote_oid" ]; then
+                continue
+              fi
+              echo "::warning::Skipping conflicting GitLab tag without force: $tag"
+              skipped_tags+=("$tag")
+            else
+              git push gitlab "$local_tag:$local_tag"
+            fi
+          done < <(git for-each-ref --format='%(refname:strip=2)' refs/tags | sort)
+
+          {
+            echo "### Safe mirror sync"
+            echo "- SYNCED_BRANCHES=${#synced_branches[@]}"
+            echo "- SKIPPED_DIVERGENT_BRANCHES=${#skipped_branches[@]}"
+            printf '%s\n' "${skipped_branches[@]}" | sed '/^$/d' | sed 's/^/- skipped branch: /'
+            echo "- SKIPPED_CONFLICTING_TAGS=${#skipped_tags[@]}"
+            printf '%s\n' "${skipped_tags[@]}" | sed '/^$/d' | sed 's/^/- skipped tag: /'
+            echo "- FORCE_PUSH=NO"
+            echo "- LEGACY_REFS_DELETED=NO"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          github_main="$(git rev-parse refs/remotes/origin/main)"
+          gitlab_main="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+          echo "GITHUB_MAIN_SHA=$github_main"
+          echo "GITLAB_MAIN_SHA=$gitlab_main"
+          test -n "$gitlab_main"
+          test "$github_main" = "$gitlab_main"
+
+          # When invoked by a branch push, prove that exact branch tip reached GitLab.
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            branch_name="${GITHUB_REF#refs/heads/}"
+            expected_sha="$GITHUB_SHA"
+            gitlab_branch_sha="$(git ls-remote gitlab "refs/heads/$branch_name" | awk '{print $1}')"
+            echo "EXPECTED_BRANCH=$branch_name"
+            echo "EXPECTED_BRANCH_SHA=$expected_sha"
+            echo "GITLAB_BRANCH_SHA=$gitlab_branch_sha"
+            test -n "$gitlab_branch_sha"
+            test "$gitlab_branch_sha" = "$expected_sha"
+          fi
 
       - name: Verify canonical main parity
         shell: bash
