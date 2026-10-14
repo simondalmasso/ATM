@@ -8,6 +8,7 @@ const src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
 const tmp=path.join(os.tmpdir(),`atm-order034-onchain-blocker-${process.pid}-${Date.now()}.mjs`);
 let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
 code+='\nexport { detectBlockers };\n';
+code = code.replaceAll('"./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs"', JSON.stringify(pathToFileURL(path.join(here, "ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs")).href));
 fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const {detectBlockers}=await import(pathToFileURL(tmp).href+'?v='+Date.now());
