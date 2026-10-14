@@ -4,13 +4,6 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // active-version-modules/order033-active.js
 import { DurableObject } from "cloudflare:workers";
 
-import {
-  HPA_BRAND_ID,
-  HPA_QUEUE_KEY,
-  HPA_MAX_QUEUE_ITEMS,
-  generateHpaDraft,
-  reviewHpaDraft,
-} from "./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs";
 
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
@@ -2647,10 +2640,12 @@ var ATMBrain = class extends DurableObject {
     return { policy: { owner_funded_spend_usd: 0, autonomous_buy_side_x402: "DISABLED", autonomous_gas_or_fees: "DISABLED", reinvest_realized_earnings: "DISABLED", raw_private_key_runtime_custody: "REJECTED", execution_actor: RUNTIME_ACTOR, arq_execution: false }, providers: { external_x402: external, cloudflare_wallet: cloudflare }, payout_receivers: { DAYDREAMS: daydreams, AGENTHANSA: hansa }, x402_settlement: x402, tool_market: { x402_bazaar: "TOOL_MARKET_ONLY_NOT_EARNINGS", payable_api_spend: "DISABLED" } };
   }
   async hpaMediaDrafts() {
+    const { HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
     const queue = await this.get(HPA_QUEUE_KEY, []);
     return Array.isArray(queue) ? queue.filter((x) => x && x.brand_id === HPA_BRAND_ID).slice(0, HPA_MAX_QUEUE_ITEMS) : [];
   }
   async generateHpaMediaDraft(body) {
+    const { HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS, generateHpaDraft } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
     const queue = await this.hpaMediaDrafts();
     const idempotencyKey = String(body?.idempotency_key || "");
     const existing = queue.find((x) => x.idempotency_key === idempotencyKey);
@@ -2672,6 +2667,7 @@ var ATMBrain = class extends DurableObject {
     return { ok: true, idempotent_replay: false, draft: generated.draft };
   }
   async reviewHpaMediaDraft(body) {
+    const { HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS, reviewHpaDraft } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
     const queue = await this.hpaMediaDrafts();
     const result = reviewHpaDraft(queue, body);
     if (!result.ok) return result;
@@ -3987,7 +3983,7 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
     }
     if (p === "/media/drafts" && req.method === "GET") {
       if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
-      return j({ ok: true, brand_id: HPA_BRAND_ID, results: await this.hpaMediaDrafts() });
+      return j({ ok: true, brand_id: "hombrepsicoactivo", results: await this.hpaMediaDrafts() });
     }
     if (p === "/media/draft/generate" && req.method === "POST") {
       if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
