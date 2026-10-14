@@ -3,6 +3,15 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // active-version-modules/order033-active.js
 import { DurableObject } from "cloudflare:workers";
+
+import {
+  HPA_BRAND_ID,
+  HPA_QUEUE_KEY,
+  HPA_MAX_QUEUE_ITEMS,
+  generateHpaDraft,
+  reviewHpaDraft,
+} from "./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs";
+
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
 var num = /* @__PURE__ */ __name2((v) => {
@@ -387,6 +396,93 @@ function j(data, status = 200, headers = {}) {
 }
 __name(j, "j");
 __name2(j, "j");
+
+function hpaMediaStudioHtml() {
+  return String.raw`<!doctype html>
+<html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATM Media Studio · Hombrepsicoactivo</title>
+<style>
+:root{color-scheme:light;--paper:#fbfaf7;--ink:#171717;--line:#d3d0cb;--violet:#6c55c8;--warn:#8a5300}
+*{box-sizing:border-box}body{margin:0;background:#efede8;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px}.panel,article{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+h1{font-size:clamp(24px,4vw,34px);margin:0 0 4px}h2{font-size:20px;margin:0 0 12px}.muted{color:#595959;font-size:14px}
+label{display:block;font-weight:650;margin:10px 0 4px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid #aaa;border-radius:7px;padding:9px;background:white;color:var(--ink)}
+textarea{min-height:100px;resize:vertical}button{border:0;border-radius:7px;padding:10px 14px;background:var(--violet);color:white;font-weight:700;cursor:pointer;margin:6px 6px 0 0}button.secondary{background:#454545}button.reject{background:#8c2424}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pill{display:inline-block;background:#e8e3fb;border-radius:99px;padding:2px 8px;font-size:12px}.status{padding:10px;background:#f2efe8;border-radius:7px;margin:12px 0;white-space:pre-wrap}.scene{border-left:3px solid var(--violet);padding:6px 10px;margin:9px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f0eb;border-radius:7px;padding:10px}a{color:#4736a4}article h3{margin:8px 0}small{color:#555}
+@media(max-width:650px){main{padding:12px}.row{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<header class="panel"><h1>ATM Media Studio</h1><strong>Hombrepsicoactivo</strong>
+<p class="muted">Generación de borradores con GLM. Este panel no publica posts y no declara imágenes ni videos como creados: el activo queda pendiente hasta que exista un render real.</p>
+<p class="muted">Iniciá la sesión de propietario desde el panel ATM en otra pestaña del mismo dominio si las llamadas devuelven 403.</p></header>
+<section class="panel"><h2>Crear borrador</h2>
+<form id="draftForm">
+<label for="topic">Tema editorial</label><input id="topic" name="topic" maxlength="300" required value="Tu cerebro no busca la verdad: busca tener razón">
+<div class="row"><div><label for="format">Formato</label><select id="format" name="format"><option value="REEL">Reel — guion y escenas</option><option value="CAROUSEL">Carrusel — guion de tarjetas</option><option value="IMAGE_POST">Post de imagen</option></select></div>
+<div><label for="series">Serie</label><select id="series" name="series_id"><option value="tu_cerebro_te_vende_humo">Tu cerebro te vende humo</option><option value="psicologia_de_bolsillo">Psicología de bolsillo</option><option value="el_algoritmo_te_mide">El algoritmo te mide</option><option value="manual_del_autoengano">Manual del autoengaño</option></select></div></div>
+<label for="sources">Fuentes de respaldo (JSON opcional)</label><textarea id="sources" name="sources" placeholder='[{"title":"APA Dictionary — Confirmation bias","url":"https://dictionary.apa.org/confirmation-bias","checked_at":"2026-10-14","excerpt":"Definición consultada"}]'></textarea>
+<p class="muted">Pegá fuentes verificadas como array JSON. Sin fuentes, el borrador queda marcado NEEDS_SOURCES y no puede considerarse listo para publicar.</p>
+<button type="submit">Generar guion</button><button class="secondary" id="refreshBtn" type="button">Actualizar cola</button>
+</form><div class="status" id="status" role="status">Listo.</div></section>
+<section><h2>Cola persistente</h2><div id="queue"></div></section>
+</main>
+<script>
+const statusEl=document.getElementById('status');
+const queueEl=document.getElementById('queue');
+const say=(s)=>statusEl.textContent=s;
+const addText=(parent,tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;};
+async function api(path,body){
+ const options={method:body?'POST':'GET',credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},cache:'no-store'};
+ if(body)options.body=JSON.stringify(body);
+ const r=await fetch(path,options);let data;try{data=await r.json()}catch{data={ok:false,error:'RESPONSE_NOT_JSON'}}
+ if(!r.ok||data.ok===false)throw new Error((data.error||('HTTP_'+r.status))+' (HTTP '+r.status+')');
+ return data;
+}
+function renderDraft(d){
+ const card=document.createElement('article');
+ addText(card,'span',d.review_status,'pill');
+ addText(card,'h3',d.hook||d.topic);
+ addText(card,'p','Formato: '+d.format+' · Serie: '+d.series_id);
+ addText(card,'p','Estado de activo: '+d.asset_status+' · Publicación: '+d.publication_status);
+ addText(card,'h4','Guion');
+ addText(card,'pre',d.script);
+ addText(card,'h4','Caption');
+ addText(card,'pre',d.caption+'\n\n'+d.cta);
+ if(Array.isArray(d.scenes)){addText(card,'h4','Escenas');for(const scene of d.scenes){const div=addText(card,'div',scene.on_screen_text+'\nVisual: '+scene.visual_direction+'\nNarración: '+scene.narration,'scene');}}
+ if(Array.isArray(d.claims)&&d.claims.length){addText(card,'h4','Afirmaciones para verificar');for(const claim of d.claims){addText(card,'p',claim.verification+': '+claim.text);}}
+ if(Array.isArray(d.sources)&&d.sources.length){addText(card,'h4','Fuentes');for(const source of d.sources){const a=document.createElement('a');a.href=source.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=source.title+' — '+source.url;card.appendChild(a);card.appendChild(document.createElement('br'));}}
+ addText(card,'small','ID: '+d.content_id+' · Creado: '+d.created_at);
+ if(d.review_status==='DRAFT_NEEDS_REVIEW'){
+   const approve=document.createElement('button');approve.textContent='Aprobar guion (no publica)';approve.onclick=()=>review(d.content_id,'APPROVE_SCRIPT');
+   const reject=document.createElement('button');reject.textContent='Rechazar';reject.className='reject';reject.onclick=()=>review(d.content_id,'REJECT');
+   card.appendChild(approve);card.appendChild(reject);
+ }
+ queueEl.appendChild(card);
+}
+async function loadQueue(){
+ try{const data=await api('/api/media/drafts');queueEl.replaceChildren();if(!data.results.length)addText(queueEl,'p','La cola está vacía.');for(const d of data.results)renderDraft(d);say('Cola leída: '+data.results.length+' borradores.');}
+ catch(e){say('No se pudo leer la cola: '+e.message);}
+}
+async function review(id,decision){
+ try{await api('/api/media/draft/review',{content_id:id,decision,notes:''});say('Revisión guardada. Aprobar el guion no publica ni genera un video.');await loadQueue();}
+ catch(e){say('No se pudo guardar la revisión: '+e.message);}
+}
+document.getElementById('draftForm').addEventListener('submit',async(e)=>{
+ e.preventDefault();say('Generando borrador con GLM…');
+ try{
+  const sourceText=document.getElementById('sources').value.trim();
+  const sources=sourceText?JSON.parse(sourceText):[];
+  if(!Array.isArray(sources))throw new Error('FUENTES_DEBEN_SER_ARRAY_JSON');
+  const result=await api('/api/media/draft/generate',{topic:document.getElementById('topic').value,format:document.getElementById('format').value,series_id:document.getElementById('series').value,brand_id:'hombrepsicoactivo',idempotency_key:crypto.randomUUID(),sources});
+  say('Borrador creado. Estado: '+result.draft.review_status+'. Activo: '+result.draft.asset_status+'.');
+  await loadQueue();
+ }catch(e){say('No se pudo generar el borrador: '+e.message);}
+});
+document.getElementById('refreshBtn').addEventListener('click',loadQueue);
+loadQueue();
+</script></body></html>`;
+}
+
 function safeThread(x) {
   return String(x || "main").replace(/[^a-zA-Z0-9_.:-]/g, "").slice(0, 100) || "main";
 }
@@ -2550,6 +2646,42 @@ var ATMBrain = class extends DurableObject {
     const daydreams = new TaskPayoutReceiver("DAYDREAMS").capabilities(), hansa = new TaskPayoutReceiver("AGENTHANSA").capabilities(), x402 = await this.x402State();
     return { policy: { owner_funded_spend_usd: 0, autonomous_buy_side_x402: "DISABLED", autonomous_gas_or_fees: "DISABLED", reinvest_realized_earnings: "DISABLED", raw_private_key_runtime_custody: "REJECTED", execution_actor: RUNTIME_ACTOR, arq_execution: false }, providers: { external_x402: external, cloudflare_wallet: cloudflare }, payout_receivers: { DAYDREAMS: daydreams, AGENTHANSA: hansa }, x402_settlement: x402, tool_market: { x402_bazaar: "TOOL_MARKET_ONLY_NOT_EARNINGS", payable_api_spend: "DISABLED" } };
   }
+  async hpaMediaDrafts() {
+    const queue = await this.get(HPA_QUEUE_KEY, []);
+    return Array.isArray(queue) ? queue.filter((x) => x && x.brand_id === HPA_BRAND_ID).slice(0, HPA_MAX_QUEUE_ITEMS) : [];
+  }
+  async generateHpaMediaDraft(body) {
+    const queue = await this.hpaMediaDrafts();
+    const idempotencyKey = String(body?.idempotency_key || "");
+    const existing = queue.find((x) => x.idempotency_key === idempotencyKey);
+    if (existing) return { ok: true, idempotent_replay: true, draft: existing };
+    if (queue.length >= HPA_MAX_QUEUE_ITEMS) return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
+    const generated = await generateHpaDraft({
+      input: body,
+      runModel: (messages, maxTokens) => this.runExecutionModel(messages, maxTokens),
+    });
+    if (!generated.ok) return generated;
+    const next = [generated.draft, ...queue].slice(0, HPA_MAX_QUEUE_ITEMS);
+    await this.put(HPA_QUEUE_KEY, next);
+    await this.activity("media_draft", "Borrador editorial de Hombrepsicoactivo creado", {
+      content_id: generated.draft.content_id,
+      format: generated.draft.format,
+      review_status: generated.draft.review_status,
+      asset_status: generated.draft.asset_status,
+    });
+    return { ok: true, idempotent_replay: false, draft: generated.draft };
+  }
+  async reviewHpaMediaDraft(body) {
+    const queue = await this.hpaMediaDrafts();
+    const result = reviewHpaDraft(queue, body);
+    if (!result.ok) return result;
+    await this.put(HPA_QUEUE_KEY, result.queue.slice(0, HPA_MAX_QUEUE_ITEMS));
+    await this.activity("media_review", "Revisión de guion de Hombrepsicoactivo registrada", {
+      content_id: result.draft.content_id,
+      review_status: result.draft.review_status,
+    });
+    return { ok: true, draft: result.draft };
+  }
   async appendTaskEvent(opp, transition, meta = {}) {
     const events = await this.taskEvents(), termsHash = opp.terms_hash || await sha256Hex(JSON.stringify({ source: opp.source, raw_id: opp.raw_id, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode, deadline: opp.deadline, description: opp.description, blockers: opp.blockers, economics: opp.economics }));
     opp.terms_hash = termsHash;
@@ -3853,6 +3985,24 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
       const settlement_after = await this.monitorExecutionReadback("cron_post");
       return j({ ok: true, radar: radar.radar, uncertain, agentic: a, human_readbacks: h, settlement_before, settlement_after });
     }
+    if (p === "/media/drafts" && req.method === "GET") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      return j({ ok: true, brand_id: HPA_BRAND_ID, results: await this.hpaMediaDrafts() });
+    }
+    if (p === "/media/draft/generate" && req.method === "POST") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await this.generateHpaMediaDraft(body);
+      return j(result, result.status || 200);
+    }
+    if (p === "/media/draft/review" && req.method === "POST") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await this.reviewHpaMediaDraft(body);
+      return j(result, result.status || 200);
+    }
     if (p === "/money-loop") return j(await this.moneyLoopStatus());
     if (p === "/task-market") return j(await this.taskMarketStatus());
     if (p === "/payment-capabilities") return j({ ok: true, ...await this.paymentCapabilities() });
@@ -4630,6 +4780,40 @@ var human_gate_entry_default = {
       const rl = await publicRate(stub, "run_now", ip, 2, 10 * 60 * 1e3);
       if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
       return stub.fetch(new Request("https://do/run-now", { method: "POST" }));
+    }
+    if (p === "/media-studio" && req.method === "GET") {
+      return new Response(hpaMediaStudioHtml(), { headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      }});
+    }
+    if (p === "/api/media/drafts" && req.method === "GET") {
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const rl = await publicRate(stub, "hpa_media_queue", ip, 30, 6e4);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      return stub.fetch(new Request("https://do/media/drafts", { headers: { "x-atm-owner-session": "verified" } }));
+    }
+    if (p === "/api/media/draft/generate" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const bodyCheck = await boundedJsonBody(req, { max_bytes: 12000, allowed_keys: ["brand_id","topic","format","series_id","sources","idempotency_key"], required_keys: ["topic","idempotency_key"] });
+      if (!bodyCheck.ok) return j({ ok: false, error: bodyCheck.error }, bodyCheck.status);
+      const rl = await publicRate(stub, "hpa_media_generate", ip, 3, 60 * 60 * 1000);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED", reset_at: rl.reset_at }, 429);
+      return stub.fetch(new Request("https://do/media/draft/generate", { method: "POST", headers: { "content-type": "application/json", "x-atm-owner-session": "verified" }, body: JSON.stringify(bodyCheck.value) }));
+    }
+    if (p === "/api/media/draft/review" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const bodyCheck = await boundedJsonBody(req, { max_bytes: 2048, allowed_keys: ["content_id","decision","notes"], required_keys: ["content_id","decision"] });
+      if (!bodyCheck.ok) return j({ ok: false, error: bodyCheck.error }, bodyCheck.status);
+      const rl = await publicRate(stub, "hpa_media_review", ip, 20, 60 * 1000);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      return stub.fetch(new Request("https://do/media/draft/review", { method: "POST", headers: { "content-type": "application/json", "x-atm-owner-session": "verified" }, body: JSON.stringify(bodyCheck.value) }));
     }
     if ((p === "/api/agent/chat" || p === "/api/agent/stream") && req.method === "POST") {
       if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
