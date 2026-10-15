@@ -422,6 +422,7 @@ textarea{min-height:100px;resize:vertical}button{border:0;border-radius:7px;padd
 <script>
 const statusEl=document.getElementById('status');
 const queueEl=document.getElementById('queue');
+let pendingDraftRequest=null;
 const say=(s)=>statusEl.textContent=s;
 const addText=(parent,tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;};
 async function api(path,body){
@@ -466,11 +467,16 @@ document.getElementById('draftForm').addEventListener('submit',async(e)=>{
   const sourceText=document.getElementById('sources').value.trim();
   const sources=sourceText?JSON.parse(sourceText):[];
   if(!Array.isArray(sources))throw new Error('FUENTES_DEBEN_SER_ARRAY_JSON');
-  const result=await api('/api/media/draft/generate',{topic:document.getElementById('topic').value,format:document.getElementById('format').value,series_id:document.getElementById('series').value,brand_id:'hombrepsicoactivo',idempotency_key:crypto.randomUUID(),sources});
+  const payload={topic:document.getElementById('topic').value,format:document.getElementById('format').value,series_id:document.getElementById('series').value,brand_id:'hombrepsicoactivo',sources};
+  const signature=JSON.stringify(payload);
+  if(!pendingDraftRequest||pendingDraftRequest.signature!==signature)pendingDraftRequest={signature,key:crypto.randomUUID()};
+  const result=await api('/api/media/draft/generate',{...payload,idempotency_key:pendingDraftRequest.key});
+  pendingDraftRequest=null;
   say('Borrador creado. Estado: '+result.draft.review_status+'. Activo: '+result.draft.asset_status+'.');
   await loadQueue();
- }catch(e){say('No se pudo generar el borrador: '+e.message);}
+ }catch(e){say('No se pudo generar el borrador: '+e.message+'. Reintentá sin cambiar el formulario para reutilizar la misma clave.');}
 });
+
 document.getElementById('refreshBtn').addEventListener('click',loadQueue);
 loadQueue();
 </script></body></html>`;
@@ -2645,36 +2651,96 @@ var ATMBrain = class extends DurableObject {
     return Array.isArray(queue) ? queue.filter((x) => x && x.brand_id === HPA_BRAND_ID).slice(0, HPA_MAX_QUEUE_ITEMS) : [];
   }
   async generateHpaMediaDraft(body) {
-    const { HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS, generateHpaDraft } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
-    const queue = await this.hpaMediaDrafts();
-    const idempotencyKey = String(body?.idempotency_key || "");
-    const existing = queue.find((x) => x.idempotency_key === idempotencyKey);
-    if (existing) return { ok: true, idempotent_replay: true, draft: existing };
-    if (queue.length >= HPA_MAX_QUEUE_ITEMS) return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
+    const {
+      HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS,
+      generateHpaDraft, validateHpaGenerationInput
+    } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
+    const validated = validateHpaGenerationInput(body);
+    if (!validated.ok) return validated;
+    const request = validated.value;
+    const idempotencyKey = request.idempotency_key;
+    const reservationKey = "hpa_media_idempotency_v1:" + idempotencyKey;
+    const requestFingerprint = Array.from(new Uint8Array(await crypto.subtle.digest(
+      "SHA-256", new TextEncoder().encode(JSON.stringify(request))
+    ))).map((x) => x.toString(16).padStart(2, "0")).join("");
+    const leaseId = crypto.randomUUID();
+    const leaseMs = 5 * 60 * 1000;
+    const reservation = await this.ctx.storage.transaction(async (tx) => {
+      const existing = await tx.get(reservationKey);
+      if (existing?.request_fingerprint && existing.request_fingerprint !== requestFingerprint) return { kind: "CONFLICT" };
+      if (existing?.status === "COMPLETED" && existing.draft) return { kind: "COMPLETED", draft: existing.draft };
+      if (existing?.status === "IN_PROGRESS" && Number(existing.expires_at) > Date.now()) {
+        return { kind: "IN_PROGRESS", retry_after_ms: Math.max(1000, Number(existing.expires_at) - Date.now()) };
+      }
+      await tx.put(reservationKey, {
+        status: "IN_PROGRESS", request_fingerprint: requestFingerprint,
+        lease_id: leaseId, started_at: Date.now(), expires_at: Date.now() + leaseMs
+      });
+      return { kind: "RESERVED" };
+    });
+    if (reservation.kind === "COMPLETED") return { ok: true, idempotent_replay: true, draft: reservation.draft };
+    if (reservation.kind === "CONFLICT") return { ok: false, status: 409, error: "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_REQUEST" };
+    if (reservation.kind === "IN_PROGRESS") {
+      return { ok: false, status: 409, error: "IDEMPOTENCY_IN_PROGRESS", retry_after_ms: reservation.retry_after_ms };
+    }
+    const failReservation = async (error) => {
+      await this.ctx.storage.transaction(async (tx) => {
+        const current = await tx.get(reservationKey);
+        if (current?.lease_id !== leaseId || current?.status !== "IN_PROGRESS") return;
+        await tx.put(reservationKey, {
+          status: "FAILED", request_fingerprint: requestFingerprint,
+          failed_at: Date.now(), error: String(error || "MODEL_GENERATION_FAILED").slice(0, 80)
+        });
+      });
+    };
     const generated = await generateHpaDraft({
-      input: body,
+      input: request,
       runModel: (messages, maxTokens) => this.runExecutionModel(messages, maxTokens),
     });
-    if (!generated.ok) return generated;
-    const next = [generated.draft, ...queue].slice(0, HPA_MAX_QUEUE_ITEMS);
-    await this.put(HPA_QUEUE_KEY, next);
-    await this.activity("media_draft", "Borrador editorial de Hombrepsicoactivo creado", {
-      content_id: generated.draft.content_id,
-      format: generated.draft.format,
-      review_status: generated.draft.review_status,
-      asset_status: generated.draft.asset_status,
+    if (!generated.ok) {
+      await failReservation(generated.error);
+      return generated;
+    }
+    const committed = await this.ctx.storage.transaction(async (tx) => {
+      const currentReservation = await tx.get(reservationKey);
+      if (currentReservation?.lease_id !== leaseId || currentReservation?.status !== "IN_PROGRESS") return { kind: "LEASE_LOST" };
+      const stored = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(stored) ? stored.filter((x) => x && x.brand_id === HPA_BRAND_ID) : [];
+      const existing = queue.find((x) => x.idempotency_key === idempotencyKey);
+      if (existing) {
+        await tx.put(reservationKey, { status: "COMPLETED", request_fingerprint: requestFingerprint, completed_at: Date.now(), draft: existing });
+        return { kind: "EXISTING", draft: existing };
+      }
+      if (queue.length >= HPA_MAX_QUEUE_ITEMS) {
+        await tx.put(reservationKey, { status: "FAILED", request_fingerprint: requestFingerprint, failed_at: Date.now(), error: "MEDIA_QUEUE_FULL" });
+        return { kind: "FULL" };
+      }
+      await tx.put(HPA_QUEUE_KEY, [generated.draft, ...queue]);
+      await tx.put(reservationKey, { status: "COMPLETED", request_fingerprint: requestFingerprint, completed_at: Date.now(), draft: generated.draft });
+      return { kind: "CREATED", draft: generated.draft };
     });
-    return { ok: true, idempotent_replay: false, draft: generated.draft };
+    if (committed.kind === "LEASE_LOST") return { ok: false, status: 409, error: "IDEMPOTENCY_LEASE_EXPIRED_RETRY" };
+    if (committed.kind === "FULL") return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
+    if (committed.kind === "EXISTING") return { ok: true, idempotent_replay: true, draft: committed.draft };
+    await this.activity("media_draft", "Borrador editorial de Hombrepsicoactivo creado", {
+      content_id: committed.draft.content_id, format: committed.draft.format,
+      review_status: committed.draft.review_status, asset_status: committed.draft.asset_status,
+    });
+    return { ok: true, idempotent_replay: false, draft: committed.draft };
   }
   async reviewHpaMediaDraft(body) {
     const { HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS, reviewHpaDraft } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
-    const queue = await this.hpaMediaDrafts();
-    const result = reviewHpaDraft(queue, body);
+    const result = await this.ctx.storage.transaction(async (tx) => {
+      const stored = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(stored) ? stored : [];
+      const reviewed = reviewHpaDraft(queue, body);
+      if (!reviewed.ok) return reviewed;
+      await tx.put(HPA_QUEUE_KEY, reviewed.queue.slice(0, HPA_MAX_QUEUE_ITEMS));
+      return { ok: true, draft: reviewed.draft };
+    });
     if (!result.ok) return result;
-    await this.put(HPA_QUEUE_KEY, result.queue.slice(0, HPA_MAX_QUEUE_ITEMS));
     await this.activity("media_review", "Revisión de guion de Hombrepsicoactivo registrada", {
-      content_id: result.draft.content_id,
-      review_status: result.draft.review_status,
+      content_id: result.draft.content_id, review_status: result.draft.review_status,
     });
     return { ok: true, draft: result.draft };
   }
