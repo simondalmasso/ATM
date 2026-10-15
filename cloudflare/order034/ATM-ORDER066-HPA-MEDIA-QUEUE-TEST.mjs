@@ -132,17 +132,29 @@ assert.equal(fullResult.error, "MEDIA_QUEUE_FULL");
 assert.equal(fullQueueModelCalls, 0, "a full queue must fail before inference is invoked");
 
 let publicInternalCalls = 0;
+let forceMediaRateLimit = false;
+let lastInternalOwnerMarker = null;
 const publicStub = {
   fetch: async (request) => {
     publicInternalCalls += 1;
     const pathname = new URL(request.url).pathname;
     if (pathname === "/owner/session/verify") {
-      return new Response(JSON.stringify({ ok: false, error: "OWNER_SESSION_EXPIRED" }), {
-        status: 403, headers: { "content-type": "application/json" },
+      const body = await request.clone().json().catch(() => ({}));
+      const ok = body.token === "valid";
+      return new Response(JSON.stringify({ ok, error: ok ? null : "OWNER_SESSION_EXPIRED" }), {
+        status: ok ? 200 : 403, headers: { "content-type": "application/json" },
       });
     }
     if (pathname === "/rate-limit") {
-      return new Response(JSON.stringify({ ok: true }), {
+      const body = await request.clone().json().catch(() => ({}));
+      const ok = !(forceMediaRateLimit && body.bucket === "hpa_media_queue");
+      return new Response(JSON.stringify({ ok, reset_at: "2099-01-01T00:00:00.000Z" }), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+    if (pathname === "/media/drafts") {
+      lastInternalOwnerMarker = request.headers.get("x-atm-owner-session");
+      return new Response(JSON.stringify({ ok: true, drafts: [] }), {
         status: 200, headers: { "content-type": "application/json" },
       });
     }
@@ -171,6 +183,25 @@ const expiredSession = await worker.fetch(
 );
 assert.equal(expiredSession.status, 403, "expired owner session cannot read the queue");
 
+const validSession = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/api/media/drafts", {
+    headers: { cookie: "atm_owner_session=valid" },
+  }),
+  publicEnv,
+);
+assert.equal(validSession.status, 200, "valid owner session can read the private queue");
+assert.equal(lastInternalOwnerMarker, "verified", "Worker marks its internal DO request only after session verification");
+
+forceMediaRateLimit = true;
+const rateLimited = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/api/media/drafts", {
+    headers: { cookie: "atm_owner_session=valid" },
+  }),
+  publicEnv,
+);
+assert.equal(rateLimited.status, 429, "owner queue rate limit fails closed");
+forceMediaRateLimit = false;
+
 const badOrigin = await worker.fetch(
   new Request("https://atm.simondalmasso44.workers.dev/api/media/draft/generate", {
     method: "POST",
@@ -185,4 +216,4 @@ assert.equal(await badOrigin.text().then((body) => JSON.parse(body).error), "ORI
 const internalDenied = await brain.fetch(new Request("https://do/media/drafts"));
 assert.equal(internalDenied.status, 403, "Durable Object media routes reject missing internal owner marker");
 
-console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, HTTP owner/origin gates, and no lost queue updates.");
+console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, HTTP owner/origin/rate-limit gates, and no lost queue updates.");
