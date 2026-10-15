@@ -12,7 +12,7 @@ let code = fs.readFileSync(sourcePath, "utf8")
   .replaceAll('"./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs"', JSON.stringify(pathToFileURL(path.join(here, "ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs")).href));
 fs.writeFileSync(tmp, code, "utf8");
 process.on("exit", () => { try { fs.unlinkSync(tmp); } catch {} });
-const { ATMBrain } = await import(pathToFileURL(tmp).href + "?v=" + Date.now());
+const { ATMBrain, default: worker } = await import(pathToFileURL(tmp).href + "?v=" + Date.now());
 
 function makeStorage() {
   const values = new Map();
@@ -131,4 +131,58 @@ assert.equal(fullResult.status, 429);
 assert.equal(fullResult.error, "MEDIA_QUEUE_FULL");
 assert.equal(fullQueueModelCalls, 0, "a full queue must fail before inference is invoked");
 
-console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, and no lost queue updates.");
+let publicInternalCalls = 0;
+const publicStub = {
+  fetch: async (request) => {
+    publicInternalCalls += 1;
+    const pathname = new URL(request.url).pathname;
+    if (pathname === "/owner/session/verify") {
+      return new Response(JSON.stringify({ ok: false, error: "OWNER_SESSION_EXPIRED" }), {
+        status: 403, headers: { "content-type": "application/json" },
+      });
+    }
+    if (pathname === "/rate-limit") {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ ok: false, error: "UNEXPECTED_INTERNAL_ROUTE" }), {
+      status: 404, headers: { "content-type": "application/json" },
+    });
+  },
+};
+const publicEnv = {
+  ATM_BRAIN: { idFromName: () => "global", get: () => publicStub },
+  ATM_GIT_SHA: "test",
+  EXECUTION_ENABLED: "false",
+};
+const noSession = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/api/media/drafts"),
+  publicEnv,
+);
+assert.equal(noSession.status, 403, "public draft queue requires an owner session");
+assert.equal(publicInternalCalls, 0, "missing cookie fails closed without internal work");
+
+const expiredSession = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/api/media/drafts", {
+    headers: { cookie: "atm_owner_session=expired" },
+  }),
+  publicEnv,
+);
+assert.equal(expiredSession.status, 403, "expired owner session cannot read the queue");
+
+const badOrigin = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/api/media/draft/generate", {
+    method: "POST",
+    headers: { origin: "https://attacker.invalid", "content-type": "application/json" },
+    body: JSON.stringify({ topic: input.topic, idempotency_key: "hpa-http-test-key-0001" }),
+  }),
+  publicEnv,
+);
+assert.equal(badOrigin.status, 403, "mutating endpoint rejects untrusted Origin before owner checks");
+assert.equal(await badOrigin.text().then((body) => JSON.parse(body).error), "ORIGIN_DENIED");
+
+const internalDenied = await brain.fetch(new Request("https://do/media/drafts"));
+assert.equal(internalDenied.status, 403, "Durable Object media routes reject missing internal owner marker");
+
+console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, HTTP owner/origin gates, and no lost queue updates.");
