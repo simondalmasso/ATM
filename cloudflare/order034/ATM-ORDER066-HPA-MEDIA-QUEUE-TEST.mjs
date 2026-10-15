@@ -115,4 +115,20 @@ assert.equal(a.ok, true);
 assert.equal(b.ok, true);
 assert.equal((await parallelBrain.hpaMediaDrafts()).length, 2, "different concurrent keys must not overwrite each other's queue item");
 
-console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, and no lost queue updates.");
+const { storage: fullStorage } = makeStorage();
+await fullStorage.put("hpa_media_queue_v1", Array.from({ length: 40 }, (_, i) => ({
+  content_id: "hpa-full-" + i,
+  idempotency_key: "hpa-full-key-" + i,
+  brand_id: "hombrepsicoactivo",
+  review_status: "DRAFT_NEEDS_REVIEW",
+})));
+const fullBrain = new ATMBrain({ storage: fullStorage }, {});
+let fullQueueModelCalls = 0;
+fullBrain.runExecutionModel = async () => { fullQueueModelCalls += 1; return JSON.stringify(modelDraft); };
+const fullResult = await fullBrain.generateHpaMediaDraft({ ...input, idempotency_key: "hpa-full-new-key-0001" });
+assert.equal(fullResult.ok, false);
+assert.equal(fullResult.status, 429);
+assert.equal(fullResult.error, "MEDIA_QUEUE_FULL");
+assert.equal(fullQueueModelCalls, 0, "a full queue must fail before inference is invoked");
+
+console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, and no lost queue updates.");
