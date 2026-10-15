@@ -1,6 +1,7 @@
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import {fileURLToPath,pathToFileURL} from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)),src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js'),tmp=path.join(os.tmpdir(),`atm-order034-hansa-${process.pid}-${Date.now()}.mjs`);
-let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }'); fs.writeFileSync(tmp,code,'utf8'); process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
+let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }'); code = code.replaceAll('"./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs"', JSON.stringify(pathToFileURL(path.join(here, "ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs")).href));
+fs.writeFileSync(tmp,code,'utf8'); process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const {ATMBrain}=await import(pathToFileURL(tmp).href+'?v='+Date.now());
 const map=new Map(),storage={get:async k=>map.get(k),put:async(k,v)=>map.set(k,v),setAlarm:async()=>{},deleteAlarm:async()=>{}};
 const env={AGENTHANSA_API_KEY:'secret-test'}; const brain=new ATMBrain({storage},env); let joined=false,submitted=false,authOk=true; const futureDeadline=new Date(Date.now()+365*24*60*60*1000).toISOString();

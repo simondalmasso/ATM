@@ -7,6 +7,7 @@ const src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
 const tmp=path.join(os.tmpdir(),`atm-status-truth-${process.pid}-${Date.now()}.mjs`);
 let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
 code+='\nexport { selectCurrentRuntime, reconcileAgenticRuntimeTruth, reconcileWatchdogRuntimeTruth };\n';
+code = code.replaceAll('"./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs"', JSON.stringify(pathToFileURL(path.join(here, "ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs")).href));
 fs.writeFileSync(tmp,code,'utf8'); process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const mod=await import(pathToFileURL(tmp).href+'?v='+Date.now());
 const stale={job_id:'old-job',task_id:'old-task',source:'DAYDREAMS',stage:'ABORTED',terminal:true,selected_at:'2026-09-16T20:00:00Z'};
