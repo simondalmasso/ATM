@@ -2672,6 +2672,11 @@ var ATMBrain = class extends DurableObject {
       if (existing?.status === "IN_PROGRESS" && Number(existing.expires_at) > Date.now()) {
         return { kind: "IN_PROGRESS", retry_after_ms: Math.max(1000, Number(existing.expires_at) - Date.now()) };
       }
+      const storedQueue = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(storedQueue) ? storedQueue.filter((x) => x && x.brand_id === HPA_BRAND_ID) : [];
+      if (queue.length >= HPA_MAX_QUEUE_ITEMS && !queue.some((x) => x.idempotency_key === idempotencyKey)) {
+        return { kind: "FULL" };
+      }
       await tx.put(reservationKey, {
         status: "IN_PROGRESS", request_fingerprint: requestFingerprint,
         lease_id: leaseId, started_at: Date.now(), expires_at: Date.now() + leaseMs
@@ -2683,6 +2688,7 @@ var ATMBrain = class extends DurableObject {
     if (reservation.kind === "IN_PROGRESS") {
       return { ok: false, status: 409, error: "IDEMPOTENCY_IN_PROGRESS", retry_after_ms: reservation.retry_after_ms };
     }
+    if (reservation.kind === "FULL") return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
     const failReservation = async (error) => {
       await this.ctx.storage.transaction(async (tx) => {
         const current = await tx.get(reservationKey);
