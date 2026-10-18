@@ -809,6 +809,21 @@ __name2(reconcileAgenticRuntimeTruth, "reconcileAgenticRuntimeTruth");
 function reconcileWatchdogRuntimeTruth(agentic, runtimes = {}, watchdog = {}) {
   const current = selectCurrentRuntime(agentic, runtimes);
   if (current) return { ...watchdog, active_runtime:true };
+  const lastStage = String(watchdog?.last_stage || "").toUpperCase();
+  const terminalFailure = ["ABORTED", "FAILED", "STALLED", "REJECTED", "WRITE_UNCERTAIN"].includes(lastStage)
+    || !!watchdog?.last_error_code
+    || ["STALLED", "RECOVERY_REQUIRED"].includes(String(watchdog?.classification || "").toUpperCase());
+  if (terminalFailure) {
+    return {
+      ...watchdog,
+      classification:"RECOVERY_REQUIRED",
+      recommended_action:"FRESH_SOURCE_READBACK_AND_TERMINAL_FAILURE_REVIEW",
+      anomaly:"TERMINAL_FAILURE_WITHOUT_ACTIVE_RUNTIME",
+      active_runtime:false,
+      runtime_stage:lastStage || null,
+      next_alarm_at:null
+    };
+  }
   return { ...watchdog, classification:"HEALTHY", recommended_action:"NONE", anomaly:"NONE", active_runtime:false, runtime_stage:null, next_alarm_at:null };
 }
 __name(reconcileWatchdogRuntimeTruth, "reconcileWatchdogRuntimeTruth");
@@ -3170,7 +3185,26 @@ var ATMBrain = class extends DurableObject {
     const selected = selectCurrentRuntime(agentic, runtimes);
     let wd = await this.economicWatchdogState();
     if (wd.glm_watchdog_day !== dayKey()) wd = { ...wd, glm_watchdog_day:dayKey(), glm_watchdog_calls_today:0 };
-    if (!selected) { wd.classification="HEALTHY"; wd.recommended_action="NONE"; wd.anomaly_fingerprint=null; wd.anomaly_count=0; await this.put("economic_watchdog", wd); return { ...wd, anomaly:"NONE", trigger }; }
+    if (!selected) {
+      const lastStage = String(wd.last_stage || "").toUpperCase();
+      const terminalFailure = ["ABORTED", "FAILED", "STALLED", "REJECTED", "WRITE_UNCERTAIN"].includes(lastStage) || !!wd.last_error_code;
+      wd.anomaly_fingerprint = null;
+      wd.anomaly_count = 0;
+      if (terminalFailure) {
+        wd.classification = "RECOVERY_REQUIRED";
+        wd.recommended_action = "FRESH_SOURCE_READBACK_AND_TERMINAL_FAILURE_REVIEW";
+        wd.anomaly = "TERMINAL_FAILURE_WITHOUT_ACTIVE_RUNTIME";
+      } else {
+        wd.classification = "HEALTHY";
+        wd.recommended_action = "NONE";
+        wd.anomaly = "NONE";
+      }
+      wd.active_runtime = false;
+      wd.runtime_stage = lastStage || null;
+      wd.next_alarm_at = null;
+      await this.put("economic_watchdog", wd);
+      return { ...wd, trigger };
+    }
     const opp = opps.find((x)=>x.opportunity_id===selected.opportunity_id) || null;
     const stage = String(selected.stage || "UNKNOWN"), artifactCount = n(selected.artifact_count), requiredArtifactCount = Math.max(1, n(opp?.artifact_profile?.artifact_count) || 1);
     const submissionId = selected.submission_id || null, externalReadback = selected.external_submission_readback || null, paidAmount = n(selected.paid_amount_usdc);
