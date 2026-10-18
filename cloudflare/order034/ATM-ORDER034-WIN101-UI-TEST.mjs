@@ -16,7 +16,9 @@ check('TRUTH_POTENTIAL_NOT_EARNED', (src.match(/NOT EARNED/g) || []).length >= 3
 check('TRUTH_UNKNOWN_NE_YES', src.includes('UNKNOWN ≠ YES'));
 check('BAD_ABORTED_STALLED', /ABORTED||STALLED\|FAILED\|ERROR\|REJECTED/.test(src));
 check('STALE_DATA_VISIBLE', src.includes("label:'STALE'") && src.includes("label:'LATE'"));
-check('READ_ONLY_DASHBOARD', !/method\s*:\s*['\"]POST['\"]/.test(src));
+check('READ_ONLY_GRANT_UI_PRESENT', src.includes('READ-ONLY ACCESS GRANTS') && src.includes('/api/access-grants') && src.includes('tasks:read'));
+check('GRANT_UI_NO_MARKETPLACE_MUTATIONS', !/fetch\(['"]\/api\/(?:dispatch|human-gate\/approve|taskmarket|claim|submit)/i.test(src));
+check('GRANT_TOKEN_NOT_PERSISTED_IN_BROWSER', !/localStorage|sessionStorage/.test(src));
 check('META_HACKATHON_WATCH_VISIBLE', src.includes('META GLOBAL AI DEVELOPER HACKATHON') && src.includes('NOTIFICATION SENT · APPLICATIONS OPENING SOON') && src.includes('$1M cash prize pool') && src.includes('$150 Meta Model API credits per participant'));
 check('META_HACKATHON_MONEY_TRUTH', src.includes('NOT YET EARNABLE') && src.includes('application not submitted') && src.includes('reverify official rules before action'));
 check('META_HACKATHON_OFFICIAL_LINK', src.includes('https://dev.meta.ai/events/global-hackathon'));
