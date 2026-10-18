@@ -18,7 +18,8 @@ if(mod.executionAdapterCapabilities('AGENTHANSA',{}).complete_lifecycle) throw n
 if(!mod.executionAdapterCapabilities('AGENTHANSA',{AGENTHANSA_API_KEY:'test'}).complete_lifecycle) throw new Error('HANSA_NOT_READY_WITH_SECRET');
 if(!mod.executionCandidateAdmitted({...base,source:'AGENTHANSA'},{AGENTHANSA_API_KEY:'test'})) throw new Error('HANSA_GENERIC_ADMISSION_FAILED');
 if(mod.executionCandidateAdmitted({...base,source:'SUPERTEAM'},{})) throw new Error('DISCOVER_ONLY_SOURCE_ADMITTED');
-if(mod.executionCandidateAdmitted({...base,source:'DAYDREAMS',estimated_net_usd:99},{TASKMARKET_SIGNER:{}})) throw new Error('ECONOMIC_FLOOR_BYPASSED');
+if(mod.executionCandidateAdmitted({...base,source:'DAYDREAMS',estimated_net_usd:0.99},{TASKMARKET_SIGNER:{}})) throw new Error('SUB_DOLLAR_ECONOMIC_FLOOR_BYPASSED');
+if(!mod.executionCandidateAdmitted({...base,source:'DAYDREAMS',estimated_net_usd:1},{TASKMARKET_SIGNER:{}})) throw new Error('ONE_DOLLAR_ECONOMIC_FLOOR_BLOCKED');
 const selector=sourceText.slice(sourceText.indexOf('async chooseTaskmarketCandidate'),sourceText.indexOf('async repairMultiMarkdownPlannerJson'));
 if(selector.includes('x.source === "DAYDREAMS"')) throw new Error('SELECTOR_STILL_DAYDREAMS_ONLY');
 const runner=sourceText.slice(sourceText.indexOf('async runAgentic'),sourceText.indexOf('async status()'));
@@ -26,5 +27,5 @@ if(runner.includes('this.acquireDaydreams(opp')||runner.includes('this.submitDay
 console.log('GENERIC_ADAPTER_POLICY=PASS');
 console.log('HANSA_LIFECYCLE_GATE=PASS');
 console.log('GENERIC_DISPATCH=PASS');
-console.log('ECONOMIC_FLOOR_PRESERVED=PASS');
+console.log('USD_1_ECONOMIC_FLOOR_PRESERVED=PASS');
 console.log('PRODUCTION_MUTATION=0');
