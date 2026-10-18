@@ -586,13 +586,14 @@ var GALAXY_ADVISORY_TECH = [
 function galaxyPolicyBlockers(title, description) {
   const text = `${title || ""} ${description || ""}`.toLowerCase(), out = [];
   const add = (x) => { if (!out.includes(x)) out.push(x); };
+  if (/\b(public audit page|your own (?:public )?(?:page|blog|board)|public submission (?:page|link)|post on your own account|your own account)\b/i.test(text)) add("SOCIAL_OR_PUBLICATION_REQUIRED");
   const tradeOrBet = /\b(?:trade(?:\s+(?:crypto|stocks?|equities|forex))?|(?:buy|sell|invest(?:\s+in)?)\s+(?:bitcoin|btc|ethereum|eth|crypto(?:currency|currencies)?|tokens?|stocks?|equities|forex|securities)|buy\s+and\s+sell\s+(?:crypto|stocks?|equities|forex)|market\s+making|place\s+(?:a\s+)?bet|bet\s+on|wager|gamble|execute\s+(?:crypto\s+|forex\s+)?trading)\b/i.test(text);
   if (tradeOrBet) add("TRADING_OR_GAMBLING_PROHIBITED");
   const spendEvidence = sourceExecutionSpendEvidence(title, description);
   const imperativeSpend = /\b(?:stake|deposit|post\s+collateral|pay\s+(?:gas(?:\s+fee)?|network\s+fee)|buy\s+(?:api\s+)?credits?)\b[^.!?;]{0,100}\b(?:to\s+claim|to\s+submit|to\s+participate|for\s+access|before\s+(?:claim|submit|submission|participat))/i.test(text);
   const explicitRequirement = /\brequires?\b[^.!?;]{0,80}\b(?:stake|deposit|collateral|gas(?:\s+fee)?|network\s+fee|paid\s+api|premium\s+api|paid\s+subscription|api\s+credits?|card\s+hold|preauthori[sz]ation)\b/i.test(text);
   const directSpendMandate = /\b(?:must\s+)?(?:stake|deposit|post\s+collateral|pay\s+(?:(?:a|the)\s+)?(?:\d+(?:\.\d+)?\s*(?:usd|usdc|usdt|eur|ars)?\s*)?(?:fee|gas(?:\s+fee)?|network\s+fee)?|purchase\s+(?:\d+\s+)?(?:api\s+)?credits?)\b/i.test(text)
-    && !/\b(?:no|not|without)\s+(?:stake|staking|deposit|collateral|gas(?:\s+fee)?|network\s+fee|fee|api\s+credits?)\b/i.test(text);
+    && !/\b(?:no|not|without|never)\s+(?:\w+\s+){0,3}(?:stake|staking|deposit|collateral|gas(?:\s+fee)?|network\s+fee|fee|api\s+credits?|purchase|buy(?:ing)?)\b/i.test(text);
   const spendRequired = spendEvidence.required || imperativeSpend || explicitRequirement || directSpendMandate;
   if (spendRequired) {
     add("BLOCKED_OWNER_SPEND");
@@ -1838,7 +1839,7 @@ function detectBlockers({ source, title, description, raw }) {
     if (!blockers.includes(x)) blockers.push(x);
   }, "add");
   if (/\b(github|pull request|repository|repo\b)/i.test(text)) add("GITHUB_REQUIRED");
-  if (/\b(x\b|twitter|tweet|retweet|quote tweet|instagram|tiktok|linkedin|reddit|discord|telegram|social media|newsletter|press mention|post must be live)\b/i.test(text)) add("SOCIAL_OR_PUBLICATION_REQUIRED");
+  if (/\b(x\b|twitter|tweet|retweet|quote tweet|instagram|tiktok|linkedin|reddit|discord|telegram|social media|newsletter|press mention|post must be live|public audit page|your own (?:public )?(?:page|blog|board)|public submission (?:page|link)|post on your own account|your own account)\b/i.test(text)) add("SOCIAL_OR_PUBLICATION_REQUIRED");
   if (/\b(outreach|contact the buyer|contact buyer|contact restaurant|email the|phone call|sales call|schedule meeting|recruit|referral link)\b/i.test(text)) add("OUTREACH_REQUIRED");
   if (/\b(video|selfie|voice|interview|human[- ]only|remote assistance|wechat)\b/i.test(text)) add("HUMAN_INTERACTION_REQUIRED");
   if (/\b(kyc|identity verification|photo id|government id)\b/i.test(text)) add("KYC_OR_IDENTITY_REQUIRED");
