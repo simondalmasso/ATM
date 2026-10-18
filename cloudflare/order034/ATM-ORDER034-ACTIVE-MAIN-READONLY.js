@@ -3371,6 +3371,7 @@ var ATMBrain = class extends DurableObject {
         // Terminal no-award is distinct from rejection and never implies a payout.
         runtime.stage = "NO_AWARD";
         runtime.terminal = true;
+        runtime.external_submission_readback = "NO_AWARD";
         runtime.no_award_at = row.at;
         runtime.no_award_evidence = {
           source: "TASKMARKET_PUBLIC_READBACK",
@@ -3384,6 +3385,22 @@ var ATMBrain = class extends DurableObject {
           observed_at: row.at
         };
         opp.execution_stage = "NO_AWARD";
+        const priorWatchdog = await this.economicWatchdogState();
+        await this.put("economic_watchdog", {
+          ...priorWatchdog,
+          task_id: String(runtime.task_id),
+          opportunity_id: oppId,
+          last_stage: "NO_AWARD",
+          last_progress_at: row.at,
+          last_submission_id: String(runtime.submission_id),
+          last_external_readback: "NO_AWARD",
+          last_error_code: null,
+          classification: "HEALTHY",
+          recommended_action: "NONE",
+          anomaly: "NONE",
+          anomaly_fingerprint: null,
+          anomaly_count: 0
+        });
         await this.appendTaskEvent(opp, "NO_AWARD", {
           submission_id: runtime.submission_id,
           external_status: "NO_AWARD",
