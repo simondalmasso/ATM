@@ -19,7 +19,7 @@ const idleTruth=mod.reconcileAgenticRuntimeTruth(idle,{old:stale});
 if(idleTruth.status!=='IDLE_NO_AUTO_ELIGIBLE_TASK'||idleTruth.execution_job_id) throw new Error('IDLE_TRUTH_OVERRIDDEN:'+JSON.stringify(idleTruth));
 const staleWatchdog={classification:'STALLED',anomaly:'A5_VERIFIER_FAILED_WITH_ARTIFACT',recommended_action:'RETRY',task_id:'old-task'};
 const idleWatchdog=mod.reconcileWatchdogRuntimeTruth(idle,{old:stale},staleWatchdog);
-if(idleWatchdog.classification!=='HEALTHY'||idleWatchdog.anomaly!=='NONE'||idleWatchdog.active_runtime!==false) throw new Error('IDLE_WATCHDOG_STALE:'+JSON.stringify(idleWatchdog));
+if(idleWatchdog.classification!=='RECOVERY_REQUIRED'||idleWatchdog.anomaly!=='TERMINAL_FAILURE_WITHOUT_ACTIVE_RUNTIME'||idleWatchdog.active_runtime!==false) throw new Error('IDLE_WATCHDOG_TERMINAL_FAILURE_NOT_PRESERVED:'+JSON.stringify(idleWatchdog));
 const active={status:'EXECUTING',execution_job_id:'hansa-job',selected_task_id:'hansa-task',dispatch_id:'d1'};
 const hansa={job_id:'hansa-job',task_id:'hansa-task',source:'AGENTHANSA',stage:'VERIFYING',terminal:false,dispatch_id:'d1'};
 const activeTruth=mod.reconcileAgenticRuntimeTruth(active,{h:hansa,old:stale});
