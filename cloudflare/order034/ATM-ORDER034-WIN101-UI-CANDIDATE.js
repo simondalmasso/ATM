@@ -143,6 +143,41 @@ function queueRow(x){const state=x.state||x.execution_stage||x.queue_classificat
 function head(){return'<div class="row head"><div>TAREA</div><div>ESTADO</div><div>POTENCIAL</div><div>BLOQUEO</div></div>'}
 function eventRow(x){const type=x.transition||x.type||'EVENT',at=x.timestamp||x.observed_at||x.at||'';return'<div class="event"><b class="'+tone(type)+'">'+esc(type)+'</b> · '+esc(x.message||x.source_task_id||x.task_id||'—')+'<time>'+esc(at)+'</time></div>'}
 async function getJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(url+' HTTP '+r.status);return r.json()}
+function grantRow(g){
+ const status=String(g.status||'UNKNOWN');
+ const detail='Scope '+String(g.scope||'—')+' · expira '+String(g.expires_at||'—')+' · usos '+Number(g.use_count||0)+' · último uso '+String(g.last_used_at||'nunca');
+ return '<div class="grant-row"><div><b>'+esc(g.label||g.id)+'</b> <span class="'+(status==='ACTIVE'?'good':status==='REVOKED'?'bad':'warn')+'">'+esc(status)+'</span><small>'+esc(detail)+'</small></div>'+(status==='ACTIVE'?'<button type="button" data-revoke="'+esc(g.id)+'">Revocar</button>':'')+'</div>';
+}
+async function loadGrants(){
+ const status=$('#grantAuthStatus'),controls=$('#grantControls');
+ try{
+  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store'});
+  const session=await sessionResponse.json().catch(()=>({ok:false}));
+  if(!sessionResponse.ok||!session.ok){controls.hidden=true;status.textContent='Se requiere una sesión de propietario ATM activa para crear o revocar grants.';status.className='grant-status warn';return;}
+  controls.hidden=false;status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';
+  const data=await getJson('/api/access-grants');
+  $('#grantList').innerHTML=(data.results||[]).length?(data.results||[]).map(grantRow).join(''):'<div class="empty">No hay grants creados.</div>';
+  $('#grantList').querySelectorAll('[data-revoke]').forEach(button=>button.addEventListener('click',async()=>{
+   button.disabled=true;
+   try{const response=await fetch('/api/access-grants/'+encodeURIComponent(button.dataset.revoke)+'/revoke',{method:'POST',cache:'no-store'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'REVOKE_FAILED');$('#grantCreated').hidden=true;await loadGrants();}
+   catch(error){status.textContent='No se pudo revocar: '+error.message;status.className='grant-status bad';button.disabled=false;}
+  }));
+ }catch(error){controls.hidden=true;status.textContent='Gestión de grants no disponible: '+error.message;status.className='grant-status bad';}
+}
+$('#createGrantBtn').addEventListener('click',async()=>{
+ const button=$('#createGrantBtn'),status=$('#grantAuthStatus');button.disabled=true;
+ try{
+  const response=await fetch('/api/access-grants',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify({label:$('#grantLabel').value,ttl_minutes:Number($('#grantTtl').value)})});
+  const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'GRANT_CREATE_FAILED');
+  $('#grantToken').value=result.token;$('#grantCreated').hidden=false;$('#grantCopyStatus').textContent='';status.textContent='Grant creado. Copiá el token; el servidor no puede volver a mostrarlo.';status.className='grant-status good';await loadGrants();
+ }catch(error){status.textContent='No se pudo crear el grant: '+error.message;status.className='grant-status bad';}
+ finally{button.disabled=false;}
+});
+$('#copyGrantBtn').addEventListener('click',async()=>{
+ const field=$('#grantToken'),status=$('#grantCopyStatus');field.focus();field.select();
+ try{await navigator.clipboard.writeText(field.value);status.textContent='Copiado.';}
+ catch{status.textContent='Seleccionado: copiá manualmente con Ctrl+C.';}
+});
 async function load(){
   $('#clock').textContent=new Date().toLocaleString('es-AR');
   try{
@@ -179,7 +214,7 @@ async function load(){
   }catch(err){$('#truthline').textContent='DEGRADED · '+err.message;$('#truthline').className='statusline bad'}
 }
 async function pollMcp(){try{setMcpHeartbeat(await getJson('/api/mcp-heartbeat'))}catch{}}
-load();pollMcp();setInterval(load,15000);setInterval(pollMcp,3000);
+load();pollMcp();loadGrants();setInterval(load,15000);setInterval(pollMcp,3000);setInterval(loadGrants,30000);
 <\/script>
 </body></html>`;
 }
