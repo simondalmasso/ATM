@@ -16,6 +16,8 @@ function shellHtml() {
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px solid var(--ink);border-left:2px solid var(--ink)}.cell{min-width:0;padding:8px;background:var(--paper);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}.cell b{display:block;margin-top:3px;font-size:17px;font-weight:800;overflow-wrap:anywhere}.cell small{display:block;color:var(--muted);margin-top:3px;font-size:12px;font-weight:600;overflow-wrap:anywhere}.split{display:grid;grid-template-columns:1.35fr .65fr;gap:12px}.table{border:2px solid var(--ink)}.row{display:grid;grid-template-columns:minmax(180px,2fr) 95px 100px minmax(160px,1fr);border-bottom:2px solid var(--ink);background:var(--paper)}.row:last-child{border-bottom:0}.row.head{background:var(--chrome);font-weight:700}.row>div{min-width:0;padding:7px;border-right:2px solid var(--ink);overflow-wrap:anywhere}.row>div:last-child{border-right:0}.sourcegrid{display:grid;gap:0;border:2px solid var(--ink)}.source{display:grid;grid-template-columns:1fr auto;gap:8px;padding:7px;background:var(--paper);border-bottom:2px solid var(--ink)}.source:last-child{border-bottom:0}.source small{display:block;color:var(--muted);font-weight:600}.log{max-height:290px;overflow:auto;border:2px solid var(--ink);background:var(--paper)}.event{padding:7px;border-bottom:1px solid var(--ink)}.event:last-child{border-bottom:0}.event time{display:block;color:var(--muted);font-size:11px;margin-top:2px}.empty{padding:16px;background:var(--paper);border:2px solid var(--ink)}
 @media(max-width:800px){body{padding:7px;font-size:15px;line-height:1.32}.brandstrip{padding:10px 9px 9px;gap:6px}.atm-logo{width:min(54vw,255px)}.terminal-loader{padding-top:7px}.terminal-matrix{font-size:10px;letter-spacing:.075em}.hero,.split{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.menu{gap:12px;overflow:auto;white-space:nowrap}.titlebar{align-items:flex-start}.row{grid-template-columns:1fr 1fr}.row.head{display:none}.row>div{border-right:0;border-bottom:1px dotted var(--ink)}.row>div:nth-child(odd){border-right:2px solid var(--ink)}.row>div::before{display:block;font-size:10px;color:var(--muted);text-transform:uppercase}.row>div:nth-child(1)::before{content:"Tarea"}.row>div:nth-child(2)::before{content:"Estado"}.row>div:nth-child(3)::before{content:"Potencial"}.row>div:nth-child(4)::before{content:"Bloqueo"}}
 @media(max-width:420px){body{padding:5px;font-size:15px;line-height:1.34;font-weight:650}.brandstrip{padding:9px 7px 8px}.atm-logo{width:min(55.5vw,225px)}.terminal-matrix{font-size:10px;letter-spacing:.055em}.terminal-meta{font-size:10px}.titlebar{font-size:13px;padding:7px 8px}.menu{font-size:13px;padding:7px 8px;gap:14px}.statusline{font-size:12.5px}.moneyhero .label,.cell .label{font-size:12px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row>div:nth-child(odd){border-right:0}.moneyhero .value{font-size:42px}.menu{font-size:12px}.body{padding:7px}}
+
+#grantControls[hidden],#grantCreated[hidden]{display:none!important}.grant-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(120px,1fr) auto;gap:8px;align-items:end}.grant-form label{display:grid;gap:5px;font-size:12px}.grant-form input,.grant-form select,.grant-token{width:100%;min-width:0;border:1px solid var(--ink);background:#fff;padding:8px}.grant-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.grant-actions button,.grant-row button{border:2px solid var(--ink);background:var(--yellow);padding:8px 10px;cursor:pointer}.grant-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #c9bee0}.grant-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.grant-status{font-size:12px;margin:8px 0}.grant-status.bad{color:var(--bad)}.grant-status.good{color:var(--good)}@media(max-width:650px){.grant-form{grid-template-columns:1fr}.grant-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -80,6 +82,7 @@ function shellHtml() {
     <section class="window"><div class="titlebar"><span>EVENT LOG</span><span>latest</span></div><div class="body"><div class="log" id="events"></div></div></section>
   </aside>
 </div>
+<section class="window" id="accessGrantsWindow"><div class="titlebar"><span>READ-ONLY ACCESS GRANTS</span><span>OWNER-GATED</span></div><div class="body"><p>Tokens bearer temporales para consultar tareas ATM por API. Alcance fijo: <b>tasks:read</b>. Compartilo solo con el agente previsto. Sin credenciales de terceros, claims, submissions, firmas ni gasto. El dashboard público sigue exponiendo su propia lista de oportunidades; este grant protege el endpoint dedicado del agente.</p><div id="grantAuthStatus" class="grant-status">Verificando sesión de propietario…</div><div id="grantControls" hidden><div class="grant-form"><label for="grantLabel">Etiqueta del agente<input id="grantLabel" maxlength="80" value="ATM read-only agent" autocomplete="off"></label><label for="grantTtl">Duración<select id="grantTtl"><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option></select></label><button id="createGrantBtn" type="button">Crear grant</button></div><div id="grantCreated" hidden><p><b>Token generado. Se muestra solo en esta sesión; copialo ahora.</b></p><input id="grantToken" class="grant-token" readonly aria-label="Token de acceso de solo lectura"><div class="grant-actions"><button id="copyGrantBtn" type="button">Copiar token</button><span id="grantCopyStatus" class="grant-status"></span></div><small>Endpoint compatible: GET /api/agent/tasks · Authorization: Bearer [token]</small></div><div id="grantList" aria-live="polite"></div></div></div></section>
 <section class="window"><div class="titlebar"><span>TRUTH RULES</span><span>ATM</span></div><div class="body">PAID ≠ SUBMITTED. POTENTIAL ≠ EARNED. UNKNOWN ≠ YES. OUT_OF_POCKET_SPEND_USD = 0. Dashboard read-only.</div><div class="statusline">Model: ${MODEL}</div></section>
 </main>
 <script>
@@ -140,6 +143,41 @@ function queueRow(x){const state=x.state||x.execution_stage||x.queue_classificat
 function head(){return'<div class="row head"><div>TAREA</div><div>ESTADO</div><div>POTENCIAL</div><div>BLOQUEO</div></div>'}
 function eventRow(x){const type=x.transition||x.type||'EVENT',at=x.timestamp||x.observed_at||x.at||'';return'<div class="event"><b class="'+tone(type)+'">'+esc(type)+'</b> · '+esc(x.message||x.source_task_id||x.task_id||'—')+'<time>'+esc(at)+'</time></div>'}
 async function getJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(url+' HTTP '+r.status);return r.json()}
+function grantRow(g){
+ const status=String(g.status||'UNKNOWN');
+ const detail='Scope '+String(g.scope||'—')+' · expira '+String(g.expires_at||'—')+' · usos '+Number(g.use_count||0)+' · último uso '+String(g.last_used_at||'nunca');
+ return '<div class="grant-row"><div><b>'+esc(g.label||g.id)+'</b> <span class="'+(status==='ACTIVE'?'good':status==='REVOKED'?'bad':'warn')+'">'+esc(status)+'</span><small>'+esc(detail)+'</small></div>'+(status==='ACTIVE'?'<button type="button" data-revoke="'+esc(g.id)+'">Revocar</button>':'')+'</div>';
+}
+async function loadGrants(){
+ const status=$('#grantAuthStatus'),controls=$('#grantControls');
+ try{
+  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store'});
+  const session=await sessionResponse.json().catch(()=>({ok:false}));
+  if(!sessionResponse.ok||!session.ok){controls.hidden=true;status.textContent='Se requiere una sesión de propietario ATM activa para crear o revocar grants.';status.className='grant-status warn';return;}
+  controls.hidden=false;status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';
+  const data=await getJson('/api/access-grants');
+  $('#grantList').innerHTML=(data.results||[]).length?(data.results||[]).map(grantRow).join(''):'<div class="empty">No hay grants creados.</div>';
+  $('#grantList').querySelectorAll('[data-revoke]').forEach(button=>button.addEventListener('click',async()=>{
+   button.disabled=true;
+   try{const response=await fetch('/api/access-grants/'+encodeURIComponent(button.dataset.revoke)+'/revoke',{method:'POST',cache:'no-store'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'REVOKE_FAILED');$('#grantCreated').hidden=true;await loadGrants();}
+   catch(error){status.textContent='No se pudo revocar: '+error.message;status.className='grant-status bad';button.disabled=false;}
+  }));
+ }catch(error){controls.hidden=true;status.textContent='Gestión de grants no disponible: '+error.message;status.className='grant-status bad';}
+}
+$('#createGrantBtn').addEventListener('click',async()=>{
+ const button=$('#createGrantBtn'),status=$('#grantAuthStatus');button.disabled=true;
+ try{
+  const response=await fetch('/api/access-grants',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify({label:$('#grantLabel').value,ttl_minutes:Number($('#grantTtl').value)})});
+  const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'GRANT_CREATE_FAILED');
+  $('#grantToken').value=result.token;$('#grantCreated').hidden=false;$('#grantCopyStatus').textContent='';await loadGrants();status.textContent='Grant creado. Copiá el token; el servidor no puede volver a mostrarlo.';status.className='grant-status good';
+ }catch(error){status.textContent='No se pudo crear el grant: '+error.message;status.className='grant-status bad';}
+ finally{button.disabled=false;}
+});
+$('#copyGrantBtn').addEventListener('click',async()=>{
+ const field=$('#grantToken'),status=$('#grantCopyStatus');field.focus();field.select();
+ try{await navigator.clipboard.writeText(field.value);status.textContent='Copiado.';}
+ catch{status.textContent='Seleccionado: copiá manualmente con Ctrl+C.';}
+});
 async function load(){
   $('#clock').textContent=new Date().toLocaleString('es-AR');
   try{
@@ -176,7 +214,7 @@ async function load(){
   }catch(err){$('#truthline').textContent='DEGRADED · '+err.message;$('#truthline').className='statusline bad'}
 }
 async function pollMcp(){try{setMcpHeartbeat(await getJson('/api/mcp-heartbeat'))}catch{}}
-load();pollMcp();setInterval(load,15000);setInterval(pollMcp,3000);
+load();pollMcp();loadGrants();setInterval(load,15000);setInterval(pollMcp,3000);setInterval(loadGrants,30000);
 <\/script>
 </body></html>`;
 }
