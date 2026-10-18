@@ -53,7 +53,7 @@ jobs:
 
           MAIN=false
           SIGNER=false
-          if grep -Eq '^cloudflare/order034/(ATM-ORDER034-ACTIVE-MAIN-READONLY\.js|ATM-ORDER034-WIN101-UI-CANDIDATE\.js|wrangler\.order034\.main\.jsonc)$|^\.github/workflows/deploy-cloudflare\.yml$' "$RUNNER_TEMP/changed.txt"; then
+          if grep -Eq '^cloudflare/order034/(ATM-ORDER034-ACTIVE-MAIN-READONLY\.js|ATM-ORDER034-WIN101-UI-CANDIDATE\.js|ATM-ORDER068-READONLY-GRANTS\.mjs|wrangler\.order034\.main\.jsonc)$|^\.github/workflows/deploy-cloudflare\.yml$' "$RUNNER_TEMP/changed.txt"; then
             MAIN=true
           fi
           if grep -Eq '^cloudflare/order034/(ATM-ORDER034-FINAL-SIGNER-CANDIDATE\.mjs|wrangler\.order034\.signer\.jsonc)$' "$RUNNER_TEMP/changed.txt"; then
