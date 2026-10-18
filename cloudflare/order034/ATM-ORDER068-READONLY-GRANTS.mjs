@@ -39,7 +39,7 @@ export async function createReadOnlyGrant({ storage, label = "ATM read-only agen
   const ttl = Number(ttlMinutes);
   if (!Number.isInteger(ttl) || ttl < MIN_TTL_MINUTES || ttl > MAX_TTL_MINUTES) return { ok: false, error: "GRANT_TTL_OUT_OF_RANGE" };
   const time = now();
-  const current = await storage.list({ prefix: RECORD_PREFIX, limit: 100 });
+  const current = await storage.list({ prefix: RECORD_PREFIX });
   const activeCount = [...current.values()].filter((record) => !record.revoked_at && Date.parse(record.expires_at) > time).length;
   if (activeCount >= MAX_ACTIVE_GRANTS) return { ok: false, error: "GRANT_LIMIT_REACHED" };
   const token = randomHex(32);
@@ -64,7 +64,7 @@ export async function createReadOnlyGrant({ storage, label = "ATM read-only agen
 
 export async function listReadOnlyGrants({ storage, now = () => Date.now() } = {}) {
   if (!validStorage(storage)) return [];
-  const records = await storage.list({ prefix: RECORD_PREFIX, limit: 100 });
+  const records = await storage.list({ prefix: RECORD_PREFIX });
   return [...records.values()]
     .map((record) => publicGrant(record, now()))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
