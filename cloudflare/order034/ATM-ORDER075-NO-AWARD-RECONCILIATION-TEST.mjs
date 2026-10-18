@@ -11,7 +11,6 @@ let code=fs.readFileSync(src,'utf8').replace(
   'class DurableObject { constructor(ctx,env){ this.ctx=ctx; this.env=env; } }'
 );
 code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
-code+='\nexport { ATMBrain };\n';
 fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const {ATMBrain}=await import(pathToFileURL(tmp).href+'?v='+Date.now());
