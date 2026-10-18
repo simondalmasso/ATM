@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant } from "./ATM-ORDER068-READONLY-GRANTS.mjs";
+import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";
 
 class MemoryStorage {
   data = new Map();
@@ -40,8 +40,19 @@ assert.equal((await authorizeReadOnlyGrant({ storage, token: expiring.token, now
 assert.equal((await createReadOnlyGrant({ storage, label: "bad ttl", ttlMinutes: 1, now: () => now })).ok, false);
 assert.equal((await createReadOnlyGrant({ storage, label: "too long", ttlMinutes: 1441, now: () => now })).ok, false);
 
+const sanitized = sanitizeReadOnlyTasks([
+  { id: "public-1", source: "TASKMARKET", title: "Write a report", description: "Public description", estimated_net_usd: 5, url: "javascript:alert(1)", private_key: "never-return", api_token: "never-return", raw: { hidden: true } },
+  { id: "missing-source", source: "", title: "Must be dropped" }
+]);
+assert.equal(sanitized.length, 1);
+assert.equal(sanitized[0].url, null, "unsafe URLs must not be returned");
+assert.equal(sanitized[0].estimated_net_usd, 5);
+assert.equal(JSON.stringify(sanitized).includes("never-return"), false, "sensitive/unapproved source fields must not escape");
+assert.equal(JSON.stringify(sanitized).includes("hidden"), false, "raw source payload must not escape");
+
 console.log("READONLY_GRANT_CREATE_HASHED_TOKEN=PASS");
 console.log("READONLY_GRANT_LIST_REDACTS_SECRETS=PASS");
 console.log("READONLY_GRANT_AUTH_AND_SCOPE=PASS");
 console.log("READONLY_GRANT_REVOKE_IMMEDIATE=PASS");
 console.log("READONLY_GRANT_EXPIRY_AND_TTL_BOUNDS=PASS");
+console.log("READONLY_TASK_FIELDS_ALLOWLISTED=PASS");
