@@ -1,0 +1,95 @@
+{
+  "schema_version": "atm/taskmarket-submission-readback-v1",
+  "recorded_at": "2026-10-18",
+  "purpose": "Resolve the external identity/status ambiguity for the ATM pending Taskmarket submission without changing platform state.",
+  "atm_record": {
+    "internal_uuid": "c2fd23a7-ff61-4cdd-b45d-2f2af5d6259a",
+    "claimed_external_task_id": "0x935a2d3c8c949e8c58feacc6f9469142a1ad0d4a07c2922d0797bf2929a0a7b9",
+    "worker_address": "0x7dCBee019FFD17A77413C1fDb47aeFe771222837",
+    "worker_agent_id": "73264",
+    "previous_internal_state": "RECOVERY_REQUIRED; pending=1; accepted=0; paid=0; external submission ID unknown"
+  },
+  "readbacks": [
+    {
+      "url": "https://api.taskmarket.dev/api/tasks/0x935a2d3c8c949e8c58feacc6f9469142a1ad0d4a07c2922d0797bf2929a0a7b9",
+      "observation": "Task is closed to submissions; phase awaiting_settlement; submissionCount=23; awardCount=0.",
+      "meaning": "No award or settlement is established for this task in the observed task record."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/tasks/0x935a2d3c8c949e8c58feacc6f9469142a1ad0d4a07c2922d0797bf2929a0a7b9/submissions",
+      "observation": "Public task submission feed contains submission/artifact records for other worker addresses; no record matching workerAddress 0x7dCBee019FFD17A77413C1fDb47aeFe771222837 or workerAgentId 73264 was found in the extracted current feed.",
+      "meaning": "No externally identifiable submission for this ATM worker was located on the claimed task."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/tasks/0x935a2d3c8c949e8c58feacc6f9469142a1ad0d4a07c2922d0797bf2929a0a7b9/submissions/c2fd23a7-ff61-4cdd-b45d-2f2af5d6259a/manifest",
+      "observation": "HTTP 404 Submission or artifacts not found.",
+      "meaning": "The ATM internal UUID is not a usable external submission ID for this task."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/submissions/mine?workerAddress=0x7dCBee019FFD17A77413C1fDb47aeFe771222837",
+      "observation": "The wallet's returned submission record belongs to a different task, 0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f, submitted 2026-09-03, with submitTxHash 0x5a7924420a266e32b71ebc621c3c88f8156fcf661873d30e494d826e44da83aa. It is not a record for task 0x935a....",
+      "meaning": "The wallet has an unrelated historical submission; it does not establish submission, acceptance, or payment for the pending ATM task."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/agents/stats?address=0x7dCBee019FFD17A77413C1fDb47aeFe771222837",
+      "observation": "agentId=73264; completedTasks=0; totalEarnings=0.",
+      "meaning": "Current public agent stats do not show completed paid work for this wallet."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/agents/inbox?address=0x7dCBee019FFD17A77413C1fDb47aeFe771222837",
+      "observation": "The worker inbox lists three claimed Throttle verification tasks with IDs 0x995297cf461b1446675bbc06dbd15625f82c513ee84041170505a3ec26928b39, 0xec6d29622eba49d5cbc98206727a814f4ccea39dc2f1b7823a74c37ad142939d, and 0xdac0d4881881b58d67489fde15843cbc67a9285473606db51fa398315502d110. The target task 0x935a... is not listed as claimed by this wallet.",
+      "meaning": "Claimed-task inventory also fails to link the pending ATM record to the target task."
+    }
+  ],
+  "resolution": {
+    "classification": "NO_EXTERNAL_MATCH_INTERNAL_EXTERNAL_ID_MISMATCH",
+    "confidence": "HIGH_FOR_CURRENT_PUBLIC_READBACK",
+    "not_claimed": [
+      "Not classified as rejected: no worker-specific terminal rejection was found.",
+      "Not classified as paid or accepted.",
+      "Not proof that a submission never existed at any earlier time."
+    ],
+    "safe_ledger_action": "Close the stale uncertainty for the claimed task as NO_EXTERNAL_MATCH after reconciling the ATM journal; preserve the internal UUID as an internal record only and do not reuse it as a Taskmarket submission ID.",
+    "remaining_guard": "Do not create a replacement submission for task 0x935a... (its submission window is closed). Any new claim/submission must use a fresh task readback, satisfy the economic gate and human authorization rules, and record the actual external submission ID plus authoritative settlement reference.",
+    "owner_spend_usd": 0
+  },
+  "opportunity_search": {
+    "result": "NO_LISTING_YET_PASSES_ALL_ADMISSION_CRITERIA",
+    "criteria": [
+      "Current open AI evaluation/annotation work",
+      "Explicit Argentina, Latin America, or worldwide eligibility",
+      "Explicit USD compensation and payment terms",
+      "No upfront fee, deposit, stake, paid certification, or paid tool",
+      "Explicit permission for AI assistance in the paid work and any assessment"
+    ],
+    "near_misses": [
+      {
+        "title": "Garment Manufacturing QC Specialist – Freelance AI Trainer Project",
+        "url": "https://jobicy.com/jobs/149301-garment-manufacturing-qc-specialist-freelance-ai-trainer-project",
+        "verified": "LATAM remote; advertised USD 6-15/hour; hands-on garment manufacturing QC experience preferred/expected.",
+        "blocked_by": [
+          "Listing does not explicitly permit AI assistance in its work or screening.",
+          "Actual approved rate and payment schedule remain employer-confirmation items."
+        ]
+      },
+      {
+        "title": "Strategic Sourcing Lead – Fulfillment – Argentina",
+        "url": "https://jobicy.com/jobs/155659-strategic-sourcing-lead-fulfillment-argentina",
+        "verified": "Argentina included; senior full-time sourcing role; description explicitly mentions AI and automation in sourcing workflows.",
+        "blocked_by": [
+          "Employer compensation is not disclosed in the listing; third-party salary estimates are not admissible.",
+          "This is not an entry-level annotation task and requires 5+ years of sourcing/recruitment experience."
+        ]
+      },
+      {
+        "title": "English-Speaking BA Generalist Data Annotator",
+        "url": "https://www.opentrain.ai/jobs/ba-generalist-english-and-creative-data-annotation--cmv9eojvb000602rzl3i8ubmq",
+        "verified": "Remote worldwide; free account to apply; evaluation/annotation work.",
+        "blocked_by": [
+          "No explicit rate or amount in the public listing.",
+          "No explicit AI-assistance permission for the paid work or assessment."
+        ]
+      }
+    ]
+  }
+}
