@@ -44,11 +44,13 @@ for (let i = 0; i < 50; i++) { const created = await createReadOnlyGrant({ stora
 assert.equal((await createReadOnlyGrant({ storage, label: "over capacity", ttlMinutes: 5, now: () => capacityNow })).error, "GRANT_LIMIT_REACHED");
 
 const sanitized = sanitizeReadOnlyTasks([
-  { id: "public-1", source: "TASKMARKET", title: "Write a report", description: "Public description", estimated_net_usd: 5, url: "javascript:alert(1)", private_key: "never-return", api_token: "never-return", raw: { hidden: true } },
+  { opportunity_id: "public-1", source: "TASKMARKET", title: "Write a report", description: "Public description", estimated_net_usd: 5, source_url: "https://tasks.example/task/1", source_status: "open", payout_currency: "USD", private_key: "never-return", api_token: "never-return", raw: { hidden: true } },
   { id: "missing-source", source: "", title: "Must be dropped" }
 ]);
 assert.equal(sanitized.length, 1);
-assert.equal(sanitized[0].url, null, "unsafe URLs must not be returned");
+assert.equal(sanitized[0].url, "https://tasks.example/task/1", "source_url must map to the public URL field");
+assert.equal(sanitized[0].status, "open", "source_status must map to the public status field");
+assert.equal(sanitized[0].currency, "USD", "payout_currency must map to the public currency field");
 assert.equal(sanitized[0].estimated_net_usd, 5);
 assert.equal(JSON.stringify(sanitized).includes("never-return"), false, "sensitive/unapproved source fields must not escape");
 assert.equal(JSON.stringify(sanitized).includes("hidden"), false, "raw source payload must not escape");
