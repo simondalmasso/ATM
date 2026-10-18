@@ -17,6 +17,21 @@ Hard invariants:
 - CHECK is independent from SUBMIT
 - retries are bounded and idempotent
 
+## Temporary read-only agent access (ORDER-068)
+
+The dashboard includes an owner-gated panel for temporary task API grants. The owner must already have a valid ATM owner session to create or revoke grants.
+
+- Create: POST /api/access-grants with JSON fields label (optional) and ttl_minutes (5–1440).
+- List: GET /api/access-grants. Responses never include bearer tokens or token hashes.
+- Revoke: POST /api/access-grants/:id/revoke. Revocation is checked on every agent request.
+- Read tasks: GET /api/agent/tasks with Authorization: Bearer <token>.
+- Fixed scope: tasks:read. Grant TTL is 5 minutes to 24 hours; the UI offers 15 minutes, 1 hour, 4 hours, 12 hours, and 24 hours.
+- Tokens are random 256-bit bearer capabilities. The raw token is returned once, and only its SHA-256 hash is persisted. Do not share it outside the intended agent.
+- The agent API returns at most 100 task records from an explicit allowlist. It does not accept task claims, submissions, signatures, payments, withdrawals, or other mutations.
+- No wallet or third-party account credentials are stored or delegated by this feature.
+
+Important: the existing public dashboard opportunity endpoint remains public. ORDER-068 grants gate the dedicated agent API and its per-grant rate limit; they do not make already-public dashboard data private.
+
 ## Canonical production runtime
 
 Main Worker:
