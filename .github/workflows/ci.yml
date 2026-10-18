@@ -34,6 +34,7 @@ jobs:
           set -euo pipefail
           node cloudflare/order034/ATM-ORDER034-WIN101-UI-TEST.mjs
           node cloudflare/order034/ATM-ORDER068-READONLY-GRANTS-TEST.mjs
+          node cloudflare/order034/ATM-ORDER068-READONLY-API-TEST.mjs
           node cloudflare/order034/ATM-ORDER065-TASK-EVENTS-BOUNDED-TEST.mjs
           node cloudflare/order034/ATM-ORDER066-HPA-MEDIA-ENGINE-V1-TEST.mjs
           node cloudflare/order034/ATM-ORDER066-HPA-MEDIA-QUEUE-TEST.mjs
