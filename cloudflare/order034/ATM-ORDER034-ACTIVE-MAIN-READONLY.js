@@ -3,7 +3,7 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // active-version-modules/order033-active.js
 import { DurableObject } from "cloudflare:workers";
-import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant } from "./ATM-ORDER068-READONLY-GRANTS.mjs";
+import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";
 
 
 var __defProp2 = Object.defineProperty;
@@ -4753,7 +4753,7 @@ var human_gate_entry_default = {
       const { response, data } = await internalJson(stub, "/access-grants/create", bodyCheck.value);
       return j(data, response.status);
     }
-    const grantRevokeMatch = p.match(/^\\/api\\/access-grants\\/([a-f0-9]{24})\\/revoke$/);
+    const grantRevokeMatch = p.match(/^\/api\/access-grants\/([a-f0-9]{24})\/revoke$/);
     if (grantRevokeMatch && req.method === "POST") {
       if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
       const owner = await ownerSessionFor(stub, req);
@@ -4776,23 +4776,7 @@ var human_gate_entry_default = {
       if (!grantLimit.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
       const opportunityResponse = await stub.fetch("https://do/opportunities");
       const opportunityData = await opportunityResponse.json();
-      const results = (Array.isArray(opportunityData.results) ? opportunityData.results : []).slice(0, 100).map((x) => {
-        let url = null;
-        try { const parsed = new URL(String(x.url || x.apply_url || "")); if (parsed.protocol === "https:" || parsed.protocol === "http:") url = parsed.href; } catch {}
-        const amount = Number(x.estimated_net_usd ?? x.net_reward_usd ?? x.reward_usd);
-        return {
-          id: String(x.id || x.task_id || x.opportunity_id || "").slice(0, 120),
-          source: String(x.source || "").slice(0, 80),
-          title: String(x.title || x.name || "").slice(0, 240),
-          description: String(x.description || "").slice(0, 2000),
-          estimated_net_usd: Number.isFinite(amount) ? amount : null,
-          currency: String(x.currency || "USD").slice(0, 12),
-          status: String(x.status || "UNKNOWN").slice(0, 40),
-          url,
-          ai_executability: String(x.ai_executability || "UNKNOWN").slice(0, 40),
-          blockers: Array.isArray(x.blockers) ? x.blockers.slice(0, 20).map((b) => String(b).slice(0, 120)) : []
-        };
-      }).filter((x) => x.id && x.source);
+      const results = sanitizeReadOnlyTasks(opportunityData.results);
       return j({ ok: true, scope: "tasks:read", generated_at: now(), count: results.length, results }, 200, { "cache-control": "no-store", "pragma": "no-cache" });
     }
     if (p === "/api/status") return stub.fetch("https://do/status");
