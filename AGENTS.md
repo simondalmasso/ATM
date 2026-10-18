@@ -7,7 +7,9 @@ Canonical loop:
 
 Hard rules:
 
-1. `MIN_REWARD_USD >= 100`.
+1. `MIN_REWARD_USD >= 1`.
+   - Preferred discovery band: USD $1–$50; do not exclude tasks paying more than $50.
+   - Ideal monthly net-settlement target: USD $400 (goal, not guarantee).
 2. `OUT_OF_PLAN_SPEND_USD = 0`.
 3. No paid APIs, credits, deposits, stakes, gambling, trading or mining.
 4. Existing funded demand beats speculative products.
