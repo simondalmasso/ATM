@@ -1,6 +1,6 @@
 {
   "schema_version": "atm/external-worker-candidates-v1",
-  "verified_at": "2026-09-28T06:40:00Z",
+  "verified_at": "2026-10-18T00:00:00Z",
   "policy": {
     "repos_read_only": true,
     "repo_mutation_allowed": false,
@@ -98,11 +98,20 @@
       "runtime_mounted": false,
       "proven": false,
       "owner_pc_allowed": false,
-      "suggested_capabilities": ["COMPUTE_CPU", "WEBGPU", "WASM"],
+      "suggested_capabilities": [
+        "COMPUTE_CPU",
+        "WEBGPU",
+        "WASM"
+      ],
       "host_requirement": "EXTERNAL_NON_OWNER_NODE_PLUS_DCP_EVALUATOR",
       "value_unit": "DCC",
       "count_as_paid_usd": false,
-      "blockers": ["EXTERNAL_HOST_NOT_MOUNTED", "DCC_TO_USD_SETTLEMENT_NOT_PROVEN", "PAYOUT_READBACK_NOT_INTEGRATED", "HOST_MARGINAL_COST_NOT_PROVEN_ZERO"],
+      "blockers": [
+        "EXTERNAL_HOST_NOT_MOUNTED",
+        "DCC_TO_USD_SETTLEMENT_NOT_PROVEN",
+        "PAYOUT_READBACK_NOT_INTEGRATED",
+        "HOST_MARGINAL_COST_NOT_PROVEN_ZERO"
+      ],
       "proposed_atm_integration": "External bounded non-owner host only; DCC never counts as USD PAID without exact authoritative conversion/withdrawal readback."
     },
     {
@@ -112,10 +121,95 @@
       "runtime_mounted": false,
       "proven": false,
       "owner_pc_allowed": false,
-      "suggested_capabilities": ["SCIENTIFIC", "DATA", "CODE"],
+      "suggested_capabilities": [
+        "SCIENTIFIC",
+        "DATA",
+        "CODE"
+      ],
       "allowed_cost_mode": "EXTERNAL_ZERO_COST_HOST_WITH_LOCAL_MODEL_COMPUTE_ONLY",
-      "forbidden_routes": ["ACE_WALLET", "PAID_PROVIDER_API", "PAID_REMOTE_COMPUTE", "BYOK_PAID_API"],
+      "forbidden_routes": [
+        "ACE_WALLET",
+        "PAID_PROVIDER_API",
+        "PAID_REMOTE_COMPUTE",
+        "BYOK_PAID_API"
+      ],
       "proposed_atm_integration": "Future bounded non-owner host with request/result/receipt contract; no paid model or compute route."
+    },
+    {
+      "id": "API_ANYTHING",
+      "repository": "https://github.com/goodnight000/api-anything",
+      "license": "MIT",
+      "observed_version": "0.1.0",
+      "state": "READ_ONLY_RESEARCH_TOOL_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "economic_source": false,
+      "suggested_capabilities": [
+        "PUBLIC_API_DISCOVERY",
+        "STRUCTURED_READ_ONLY_EXTRACTION",
+        "SITE_OPERATION_SPEC_PROTOTYPING"
+      ],
+      "forbidden_roles": [
+        "TASK_ACQUISITION_EXECUTOR",
+        "TASK_SUBMISSION_EXECUTOR",
+        "AUTHENTICATED_WRITE_REPLAYER",
+        "WALLET_OR_PAYMENT_ACTOR",
+        "ATM_SETTLEMENT_AUTHORITY"
+      ],
+      "constraints": [
+        "Use only public endpoints explicitly permitted for automated access",
+        "No browser cookies, session tokens, passwords, private captures, or credential export into ATM",
+        "Writes disabled; no claims, submissions, purchases, messages, or account mutations",
+        "No CAPTCHA, bot-wall, rate-limit, or access-control bypass",
+        "No persistent runtime on owner PC",
+        "Every endpoint requires provenance, schema, timeout, response-size cap, freshness, and independent validation"
+      ],
+      "blockers": [
+        "NO_BOUNDED_ATM_INPUT_OUTPUT_CONTRACT",
+        "BROWSER_CAPTURE_REQUIRES_EXTERNAL_EPHEMERAL_HOST",
+        "NO_PROVEN_FUNDED_DEMAND_OR_SETTLEMENT_BENEFIT"
+      ],
+      "proposed_atm_integration": "Research-only candidate. Consider only an isolated ephemeral non-owner host and public unauthenticated read operations after a separate order proves a bounded contract and source terms permit use. Do not add to production runtime or executor routing yet."
+    },
+    {
+      "id": "REVERSE_API_ENGINEER",
+      "repository": "https://github.com/kalil0321/reverse-api-engineer",
+      "license": "MIT",
+      "observed_version": "0.14.0",
+      "state": "READ_ONLY_RESEARCH_TOOL_CANDIDATE",
+      "runtime_mounted": false,
+      "proven": false,
+      "owner_pc_allowed": false,
+      "economic_source": false,
+      "suggested_capabilities": [
+        "PUBLIC_API_DISCOVERY",
+        "STRUCTURED_READ_ONLY_EXTRACTION",
+        "TYPED_CLIENT_PROTOTYPING"
+      ],
+      "forbidden_roles": [
+        "TASK_ACQUISITION_EXECUTOR",
+        "TASK_SUBMISSION_EXECUTOR",
+        "AUTHENTICATED_WRITE_REPLAYER",
+        "WALLET_OR_PAYMENT_ACTOR",
+        "ATM_SETTLEMENT_AUTHORITY"
+      ],
+      "constraints": [
+        "Use only public endpoints explicitly permitted for automated access",
+        "Never capture, persist, or emit cookies, bearer tokens, passwords, or private session data",
+        "Generated clients must be reviewed for embedded secrets, write methods, destinations, and retry behavior before any use",
+        "Writes and authenticated mutations disabled",
+        "No CAPTCHA, bot-wall, rate-limit, or access-control bypass",
+        "No persistent runtime on owner PC",
+        "Every endpoint requires provenance, schema, timeout, response-size cap, freshness, and independent validation"
+      ],
+      "blockers": [
+        "NO_BOUNDED_ATM_INPUT_OUTPUT_CONTRACT",
+        "BROWSER_OR_AGENT_CAPTURE_REQUIRES_EXTERNAL_EPHEMERAL_HOST",
+        "GENERATED_CLIENT_NOT_SECURITY_REVIEWED",
+        "NO_PROVEN_FUNDED_DEMAND_OR_SETTLEMENT_BENEFIT"
+      ],
+      "proposed_atm_integration": "Research-only candidate. Generated per-site clients remain untrusted artifacts until reviewed and tested against public read-only endpoints in an isolated non-owner environment. No production runtime or executor routing."
     }
   ]
 }
