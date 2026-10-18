@@ -48,6 +48,39 @@ const base=(id='ab-1')=>({
   deadline:'2099-01-01T00:00:00Z'
 });
 
+// Regression: the live AgentBounties feed serializes USDC amounts as integer atomic units.
+const atomicFeedRecord={
+  bounty_id:'0xatomic-feed-record',
+  bounty_contract:'0x71b7b3a8ceb534ca904b8513987aa1f3bd6c3d91',
+  title:'Create a bounded API reliability artifact',
+  description:'Return a reproducible JSON report.',
+  status:'claimable',
+  claimable:true,
+  funded:true,
+  terms_valid:true,
+  verification_ready:true,
+  newcomer_access:true,
+  global_eligibility:true,
+  automation_allowed:true,
+  deliverable:'JSON report',
+  acceptance_criteria:['Valid JSON'],
+  competition:{mode:'exclusive',participant_count:0},
+  solver_reward:'2000000',
+  verifier_reward:'10000',
+  claim_bond:'10000',
+  required_external_spend:'1000000',
+  gross_cash_margin:'1000000',
+  terms:{contract_terms:{solver_reward:{amount:2000000,currency:'usdc'}}},
+  deadline:'2099-01-01T00:00:00Z'
+};
+const atomicOpp=mod.normalize('AGENTBOUNTIES',atomicFeedRecord);
+if(atomicOpp.payout_amount!==2) throw new Error(`ATOMIC_SOLVER_REWARD_NOT_NORMALIZED: ${atomicOpp.payout_amount}`);
+if(atomicOpp.estimated_net_usd!==1) throw new Error(`ATOMIC_NET_MARGIN_NOT_NORMALIZED: ${atomicOpp.estimated_net_usd}`);
+if(atomicOpp.economics.components.claim_bond_stake_deposit!==0.01) throw new Error(`ATOMIC_CLAIM_BOND_NOT_NORMALIZED: ${atomicOpp.economics.components.claim_bond_stake_deposit}`);
+if(atomicOpp.economics.components.required_external_spend!==1) throw new Error(`ATOMIC_EXTERNAL_SPEND_NOT_NORMALIZED: ${atomicOpp.economics.components.required_external_spend}`);
+if(!atomicOpp.blockers.includes('BLOCKED_OWNER_SPEND')) throw new Error('ATOMIC_EXTERNAL_SPEND_NOT_BLOCKED');
+if(atomicOpp.ai_executability!=='BLOCKED') throw new Error('ATOMIC_FEED_RECORD_BECAME_EXECUTABLE');
+
 const positiveBond=base('ab-bond');
 positiveBond.bond=usdc(0.1);
 const bondOpp=mod.normalize('AGENTBOUNTIES',positiveBond);
