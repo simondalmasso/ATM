@@ -22,6 +22,7 @@ for (const symbol of [
 let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){ this.ctx=ctx; this.env=env; } }');
 code+='\nexport { GALAXY_CAPABILITY_TAXONOMY, EXECUTOR_CAPABILITIES, GALAXY_PASSIVE_SOURCES, GALAXY_ADVISORY_TECH, classifyRequiredCapabilities, executorCapabilityTruth, applyGalaxyCapabilityTruth, galaxyPolicyBlockers, executionCandidateAdmitted };\n';
 const tmp=path.join(os.tmpdir(),`atm-order055-${process.pid}-${Date.now()}.mjs`);
+code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
 fs.writeFileSync(tmp,code,"utf8");
 const mod=await import(pathToFileURL(tmp).href);
 fs.unlinkSync(tmp);
