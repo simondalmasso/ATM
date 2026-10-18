@@ -216,4 +216,20 @@ assert.equal(await badOrigin.text().then((body) => JSON.parse(body).error), "ORI
 const internalDenied = await brain.fetch(new Request("https://do/media/drafts"));
 assert.equal(internalDenied.status, 403, "Durable Object media routes reject missing internal owner marker");
 
+
+const studioResponse = await worker.fetch(
+  new Request("https://atm.simondalmasso44.workers.dev/media-studio"),
+  publicEnv,
+);
+assert.equal(studioResponse.status, 200, "media studio route returns its UI");
+assert.ok(String(studioResponse.headers.get("content-security-policy")).includes("media-src 'self' blob:"), "CSP permits the local media blob without widening connect-src");
+const studioHtml = await studioResponse.text();
+assert.ok(studioHtml.includes("Videos generados en este navegador"), "UI declares browser-local video storage honestly");
+assert.ok(studioHtml.includes("No se subió") || studioHtml.includes("no sube el video al servidor"), "UI never claims local renders are hosted assets");
+assert.ok(studioHtml.includes("Generar video cinematográfico"), "approved REEL drafts expose the render action");
+assert.ok(studioHtml.includes("NOT_INCLUDED_ZERO_COST_MODE"), "renderer records the no-paid-voiceover limitation");
+const browserScript = studioHtml.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(browserScript, "media studio contains the client renderer script");
+new Function(browserScript);
+
 console.log("PASS ORDER-066 queue integration: transactional idempotency, concurrent replay, key/payload mismatch, atomic review, capacity gate, HTTP owner/origin/rate-limit gates, and no lost queue updates.");
