@@ -102,6 +102,30 @@ export async function authorizeReadOnlyGrant({ storage, token, now = () => Date.
   return { ok: true, grant: publicGrant(record, now()) };
 }
 
+
+export function sanitizeReadOnlyTasks(input) {
+  return (Array.isArray(input) ? input : []).slice(0, 100).map((x) => {
+    let url = null;
+    try {
+      const parsed = new URL(String(x.url || x.apply_url || ""));
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") url = parsed.href;
+    } catch {}
+    const amount = Number(x.estimated_net_usd ?? x.net_reward_usd ?? x.reward_usd);
+    return {
+      id: String(x.id || x.task_id || x.opportunity_id || "").slice(0, 120),
+      source: String(x.source || "").slice(0, 80),
+      title: String(x.title || x.name || "").slice(0, 240),
+      description: String(x.description || "").slice(0, 2000),
+      estimated_net_usd: Number.isFinite(amount) ? amount : null,
+      currency: String(x.currency || "USD").slice(0, 12),
+      status: String(x.status || "UNKNOWN").slice(0, 40),
+      url,
+      ai_executability: String(x.ai_executability || "UNKNOWN").slice(0, 40),
+      blockers: Array.isArray(x.blockers) ? x.blockers.slice(0, 20).map((b) => String(b).slice(0, 120)) : []
+    };
+  }).filter((x) => x.id && x.source);
+}
+
 export const READONLY_GRANT_POLICY = Object.freeze({
   scope: "tasks:read",
   min_ttl_minutes: MIN_TTL_MINUTES,
