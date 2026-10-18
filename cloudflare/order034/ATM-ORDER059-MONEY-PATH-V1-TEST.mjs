@@ -9,6 +9,7 @@ const sourceText=fs.readFileSync(sourcePath,"utf8");
 let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){ this.ctx=ctx; this.env=env; } }');
 code+='\nexport { SOURCE_TRUTH_V1, WORKER_CONTRACT_SCHEMA_V1, WORKER_PROVEN_REGISTRY_V1, sourceEvidenceBundleV1, sourceTruthVerdictV1, economicTruthV1, moneyPathConstraintV1, pendingWorkRecordV1, pendingWriteGuardV1, pendingAfterWriteFailureV1, recoverPendingWorkV1, settlementReceiptMatchV1, newWorkerRegistryEntryV1, applyGalaxyCapabilityTruth, executionCandidateAdmitted };\n';
 const tmp=path.join(os.tmpdir(),`atm-order059-${process.pid}-${Date.now()}.mjs`);
+code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
 fs.writeFileSync(tmp,code,"utf8");
 const mod=await import(pathToFileURL(tmp).href);
 fs.unlinkSync(tmp);
