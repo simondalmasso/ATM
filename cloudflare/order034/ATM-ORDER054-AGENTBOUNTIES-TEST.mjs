@@ -10,6 +10,7 @@ const sourceText=fs.readFileSync(src,'utf8');
 if(!sourceText.includes('AGENTBOUNTIES')) throw new Error('AGENTBOUNTIES_SOURCE_NOT_REGISTERED');
 let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
 code+='\nexport { agentBountiesEconomics, agentBountiesCanonicalPaid, normalize, discoverSource };\n';
+code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
 fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const mod=await import(pathToFileURL(tmp).href+'?v='+Date.now());
