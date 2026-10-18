@@ -106,7 +106,7 @@ export async function authorizeReadOnlyGrant({ storage, token, now = () => Date.
 export function sanitizeReadOnlyTasks(input) {
   return (Array.isArray(input) ? input : []).slice(0, 100).map((x) => {
     let url = null;
-    try { const parsed = new URL(String(x.url || x.apply_url || "")); if (parsed.protocol === "https:" || parsed.protocol === "http:") url = parsed.href; } catch {}
+    try { const parsed = new URL(String(x.url || x.apply_url || x.source_url || "")); if (parsed.protocol === "https:" || parsed.protocol === "http:") url = parsed.href; } catch {}
     const amount = Number(x.estimated_net_usd ?? x.net_reward_usd ?? x.reward_usd);
     return {
       id: String(x.id || x.task_id || x.opportunity_id || "").slice(0, 120),
@@ -114,8 +114,8 @@ export function sanitizeReadOnlyTasks(input) {
       title: String(x.title || x.name || "").slice(0, 240),
       description: String(x.description || "").slice(0, 2000),
       estimated_net_usd: Number.isFinite(amount) ? amount : null,
-      currency: String(x.currency || "USD").slice(0, 12),
-      status: String(x.status || "UNKNOWN").slice(0, 40),
+      currency: String(x.currency || x.payout_currency || "USD").slice(0, 12),
+      status: String(x.status || x.source_status || "UNKNOWN").slice(0, 40),
       url,
       ai_executability: String(x.ai_executability || "UNKNOWN").slice(0, 40),
       blockers: Array.isArray(x.blockers) ? x.blockers.slice(0, 20).map((b) => String(b).slice(0, 120)) : []
