@@ -40,7 +40,7 @@ assert.equal((await authorizeReadOnlyGrant({ storage, token: expiring.token, now
 assert.equal((await createReadOnlyGrant({ storage, label: "bad ttl", ttlMinutes: 1, now: () => now })).ok, false);
 assert.equal((await createReadOnlyGrant({ storage, label: "too long", ttlMinutes: 1441, now: () => now })).ok, false);
 const capacityNow = now + 5 * 60 * 1000 + 2;
-for (let i = 0; i < 50; i++) assert.equal((await createReadOnlyGrant({ storage, label: "capacity " + i, ttlMinutes: 5, now: () => capacityNow })).ok, true);
+for (let i = 0; i < 50; i++) { const created = await createReadOnlyGrant({ storage, label: "capacity " + i, ttlMinutes: 5, now: () => capacityNow }); assert.equal(created.ok, true, "capacity index " + i + " error " + created.error); }
 assert.equal((await createReadOnlyGrant({ storage, label: "over capacity", ttlMinutes: 5, now: () => capacityNow })).error, "GRANT_LIMIT_REACHED");
 
 const sanitized = sanitizeReadOnlyTasks([
