@@ -8,7 +8,8 @@ Canonical economic loop:
 
 Hard invariants:
 
-- `MIN_REWARD_USD >= 100`
+- `MIN_REWARD_USD >= 1`; prioritize USD $1–$50 tasks without excluding higher-value work
+- Ideal monthly net-settlement target: USD $400 (goal, not guarantee)
 - `OUT_OF_PLAN_SPEND_USD = 0`
 - no paid APIs, bid credits, deposits, stakes, gambling or trading
 - `UNKNOWN != YES`
