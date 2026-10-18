@@ -39,18 +39,28 @@
       "url": "https://api.taskmarket.dev/api/agents/inbox?address=0x7dCBee019FFD17A77413C1fDb47aeFe771222837",
       "observation": "The worker inbox lists three claimed Throttle verification tasks with IDs 0x995297cf461b1446675bbc06dbd15625f82c513ee84041170505a3ec26928b39, 0xec6d29622eba49d5cbc98206727a814f4ccea39dc2f1b7823a74c37ad142939d, and 0xdac0d4881881b58d67489fde15843cbc67a9285473606db51fa398315502d110. The target task 0x935a... is not listed as claimed by this wallet.",
       "meaning": "Claimed-task inventory also fails to link the pending ATM record to the target task."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/tasks/0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f/submissions/c2fd23a7-ff61-4cdd-b45d-2f2af5d6259a/manifest",
+      "observation": "HTTP 200; canonical manifest contains one final text artifact. The task submission feed independently shows id=submissionId=c2fd23a7-ff61-4cdd-b45d-2f2af5d6259a, referenceCode SUB-SNBG1KP8, workerAddress 0x7dCBee019FFD17A77413C1fDb47aeFe771222837, workerAgentId 73264, and taskId=0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f.",
+      "meaning": "Positive correlation: the ATM internal UUID is a real Taskmarket submission ID, but it belongs to task TSK-E58AN8KV (0x70d...), not the task 0x935a... previously attached to the pending record."
+    },
+    {
+      "url": "https://api.taskmarket.dev/api/tasks/0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f",
+      "observation": "Task phase=resolved; submissionWindowOpen=false; awardCount=3; all three awards list other worker addresses. ATM wallet/agent is not an award recipient. Public agent stats show totalEarnings=0.",
+      "meaning": "The ATM submission was not awarded; this is not an explicit per-submission rejection and does not prove a payout."
     }
   ],
   "resolution": {
-    "classification": "NO_EXTERNAL_MATCH_INTERNAL_EXTERNAL_ID_MISMATCH",
-    "confidence": "HIGH_FOR_CURRENT_PUBLIC_READBACK",
+    "classification": "EXTERNAL_SUBMISSION_FOUND_ON_DIFFERENT_TASK; TASK_RESOLVED_WITHOUT_ATM_AWARD; INTERNAL_TASK_ASSOCIATION_MISMATCH",
+    "confidence": "HIGH",
     "not_claimed": [
-      "Not classified as rejected: no worker-specific terminal rejection was found.",
-      "Not classified as paid or accepted.",
-      "Not proof that a submission never existed at any earlier time."
+      "Not classified as explicitly rejected: no per-submission rejection event was found.",
+      "Not classified as accepted or paid; the task's three awards belong to other wallets and agent totalEarnings is zero.",
+      "The internal UUID is valid externally, but its correct task is 0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f, not 0x935a2d3c8c949e8c58feacc6f9469142a1ad0d4a07c2922d0797bf2929a0a7b9."
     ],
-    "safe_ledger_action": "Close the stale uncertainty for the claimed task as NO_EXTERNAL_MATCH after reconciling the ATM journal; preserve the internal UUID as an internal record only and do not reuse it as a Taskmarket submission ID.",
-    "remaining_guard": "Do not create a replacement submission for task 0x935a... (its submission window is closed). Any new claim/submission must use a fresh task readback, satisfy the economic gate and human authorization rules, and record the actual external submission ID plus authoritative settlement reference.",
+    "safe_ledger_action": "Reconcile the ATM journal's taskId to the external mapping: submission c2fd23a7-ff61-4cdd-b45d-2f2af5d6259a belongs to TSK-E58AN8KV / 0x70d18368bd673fdf22d0de61813ab8ac6919af49676a4929fc4cf8980565b32f. Mark the opportunity terminal NO_AWARD only if the supported ledger transition accepts the authoritative resolved-task readback; do not synthesize a rejection or payout.",
+    "remaining_guard": "The live ATM settlement watcher still reports pending=1 and last_external_readback=null. This documentation corrects external identity but does not mutate runtime state. Do not create a replacement submission for either closed task. Any new claim/submission requires a fresh task readback, economic gate, owner authorization, and the actual external submission ID plus settlement reference.",
     "owner_spend_usd": 0
   },
   "opportunity_search": {
