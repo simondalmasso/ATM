@@ -10,7 +10,7 @@ Do not optimize for activity. Optimize for EXPECTED_REALIZED_USD_PER_HOUR.
 
 - GitHub `simondalmasso/ATM` is sole source/deploy authority; protected main + required `verify`.
 - Cloudflare Worker is canonical runtime; public MCP is read-only.
-- Hard economics: MIN_REWARD_USD>=100; OUT_OF_PLAN_SPEND_USD=0; no paid APIs/credits/deposits/stakes/gas/trading/gambling/mining.
+- Hard economics: MIN_REWARD_USD>=1; prioritize USD $1–$50 tasks without excluding higher rewards; ideal monthly net-settlement target USD $400 (not guaranteed); OUT_OF_PLAN_SPEND_USD=0; no paid APIs/credits/deposits/stakes/gas/trading/gambling/mining.
 - Canonical loop: DISCOVER -> ECONOMIC GATE -> ACQUIRE -> WORK -> CHECK -> SUBMIT -> SETTLEMENT READBACK -> LEARN.
 - Existing execution adapters: DAYDREAMS/TaskMarket and AGENTHANSA; every write must re-read fresh task state and pass deterministic gates.
 - Galaxy Radar separates required capabilities from executor truth. A skill/library/source is never an executor by itself.
