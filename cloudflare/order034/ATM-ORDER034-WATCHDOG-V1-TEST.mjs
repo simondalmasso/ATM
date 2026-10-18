@@ -6,6 +6,7 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
 const tmp=path.join(os.tmpdir(),`atm-order034-watchdog-${process.pid}-${Date.now()}.mjs`);
 let code=fs.readFileSync(src,'utf8').replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
+code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
 fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const {ATMBrain}=await import(pathToFileURL(tmp).href+'?v='+Date.now());
