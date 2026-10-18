@@ -81,6 +81,9 @@ if(atomicOpp.economics.components.required_external_spend!==1) throw new Error(`
 if(!atomicOpp.blockers.includes('BLOCKED_OWNER_SPEND')) throw new Error('ATOMIC_EXTERNAL_SPEND_NOT_BLOCKED');
 if(atomicOpp.ai_executability!=='BLOCKED') throw new Error('ATOMIC_FEED_RECORD_BECAME_EXECUTABLE');
 
+const canonicalPageOpp=mod.normalize('AGENTBOUNTIES',base('ab-canonical-page'));
+if(canonicalPageOpp.source_url!=='https://agentbounties.app/earn') throw new Error(`NONCANONICAL_AGENTBOUNTIES_PAGE_URL: ${canonicalPageOpp.source_url}`);
+
 const positiveBond=base('ab-bond');
 positiveBond.bond=usdc(0.1);
 const bondOpp=mod.normalize('AGENTBOUNTIES',positiveBond);
