@@ -117,6 +117,31 @@ for(const text of [
   if(opp.ai_executability!=="BLOCKED") throw new Error("POLICY_BLOCK_BYPASSED:"+text);
 }
 
+// ORDER-074: explicit no-purchase language must not be misclassified as owner spend.
+const noPurchaseBlockers=mod.galaxyPolicyBlockers(
+  "Receipt Relay Q31",
+  "No purchase is needed and a buy never qualifies. The task requires only verifiable research."
+);
+if(noPurchaseBlockers.includes("BLOCKED_OWNER_SPEND")) throw new Error("NEGATED_PURCHASE_FALSE_OWNER_SPEND_BLOCK");
+if(noPurchaseBlockers.includes("TASK_EXECUTION_SPEND_REQUIRED")) throw new Error("NEGATED_PURCHASE_FALSE_TASK_SPEND_BLOCK");
+
+// A public audit page/public submission is a real publication capability, not a text-only task.
+const publicAuditBlockers=mod.galaxyPolicyBlockers(
+  "Receipt Relay Q31",
+  "Deliverable: your own public audit page. Your public submission must contain its link, your BSC wallet address and your handle."
+);
+if(!publicAuditBlockers.includes("SOCIAL_OR_PUBLICATION_REQUIRED")) throw new Error("PUBLIC_AUDIT_PAGE_NOT_CLASSIFIED_AS_PUBLICATION");
+const publicAudit=mod.applyGalaxyCapabilityTruth(base({
+  title:"Receipt Relay Q31",
+  description:"Deliverable: your own public audit page. Your public submission must contain its link, your BSC wallet address and your handle. No purchase is needed and a buy never qualifies.",
+  capability_class:"HTTP_TOOL",
+  blockers:[],
+  economics:{explicit_zero_cost:true,estimated_task_cost_usdc:0,action_cost_usdc:0,requires_payment:false},
+  eligibility:{terms_allow_automation:true,payout_path_known:true,required_fields_available:true,open_now:true,owner_spend_zero:true,newcomer_access_proven:true,argentina_or_global_eligibility_proven:true,exact_deliverable_and_acceptance_proven:true,competition_known:true,deadline_known:true}
+}));
+if(publicAudit.blockers.includes("BLOCKED_OWNER_SPEND")) throw new Error("PUBLIC_AUDIT_NO_PURCHASE_STILL_FALSE_SPEND_BLOCKED");
+if(!publicAudit.blockers.includes("SOCIAL_OR_PUBLICATION_REQUIRED")) throw new Error("PUBLIC_AUDIT_PUBLICATION_GATE_NOT_PRESERVED");
+if(publicAudit.ai_executability==="AI_EXECUTABLE") throw new Error("PUBLIC_AUDIT_FALSELY_AUTO_EXECUTABLE");
 const passive=Object.fromEntries(mod.GALAXY_PASSIVE_SOURCES.map(x=>[x.id,x]));
 if(passive.OPENTASK?.state!=="WATCH_READ_ONLY_VERIFY"||passive.OPENTASK?.runtime_source!==false) throw new Error("OPENTASK_NOT_PASSIVE");
 if(passive.OKX_AI?.state!=="WATCH_ONLY"||passive.OKX_AI?.runtime_source!==false) throw new Error("OKX_NOT_PASSIVE");
