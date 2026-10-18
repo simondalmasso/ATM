@@ -88,7 +88,7 @@ Private signer/raw keys, payout destination, wallet/card/withdrawal actions, Sen
 
 ## AUTHORITIES / GATES
 `AGENTS.md` + current GitHub `main` are source authority. Required GitHub `verify` and protected-main rules are mandatory.  
-Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh task readback before mutation, independent CHECK, authoritative settlement only for PAID.
+Hard economics (owner-directed ORDER-067): `MIN_REWARD_USD>=1`; prioritize USD $1–$50 rewards without excluding higher rewards; ideal monthly net-settlement target USD $400 (not guaranteed); owner spend `0`; `UNKNOWN != YES`; fresh task readback before mutation, independent CHECK, authoritative settlement only for PAID.
 
 ## ACCEPTANCE / STOP CONDITIONS
 **COMPLETE** only with exact-head CI green, protected merge, deploy/smoke when runtime changed, mirror success, and no unsupported money claim.
@@ -96,4 +96,4 @@ Hard economics: `MIN_REWARD_USD>=100`, owner spend `0`, `UNKNOWN != YES`, fresh 
 **STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
 
 ## NEXT EXACT ACTION
-ORDER-063 docs-only reconciliation is complete. AUD selects one Cloudflare deployed Cron Triggers and scheduled-log **READ_ONLY** forensic check before proposing a runtime order. No automatic claim/submit, paid service, signer/withdrawal widening or speculative executor work.
+ORDER-067 is the owner-authorized economic-floor change, handled only through a protected PR and exact-head verification. After it completes, resume the pending Cloudflare Cron Trigger/scheduled-log **READ_ONLY** forensic check. No automatic claim/submit, paid service, signer/withdrawal widening or speculative executor work.
