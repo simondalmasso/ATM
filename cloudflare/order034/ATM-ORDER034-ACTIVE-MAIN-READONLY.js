@@ -1732,7 +1732,7 @@ function normalizeAgentBounties(raw = {}) {
   blockers.push("DISCOVERY_ONLY_NO_EXECUTION_ADAPTER");
   const clean = uniq(blockers);
   const settlement = agentBountiesCanonicalPaid(raw);
-  const sourceUrl = String(agentBountiesFirstDefined(raw.source_url, raw.issue_url, raw.url, "https://agentbounties.app/earn.html"));
+  const sourceUrl = String(agentBountiesFirstDefined(raw.source_url, raw.issue_url, raw.url, "https://agentbounties.app/earn"));
 
   return {
     opportunity_id: "AGENTBOUNTIES:" + String(id),
