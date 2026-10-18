@@ -92,7 +92,7 @@ No runtime order is active. AUD next selects **one** read-only Cloudflare deploy
 
 ## AUTHORITIES / GATES
 Priority: current GitHub `main` + `AGENTS.md` + active ruleset + exact external receipts/live readback > issue/chat/history.  
-Hard economics: `MIN_REWARD_USD>=100`; owner out-of-plan spend `0`; fresh source readback before ACQUIRE/SUBMIT; independent CHECK; PAID only from authoritative external settlement tied to ATM work.
+Hard economics (owner-directed ORDER-067): `MIN_REWARD_USD>=1`; prioritize USD $1–$50 rewards without excluding higher rewards; ideal monthly net-settlement target USD $400 (not guaranteed); owner out-of-plan spend `0`; fresh source readback before ACQUIRE/SUBMIT; independent CHECK; PAID only from authoritative external settlement tied to ATM work.
 
 ## NEXT EXACT ACTION
-Do not repeat completed ORDER-059/060/061/063. AUD's next bounded decision is to read **actual Cloudflare deployed Cron Triggers configuration and scheduled invocation/error logs** without mutation, to explain discovery `last_run=2026-10-01T10:30:48.803Z` despite 2026-10-08 DO settlement alarms. If readback cannot be authorized, report UNKNOWN and stop; no cron edits, deployment or paid APIs. Create only one subsequent scoped issue when selected, then proceed by protected PR if evidence justifies a change.
+ORDER-067 is the current owner-authorized protected-PR change: lower the runtime reward floor to USD $1, test the $1 threshold and preserve OWNER_SPEND=0. The $1–$50 range is a discovery priority, not a cap; higher rewards remain eligible. USD $400/month is an aspirational net-settlement target, not a promise. After this PR, resume the READ_ONLY Cloudflare Cron Trigger/scheduled-log investigation; if access is unavailable, record UNKNOWN and stop.
