@@ -39,8 +39,9 @@ assert.equal(expiring.ok, true);
 assert.equal((await authorizeReadOnlyGrant({ storage, token: expiring.token, now: () => now + 5 * 60 * 1000 + 1 })).error, "GRANT_EXPIRED");
 assert.equal((await createReadOnlyGrant({ storage, label: "bad ttl", ttlMinutes: 1, now: () => now })).ok, false);
 assert.equal((await createReadOnlyGrant({ storage, label: "too long", ttlMinutes: 1441, now: () => now })).ok, false);
-for (let i = 0; i < 50; i++) assert.equal((await createReadOnlyGrant({ storage, label: "capacity " + i, ttlMinutes: 5, now: () => now })).ok, true);
-assert.equal((await createReadOnlyGrant({ storage, label: "over capacity", ttlMinutes: 5, now: () => now })).error, "GRANT_LIMIT_REACHED");
+const capacityNow = now + 5 * 60 * 1000 + 2;
+for (let i = 0; i < 50; i++) assert.equal((await createReadOnlyGrant({ storage, label: "capacity " + i, ttlMinutes: 5, now: () => capacityNow })).ok, true);
+assert.equal((await createReadOnlyGrant({ storage, label: "over capacity", ttlMinutes: 5, now: () => capacityNow })).error, "GRANT_LIMIT_REACHED");
 
 const sanitized = sanitizeReadOnlyTasks([
   { id: "public-1", source: "TASKMARKET", title: "Write a report", description: "Public description", estimated_net_usd: 5, url: "javascript:alert(1)", private_key: "never-return", api_token: "never-return", raw: { hidden: true } },
