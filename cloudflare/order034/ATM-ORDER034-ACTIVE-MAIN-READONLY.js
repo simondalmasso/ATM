@@ -1559,9 +1559,11 @@ function agentBountiesFirstDefined(...values) {
 }
 function agentBountiesAmountUsd(value) {
   if (value === void 0 || value === null || value === "") return null;
+  // AgentBounties' public Base feed serializes USDC amounts as integer atomic units
+  // (6 decimals), including scalar top-level fields and terms.document contract terms.
   if (typeof value === "number" || typeof value === "string") {
     const x = Number(value);
-    return Number.isFinite(x) && x >= 0 ? x : null;
+    return Number.isFinite(x) && x >= 0 ? x / 1e6 : null;
   }
   if (typeof value !== "object" || Array.isArray(value)) return null;
   const currency = String(value.currency || value.asset || "USDC").toUpperCase();
@@ -1570,7 +1572,7 @@ function agentBountiesAmountUsd(value) {
   if (!Number.isFinite(raw) || raw < 0) return null;
   const decimals = Number(value.decimals);
   if (Number.isInteger(decimals) && decimals >= 0 && decimals <= 18) return raw / 10 ** decimals;
-  return raw;
+  return currency === "USDC" || currency === "USDG" ? raw / 1e6 : raw;
 }
 function agentBountiesSumKnown(values) {
   const present = values.filter((v) => v !== void 0 && v !== null);
@@ -1730,7 +1732,7 @@ function normalizeAgentBounties(raw = {}) {
   blockers.push("DISCOVERY_ONLY_NO_EXECUTION_ADAPTER");
   const clean = uniq(blockers);
   const settlement = agentBountiesCanonicalPaid(raw);
-  const sourceUrl = String(agentBountiesFirstDefined(raw.source_url, raw.issue_url, raw.url, "https://agentbounties.app/earn.html"));
+  const sourceUrl = String(agentBountiesFirstDefined(raw.source_url, raw.issue_url, raw.url, "https://agentbounties.app/earn"));
 
   return {
     opportunity_id: "AGENTBOUNTIES:" + String(id),
