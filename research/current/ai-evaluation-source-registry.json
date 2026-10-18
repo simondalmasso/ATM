@@ -1,0 +1,132 @@
+{
+  "schema_version": "atm/ai-evaluation-source-registry-v1",
+  "registry_id": "ORDER-070",
+  "verified_at": "2026-10-18T13:30:00Z",
+  "purpose": "Read-only discovery of paid AI evaluation and annotation opportunities; not an executor or income guarantee.",
+  "policy": {
+    "access_mode": "PUBLIC_READ_ONLY",
+    "source_account_login_by_atm": false,
+    "automated_applications": false,
+    "automated_assessments_or_tests": false,
+    "automated_messages": false,
+    "runtime_routing_enabled": false,
+    "executor_authority": false,
+    "owner_spend_usd": 0,
+    "owner_completes_tests_and_applications": true,
+    "unknown_is_admissible": false,
+    "admission_rule": "A specific listing is eligible only when current listing evidence explicitly confirms AI evaluation/annotation work, Argentina or worldwide/LatAm eligibility, compensation denominated in USD, no upfront payment, and whether AI assistance is permitted. Any missing criterion remains UNKNOWN and blocks admission."
+  },
+  "target_filter": {
+    "work_types": [
+      "AI evaluation",
+      "LLM response quality rating",
+      "AI data annotation",
+      "AI training quality assurance"
+    ],
+    "geography": [
+      "Worldwide",
+      "Latin America",
+      "Argentina"
+    ],
+    "compensation_currency": "USD",
+    "ai_assistance_policy": "MUST_BE_EXPLICITLY_ALLOWED_FOR_THE_SPECIFIC_LISTING",
+    "upfront_cost": "MUST_BE_ZERO",
+    "listing_freshness": "REQUIRE_CURRENT_LISTING_READBACK_BEFORE_APPLICATION"
+  },
+  "sources": [
+    {
+      "id": "TURING",
+      "canonical_url": "https://work.turing.com/jobs",
+      "source_type": "DIRECT_JOB_PLATFORM",
+      "state": "RESEARCH_SOURCE_ONLY",
+      "observed_at": "2026-10-18T13:30:00Z",
+      "observed_evidence": [
+        "Official Turing jobs portal includes AI Quality Analyst and model evaluation/annotation roles.",
+        "A reviewed Quality Analyst-Multimodality listing describes remote work and an assessment after shortlisting.",
+        "The reviewed listing did not establish a universal compensation rate or Argentina eligibility."
+      ],
+      "advertised_compensation_usd": "UNKNOWN_PER_LISTING",
+      "argentina_or_latam_eligibility": "UNKNOWN_PER_LISTING",
+      "ai_assistance_allowed": "UNKNOWN_PER_LISTING",
+      "assessment_required": "LISTING_DEPENDENT; reviewed listing requires an assessment after shortlisting",
+      "application_owner": "HUMAN",
+      "blockers": [
+        "Confirm role is currently open.",
+        "Confirm Argentina eligibility and any time-zone overlap.",
+        "Confirm exact USD rate and contractor terms.",
+        "Read the specific role's AI-assistance and assessment rules."
+      ]
+    },
+    {
+      "id": "VETTA",
+      "canonical_url": "https://www.vetta-jobs.com/jobs/ai-consulting-domain-expert-392f2203",
+      "source_type": "REFERRAL_JOB_BOARD",
+      "downstream_application_platform": "https://micro1.ai/",
+      "state": "RESEARCH_SOURCE_ONLY",
+      "observed_at": "2026-10-18T13:30:00Z",
+      "observed_evidence": [
+        "The Vetta listing advertises AI Consulting Domain Expert work involving evaluation and refinement of AI-generated responses, annotation, fact-checking and quality assurance.",
+        "The Vetta page advertises USD 100-200 per hour; this is an advertised rate, not a guaranteed rate, hours or earnings.",
+        "The listing routes applicants to a recruiting/application partner, so terms must be revalidated on the downstream role."
+      ],
+      "advertised_compensation_usd": {
+        "low": 100,
+        "high": 200,
+        "unit": "hour",
+        "source_claim_only": true
+      },
+      "argentina_or_latam_eligibility": "UNKNOWN_UNTIL_DOWNSTREAM_ROLE_CONFIRMS",
+      "ai_assistance_allowed": "UNKNOWN_UNTIL_DOWNSTREAM_ROLE_CONFIRMS",
+      "assessment_required": "UNKNOWN",
+      "application_owner": "HUMAN",
+      "blockers": [
+        "Verify the downstream role is still open.",
+        "Confirm Argentina eligibility, contractor/payment terms and actual approved rate.",
+        "Confirm AI-assistance policy before using AI in any assessed or paid work.",
+        "Do not treat advertised rate as realized income."
+      ]
+    },
+    {
+      "id": "CARRYER_TECH",
+      "canonical_url": "https://jobs.carryer.tech/",
+      "source_type": "JOB_AGGREGATOR_AND_RECRUITING_CHANNEL",
+      "state": "RESEARCH_SOURCE_ONLY",
+      "observed_at": "2026-10-18T13:30:00Z",
+      "observed_evidence": [
+        "The portal advertises roles across the US, Europe, LatAm and worldwide remote teams.",
+        "The portal includes an AI training category and states that some linked opportunities are freelance AI-training projects.",
+        "The aggregate portal does not establish a single compensation rate, country eligibility or AI-assistance rule for all listings.",
+        "Applications may be handled by Carryer or a recruiting partner, depending on the listing."
+      ],
+      "advertised_compensation_usd": "UNKNOWN_PER_LISTING",
+      "argentina_or_latam_eligibility": "UNKNOWN_PER_LISTING",
+      "ai_assistance_allowed": "UNKNOWN_PER_LISTING",
+      "assessment_required": "LISTING_DEPENDENT",
+      "application_owner": "HUMAN",
+      "blockers": [
+        "Select and re-read a specific AI evaluation/annotation listing.",
+        "Confirm Argentina eligibility, USD rate, payment terms and whether there is any upfront cost.",
+        "Confirm AI-assistance rules from the actual employer or project terms.",
+        "Distinguish direct Carryer roles from partner-hosted opportunities."
+      ]
+    }
+  ],
+  "admission_checklist": [
+    "Current listing is open and has a verifiable canonical URL.",
+    "Work is explicitly AI evaluation, annotation, rating or quality assurance.",
+    "Argentina is explicitly eligible, or the listing explicitly states worldwide/LatAm eligibility without a conflicting exclusion.",
+    "Compensation is explicitly denominated in USD and rate/payment conditions are documented.",
+    "No upfront payment, deposit, stake, paid certification or paid tool is required.",
+    "AI assistance is explicitly permitted for the relevant work and assessment; otherwise exclude the listing.",
+    "The owner personally completes all applications, identity checks, assessments and tests.",
+    "Record application state separately from earnings; count earnings only after authoritative external payout readback."
+  ],
+  "explicit_non_goals": [
+    "No automated account creation or job applications.",
+    "No automated completion of hiring tests or platform assessments.",
+    "No credential/session-token collection or transfer.",
+    "No CAPTCHA, bot-wall, rate-limit or access-control bypass.",
+    "No runtime integration or executor promotion.",
+    "No claim that advertised rates imply available hours, acceptance or realized income."
+  ]
+}
