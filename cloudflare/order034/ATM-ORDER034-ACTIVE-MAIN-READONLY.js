@@ -3,6 +3,7 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // active-version-modules/order033-active.js
 import { DurableObject } from "cloudflare:workers";
+import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant } from "./ATM-ORDER068-READONLY-GRANTS.mjs";
 
 
 var __defProp2 = Object.defineProperty;
@@ -4026,6 +4027,27 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
   }
   async fetch(req) {
     const u = new URL(req.url), p = u.pathname;
+    if (p === "/access-grants" && req.method === "GET" && u.hostname === "do") {
+      return j({ ok: true, results: await listReadOnlyGrants({ storage: this.ctx.storage }) });
+    }
+    if (p === "/access-grants/create" && req.method === "POST" && u.hostname === "do") {
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await createReadOnlyGrant({ storage: this.ctx.storage, label: body.label, ttlMinutes: body.ttl_minutes });
+      return j(result, result.ok ? 201 : 400);
+    }
+    if (p === "/access-grants/revoke" && req.method === "POST" && u.hostname === "do") {
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await revokeReadOnlyGrant({ storage: this.ctx.storage, id: body.id });
+      return j(result, result.ok ? 200 : result.error === "GRANT_NOT_FOUND" ? 404 : 400);
+    }
+    if (p === "/access-grants/authorize" && req.method === "POST" && u.hostname === "do") {
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await authorizeReadOnlyGrant({ storage: this.ctx.storage, token: body.token });
+      return j(result, result.ok ? 200 : 401);
+    }
     if (p === "/rate-limit" && req.method === "POST" && u.hostname === "do") {
       const b = await req.json();
       return j(await this.rateLimit(String(b.bucket || "public"), String(b.key || "unknown"), Math.max(1, Math.min(120, n(b.limit) || 10)), Math.max(1e3, Math.min(36e5, n(b.window_ms) || 6e4))));
@@ -4712,6 +4734,66 @@ var human_gate_entry_default = {
       if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
       const { response, data } = await internalJson(stub, "/owner/magic/create", {});
       return j(data, response.status);
+    }
+    if (p === "/api/access-grants" && req.method === "GET") {
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const rl = await publicRate(stub, "readonly_grant_list", ip, 60, 6e4);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      return stub.fetch("https://do/access-grants");
+    }
+    if (p === "/api/access-grants" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const bodyCheck = await boundedJsonBody(req, { max_bytes: 1024, allowed_keys: ["label", "ttl_minutes"], required_keys: ["ttl_minutes"] });
+      if (!bodyCheck.ok) return j({ ok: false, error: bodyCheck.error }, bodyCheck.status);
+      const rl = await publicRate(stub, "readonly_grant_create", ip, 10, 6e4);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      const { response, data } = await internalJson(stub, "/access-grants/create", bodyCheck.value);
+      return j(data, response.status);
+    }
+    const grantRevokeMatch = p.match(/^\\/api\\/access-grants\\/([a-f0-9]{24})\\/revoke$/);
+    if (grantRevokeMatch && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      if (!await emptyMutationBody(req)) return j({ ok: false, error: "EMPTY_BODY_REQUIRED" }, 400);
+      const rl = await publicRate(stub, "readonly_grant_revoke", ip, 20, 6e4);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      const { response, data } = await internalJson(stub, "/access-grants/revoke", { id: grantRevokeMatch[1] });
+      return j(data, response.status);
+    }
+    if (p === "/api/agent/tasks" && req.method === "GET") {
+      const ipLimit = await publicRate(stub, "readonly_tasks_ip", ip, 120, 6e4);
+      if (!ipLimit.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      const authorization = String(req.headers.get("authorization") || "");
+      const tokenMatch = authorization.match(/^Bearer ([a-f0-9]{64})$/);
+      if (!tokenMatch) return j({ ok: false, error: "BEARER_GRANT_REQUIRED" }, 401);
+      const { data: auth } = await internalJson(stub, "/access-grants/authorize", { token: tokenMatch[1] });
+      if (!auth.ok || auth.grant?.scope !== "tasks:read") return j({ ok: false, error: auth.error || "GRANT_SCOPE_DENIED" }, 401);
+      const grantLimit = await publicRate(stub, "readonly_tasks_grant", auth.grant.id, 120, 6e4);
+      if (!grantLimit.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      const opportunityResponse = await stub.fetch("https://do/opportunities");
+      const opportunityData = await opportunityResponse.json();
+      const results = (Array.isArray(opportunityData.results) ? opportunityData.results : []).slice(0, 100).map((x) => {
+        let url = null;
+        try { const parsed = new URL(String(x.url || x.apply_url || "")); if (parsed.protocol === "https:" || parsed.protocol === "http:") url = parsed.href; } catch {}
+        const amount = Number(x.estimated_net_usd ?? x.net_reward_usd ?? x.reward_usd);
+        return {
+          id: String(x.id || x.task_id || x.opportunity_id || "").slice(0, 120),
+          source: String(x.source || "").slice(0, 80),
+          title: String(x.title || x.name || "").slice(0, 240),
+          description: String(x.description || "").slice(0, 2000),
+          estimated_net_usd: Number.isFinite(amount) ? amount : null,
+          currency: String(x.currency || "USD").slice(0, 12),
+          status: String(x.status || "UNKNOWN").slice(0, 40),
+          url,
+          ai_executability: String(x.ai_executability || "UNKNOWN").slice(0, 40),
+          blockers: Array.isArray(x.blockers) ? x.blockers.slice(0, 20).map((b) => String(b).slice(0, 120)) : []
+        };
+      }).filter((x) => x.id && x.source);
+      return j({ ok: true, scope: "tasks:read", generated_at: now(), count: results.length, results }, 200, { "cache-control": "no-store", "pragma": "no-cache" });
     }
     if (p === "/api/status") return stub.fetch("https://do/status");
     if (p === "/api/mcp-heartbeat" && req.method === "GET") return stub.fetch("https://do/mcp-heartbeat");
