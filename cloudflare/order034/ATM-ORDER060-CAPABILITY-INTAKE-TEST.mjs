@@ -14,6 +14,7 @@ for(const symbol of ["SYSTEM_ONE_PROVIDER_REGISTRY_V1","EXTERNAL_CAPABILITY_CAND
 let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){ this.ctx=ctx; this.env=env; } }');
 code+='\nexport { SYSTEM_ONE_PROVIDER_REGISTRY_V1, EXTERNAL_CAPABILITY_CANDIDATES_V1, WORKER_PROVEN_REGISTRY_V1 };\n';
 const tmp=path.join(os.tmpdir(),`atm-order060-${process.pid}-${Date.now()}.mjs`);
+code = code.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', "");
 fs.writeFileSync(tmp,code,"utf8");
 const mod=await import(pathToFileURL(tmp).href);
 fs.unlinkSync(tmp);
