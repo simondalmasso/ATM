@@ -6,7 +6,7 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const src=path.join(here,'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
 const tmp=path.join(os.tmpdir(),`atm-order034-generic-adapter-${process.pid}-${Date.now()}.mjs`);
 const sourceText=fs.readFileSync(src,'utf8');
-let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }');
+let code=sourceText.replace('import { DurableObject } from "cloudflare:workers";','class DurableObject { constructor(ctx,env){} }').replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";','');
 code+='\nexport { executionAdapterCapabilities, executionCandidateAdmitted };\n';
 code = code.replaceAll('"./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs"', JSON.stringify(pathToFileURL(path.join(here, "ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs")).href));
 fs.writeFileSync(tmp,code,'utf8');
