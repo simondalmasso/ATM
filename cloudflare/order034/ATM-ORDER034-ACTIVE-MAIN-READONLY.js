@@ -3,6 +3,8 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // active-version-modules/order033-active.js
 import { DurableObject } from "cloudflare:workers";
+
+
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
 var num = /* @__PURE__ */ __name2((v) => {
@@ -387,6 +389,116 @@ function j(data, status = 200, headers = {}) {
 }
 __name(j, "j");
 __name2(j, "j");
+
+function hpaMediaStudioHtml() {
+  return String.raw`<!doctype html>
+<html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATM Media Studio · Hombrepsicoactivo</title>
+<style>
+:root{color-scheme:light;--paper:#fbfaf7;--ink:#171717;--line:#d3d0cb;--violet:#6c55c8;--warn:#8a5300}
+*{box-sizing:border-box}body{margin:0;background:#efede8;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px}.panel,article{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+h1{font-size:clamp(24px,4vw,34px);margin:0 0 4px}h2{font-size:20px;margin:0 0 12px}.muted{color:#595959;font-size:14px}
+label{display:block;font-weight:650;margin:10px 0 4px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid #aaa;border-radius:7px;padding:9px;background:white;color:var(--ink)}
+textarea{min-height:100px;resize:vertical}button{border:0;border-radius:7px;padding:10px 14px;background:var(--violet);color:white;font-weight:700;cursor:pointer;margin:6px 6px 0 0}button.secondary{background:#454545}button.reject{background:#8c2424}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pill{display:inline-block;background:#e8e3fb;border-radius:99px;padding:2px 8px;font-size:12px}.status{padding:10px;background:#f2efe8;border-radius:7px;margin:12px 0;white-space:pre-wrap}.scene{border-left:3px solid var(--violet);padding:6px 10px;margin:9px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f0eb;border-radius:7px;padding:10px}a{color:#4736a4}article h3{margin:8px 0}small{color:#555}
+.local-render{border:1px solid #cbc5ba;border-radius:10px;padding:12px;margin-top:12px}.local-render video{display:block;width:min(100%,320px);max-height:580px;background:#111;border-radius:8px;margin:10px auto}.render-meta{font-size:13px;color:#595959}.render-button{background:#173d37}
+ @media(max-width:650px){main{padding:12px}.row{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<header class="panel"><h1>ATM Media Studio</h1><strong>Hombrepsicoactivo</strong>
+<p class="muted">Generación de borradores con GLM. Este panel no publica posts y no declara imágenes ni videos como creados: el activo queda pendiente hasta que exista un render real.</p>
+<p class="muted">Iniciá la sesión de propietario desde el panel ATM en otra pestaña del mismo dominio si las llamadas devuelven 403.</p></header>
+<section class="panel"><h2>Crear borrador</h2>
+<form id="draftForm">
+<label for="topic">Tema editorial</label><input id="topic" name="topic" maxlength="300" required value="Tu cerebro no busca la verdad: busca tener razón">
+<div class="row"><div><label for="format">Formato</label><select id="format" name="format"><option value="REEL">Reel — guion y escenas</option><option value="CAROUSEL">Carrusel — guion de tarjetas</option><option value="IMAGE_POST">Post de imagen</option></select></div>
+<div><label for="series">Serie</label><select id="series" name="series_id"><option value="tu_cerebro_te_vende_humo">Tu cerebro te vende humo</option><option value="psicologia_de_bolsillo">Psicología de bolsillo</option><option value="el_algoritmo_te_mide">El algoritmo te mide</option><option value="manual_del_autoengano">Manual del autoengaño</option></select></div></div>
+<label for="sources">Fuentes de respaldo (JSON opcional)</label><textarea id="sources" name="sources" placeholder='[{"title":"APA Dictionary — Confirmation bias","url":"https://dictionary.apa.org/confirmation-bias","checked_at":"2026-10-14","excerpt":"Definición consultada"}]'></textarea>
+<p class="muted">Pegá fuentes verificadas como array JSON. Sin fuentes, el borrador queda marcado NEEDS_SOURCES y no puede considerarse listo para publicar.</p>
+<button type="submit">Generar guion</button><button class="secondary" id="refreshBtn" type="button">Actualizar cola</button>
+</form><div class="status" id="status" role="status">Listo.</div></section>
+<section class="panel"><h2>Videos generados en este navegador</h2><p class="muted">Render WebM vertical con motion graphics, subtítulos de hasta dos líneas y ambiente sonoro sintético. No utiliza servicios de pago ni sube el video al servidor. Esta versión no incorpora locución de voz. Los videos quedan guardados en este navegador y se pueden descargar.</p><div id="localRenders"><p class="muted">Buscando renders locales…</p></div></section>
+<section><h2>Cola persistente</h2><div id="queue"></div></section>
+</main>
+<script>
+const statusEl=document.getElementById('status');
+const queueEl=document.getElementById('queue');
+let pendingDraftRequest=null;
+const say=(s)=>statusEl.textContent=s;
+const addText=(parent,tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;};
+async function api(path,body){
+ const options={method:body?'POST':'GET',credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},cache:'no-store'};
+ if(body)options.body=JSON.stringify(body);
+ const r=await fetch(path,options);let data;try{data=await r.json()}catch{data={ok:false,error:'RESPONSE_NOT_JSON'}}
+ if(!r.ok||data.ok===false)throw new Error((data.error||('HTTP_'+r.status))+' (HTTP '+r.status+')');
+ return data;
+}
+function renderDraft(d){
+ const card=document.createElement('article');
+ addText(card,'span',d.review_status,'pill');
+ addText(card,'h3',d.hook||d.topic);
+ addText(card,'p','Formato: '+d.format+' · Serie: '+d.series_id);
+ addText(card,'p','Estado de activo: '+d.asset_status+' · Publicación: '+d.publication_status);
+ addText(card,'h4','Guion');
+ addText(card,'pre',d.script);
+ addText(card,'h4','Caption');
+ addText(card,'pre',d.caption+'\n\n'+d.cta);
+ if(Array.isArray(d.scenes)){addText(card,'h4','Escenas');for(const scene of d.scenes){const div=addText(card,'div',scene.on_screen_text+'\nVisual: '+scene.visual_direction+'\nNarración: '+scene.narration,'scene');}}
+ if(Array.isArray(d.claims)&&d.claims.length){addText(card,'h4','Afirmaciones para verificar');for(const claim of d.claims){addText(card,'p',claim.verification+': '+claim.text);}}
+ if(Array.isArray(d.sources)&&d.sources.length){addText(card,'h4','Fuentes');for(const source of d.sources){const a=document.createElement('a');a.href=source.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=source.title+' — '+source.url;card.appendChild(a);card.appendChild(document.createElement('br'));}}
+ addText(card,'small','ID: '+d.content_id+' · Creado: '+d.created_at);
+ if(d.review_status==='DRAFT_NEEDS_REVIEW'){
+   const approve=document.createElement('button');approve.textContent='Aprobar guion (no publica)';approve.onclick=()=>review(d.content_id,'APPROVE_SCRIPT');
+   const reject=document.createElement('button');reject.textContent='Rechazar';reject.className='reject';reject.onclick=()=>review(d.content_id,'REJECT');
+   card.appendChild(approve);card.appendChild(reject);
+ }
+ if(d.review_status==='SCRIPT_APPROVED_ASSET_PENDING'&&d.format==='REEL'){
+  const render=document.createElement('button');render.textContent='Generar video cinematográfico';render.className='render-button';render.onclick=()=>renderCinematicVideo(d);card.appendChild(render);
+ }
+ queueEl.appendChild(card);
+}
+async function loadQueue(){
+ try{const data=await api('/api/media/drafts');queueEl.replaceChildren();if(!data.results.length)addText(queueEl,'p','La cola está vacía.');for(const d of data.results)renderDraft(d);say('Cola leída: '+data.results.length+' borradores.');await paintLocalVideos();}
+ catch(e){say('No se pudo leer la cola: '+e.message);}
+}
+async function review(id,decision){
+ try{await api('/api/media/draft/review',{content_id:id,decision,notes:''});say('Revisión guardada. Aprobar el guion no publica ni genera un video.');await loadQueue();}
+ catch(e){say('No se pudo guardar la revisión: '+e.message);}
+}
+document.getElementById('draftForm').addEventListener('submit',async(e)=>{
+ e.preventDefault();say('Generando borrador con GLM…');
+ try{
+  const sourceText=document.getElementById('sources').value.trim();
+  const sources=sourceText?JSON.parse(sourceText):[];
+  if(!Array.isArray(sources))throw new Error('FUENTES_DEBEN_SER_ARRAY_JSON');
+  const payload={topic:document.getElementById('topic').value,format:document.getElementById('format').value,series_id:document.getElementById('series').value,brand_id:'hombrepsicoactivo',sources};
+  const signature=JSON.stringify(payload);
+  if(!pendingDraftRequest||pendingDraftRequest.signature!==signature)pendingDraftRequest={signature,key:crypto.randomUUID()};
+  const result=await api('/api/media/draft/generate',{...payload,idempotency_key:pendingDraftRequest.key});
+  pendingDraftRequest=null;
+  say('Borrador creado. Estado: '+result.draft.review_status+'. Activo: '+result.draft.asset_status+'.');
+  await loadQueue();
+ }catch(e){say('No se pudo generar el borrador: '+e.message+'. Reintentá sin cambiar el formulario para reutilizar la misma clave.');}
+});
+
+
+// Local-only renderer. It does not upload assets or mark the server draft rendered.
+const VIDEO_DB='atm-hpa-local-video-v1',VIDEO_STORE='renders',VIDEO_MAX_BYTES=24*1024*1024;
+let videoUrls=[];
+function videoDb(){return new Promise((ok,no)=>{const r=indexedDB.open(VIDEO_DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(VIDEO_STORE))r.result.createObjectStore(VIDEO_STORE,{keyPath:'content_id'});};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(new Error('LOCAL_VIDEO_DB_OPEN_FAILED'));});}
+async function videoRows(){const db=await videoDb();try{return await new Promise((ok,no)=>{const r=db.transaction(VIDEO_STORE,'readonly').objectStore(VIDEO_STORE).getAll();r.onsuccess=()=>ok(r.result.sort((a,b)=>b.rendered_at.localeCompare(a.rendered_at)));r.onerror=()=>no(r.error);});}finally{db.close();}}
+async function saveVideo(row){const db=await videoDb();try{await new Promise((ok,no)=>{const tx=db.transaction(VIDEO_STORE,'readwrite'),st=tx.objectStore(VIDEO_STORE);st.put(row);const q=st.getAll();q.onsuccess=()=>q.result.sort((a,b)=>a.rendered_at.localeCompare(b.rendered_at)).slice(0,Math.max(0,q.result.length-10)).forEach(x=>st.delete(x.content_id));tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});}finally{db.close();}}
+async function paintLocalVideos(){const root=document.getElementById('localRenders');if(!root)return;videoUrls.forEach(URL.revokeObjectURL);videoUrls=[];try{const rows=await videoRows();root.replaceChildren();if(!rows.length){addText(root,'p','Todavía no hay videos locales guardados.','muted');return;}for(const x of rows){const c=addText(root,'article','','local-render');addText(c,'strong',x.topic||'Reel HPA');addText(c,'p',new Date(x.rendered_at).toLocaleString()+' · '+(x.bytes/1048576).toFixed(1)+' MB · '+x.duration_seconds+' s','render-meta');const url=URL.createObjectURL(x.blob);videoUrls.push(url);const v=document.createElement('video');v.controls=true;v.preload='metadata';v.playsInline=true;v.src=url;c.appendChild(v);const link=addText(c,'a','Descargar WebM');link.href=url;link.download=x.filename;link.style.display='inline-block';const del=addText(c,'button','Eliminar copia local');del.className='secondary';del.onclick=async()=>{const db=await videoDb();try{await new Promise((ok,no)=>{const tx=db.transaction(VIDEO_STORE,'readwrite');tx.objectStore(VIDEO_STORE).delete(x.content_id);tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});}finally{db.close();}await paintLocalVideos();};}}catch(e){root.replaceChildren();addText(root,'p','Almacenamiento local no disponible: '+String(e.message||e),'muted');}}
+function cueLines(text,limit){const words=String(text||'').trim().split(/\s+/).filter(Boolean),lines=[];let line='';for(const w of words){if((line?line+' ':'').length+w.length>limit&&line){lines.push(line);line=w;}else line+=(line?' ':'')+w;}if(line)lines.push(line);const pairs=[];for(let i=0;i<lines.length;i+=2)pairs.push(lines.slice(i,i+2));return pairs.length?pairs:[['']];}
+function videoTimeline(d){const cues=[{i:-1,k:'hook',lines:cueLines(d.hook,28).flat().slice(0,2),sec:2.8}];d.scenes.forEach((s,i)=>cueLines(s.narration,34).forEach(lines=>cues.push({i,k:'caption',lines,sec:Math.max(2.2,Math.min(5,lines.join(' ').split(/\s+/).length/2.5))})));cues.push({i:d.scenes.length-1,k:'cta',lines:cueLines(d.cta,30).flat().slice(0,2),sec:2.5});let t=0;cues.forEach(c=>{c.a=t;t+=c.sec;c.b=t;});if(t>90)throw new Error('NARRATION_OVER_90_SECONDS');return {cues,total:t};}
+function videoFrame(ctx,d,c,t,total){const s=d.scenes[Math.max(0,c.i)]||d.scenes[0],h=Array.from(s.visual_direction||d.topic).reduce((a,x)=>Math.imul(a^x.charCodeAt(0),16777619)>>>0,2166136261),pal=[['#07121f','#214554','#8e5a62'],['#110f1c','#45304e','#b46d4b'],['#071b1c','#246064','#c18d52'],['#17101a','#552c46','#dba96c']][h%4],w=720,z=1280;const g=ctx.createLinearGradient(0,0,w,z);g.addColorStop(0,pal[0]);g.addColorStop(.56,pal[1]);g.addColorStop(1,pal[2]);ctx.fillStyle=g;ctx.fillRect(0,0,w,z);const glow=ctx.createRadialGradient(w*(.3+.3*Math.sin(t*.16)),z*.28,0,w*.48,z*.3,w*.8);glow.addColorStop(0,'rgba(251,202,139,.3)');glow.addColorStop(1,'rgba(4,7,14,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,w,z);ctx.save();ctx.translate(w/2,z*.39);ctx.rotate(Math.sin(t*.13)*.1);for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(0,0,100+i*42,65+i*35,i*.32,0,Math.PI*2);ctx.strokeStyle='rgba(255,234,205,.2)';ctx.lineWidth=2;ctx.stroke();}for(let i=0;i<30;i++){const a=i*2.399+t*.045,r=50+(i*37)%220;ctx.beginPath();ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r*.7);ctx.lineTo(Math.cos(a)*r+Math.sin(a)*12,Math.sin(a)*r*.7+Math.cos(a)*18);ctx.strokeStyle='rgba(255,235,201,.22)';ctx.stroke();}ctx.restore();const m=56;ctx.fillStyle='#f5d4a1';ctx.fillRect(m,68,74,5);ctx.fillStyle='#fff';ctx.font='700 24px system-ui';ctx.fillText('HOMBREPSICOACTIVO',m,112);ctx.fillStyle='rgba(255,255,255,.65)';ctx.font='15px system-ui';ctx.fillText('IDEA · CONDUCTA · CULTURA DIGITAL',m,140);if(c.k!=='caption'){ctx.fillStyle='#fff';ctx.font='800 50px system-ui';c.lines.forEach((x,j)=>ctx.fillText(x,m,(c.k==='hook'?z*.48:z*.52)+j*62,w-m*2));}else{ctx.fillStyle='#f5d4a1';ctx.font='650 18px system-ui';ctx.fillText('ESCENA '+String(c.i+1).padStart(2,'0')+' / '+String(d.scenes.length).padStart(2,'0'),m,z*.62);ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='500 21px system-ui';ctx.fillText(String(s.visual_direction||'').slice(0,68),m,z*.67,w-m*2);const bh=c.lines.length===1?92:130,by=z-205-bh,sg=ctx.createLinearGradient(0,by,0,by+bh);sg.addColorStop(0,'rgba(3,6,13,.55)');sg.addColorStop(1,'rgba(3,6,13,.96)');ctx.fillStyle=sg;ctx.fillRect(35,by,w-70,bh);ctx.fillStyle='#f5d4a1';ctx.fillRect(35,by,4,bh);ctx.fillStyle='#fff';ctx.font='600 30px system-ui';c.lines.forEach((x,j)=>ctx.fillText(x,58,by+45+j*39,w-118));}ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(m,z-55,w-m*2,3);ctx.fillStyle='#f5d4a1';ctx.fillRect(m,z-55,(w-m*2)*Math.min(1,t/total),3);ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='14px system-ui';ctx.fillText('REVISIÓN HUMANA · NO PUBLICADO',m,z-28);}
+async function renderCinematicVideo(d){if(d.review_status!=='SCRIPT_APPROVED_ASSET_PENDING')throw new Error('SCRIPT_APPROVAL_REQUIRED');if(d.brand_id!=='hombrepsicoactivo'||d.format!=='REEL'||!Array.isArray(d.scenes)||d.scenes.length<3)throw new Error('ONLY_APPROVED_HPA_REELS_CAN_RENDER');if(!HTMLCanvasElement.prototype.captureStream||typeof MediaRecorder==='undefined')throw new Error('USE_CHROME_OR_EDGE');const card=[...queueEl.querySelectorAll('article')].find(x=>x.textContent.includes(d.content_id)),btn=card?.querySelector('.render-button');if(btn){btn.disabled=true;btn.textContent='Renderizando…';}say('Renderizando en el navegador; no cierres esta pestaña…');let stream,ac,raf;try{const {cues,total}=videoTimeline(d),canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('CANVAS_UNAVAILABLE');stream=canvas.captureStream(24);ac=new AudioContext();await ac.resume();const dest=ac.createMediaStreamDestination(),gain=ac.createGain();gain.gain.value=.025;gain.connect(dest);const low=ac.createOscillator();low.frequency.value=55;low.connect(gain);low.start();const mid=ac.createOscillator();mid.type='triangle';mid.frequency.value=82.41;const mg=ac.createGain();mg.gain.value=.2;mid.connect(mg);mg.connect(gain);mid.start();stream.addTrack(dest.stream.getAudioTracks()[0]);const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime)throw new Error('WEBM_ENCODER_UNAVAILABLE');const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1500000,audioBitsPerSecond:48000}),chunks=[];rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};const stopped=new Promise((ok,no)=>{rec.onstop=ok;rec.onerror=()=>no(new Error('MEDIARECORDER_FAILED'));});const start=performance.now(),draw=()=>{const t=Math.min(total,(performance.now()-start)/1000),c=cues.find(x=>t>=x.a&&t<x.b)||cues[cues.length-1];videoFrame(ctx,d,c,t,total);if(t<total)raf=requestAnimationFrame(draw);};rec.start(250);draw();await new Promise(ok=>setTimeout(ok,total*1000+120));cancelAnimationFrame(raf);rec.stop();await stopped;low.stop();mid.stop();const blob=new Blob(chunks,{type:rec.mimeType});if(blob.size<4096)throw new Error('VIDEO_FILE_TOO_SMALL');if(blob.size>VIDEO_MAX_BYTES)throw new Error('VIDEO_OVER_24MB');const at=new Date().toISOString(),id=String(d.content_id).replace(/[^A-Za-z0-9._-]/g,'-');await saveVideo({content_id:d.content_id,topic:d.topic||d.hook,filename:'hpa-'+id+'.webm',rendered_at:at,duration_seconds:Math.round(total*10)/10,bytes:blob.size,mime_type:blob.type,voiceover:'NOT_INCLUDED_ZERO_COST_MODE',server_upload:'NO',blob});await paintLocalVideos();say('Video WebM generado y guardado en este navegador ('+(blob.size/1048576).toFixed(1)+' MB). No se subió ni publicó; sin locución de voz en el modo sin coste.');}catch(e){say('Render no completado: '+String(e.message||e));}finally{if(raf)cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(x=>x.stop());if(ac){try{await ac.close();}catch{}}if(btn){btn.disabled=false;btn.textContent='Generar video cinematográfico';}}}
+document.getElementById('refreshBtn').addEventListener('click',loadQueue);
+loadQueue();
+</script></body></html>`;
+}
+
 function safeThread(x) {
   return String(x || "main").replace(/[^a-zA-Z0-9_.:-]/g, "").slice(0, 100) || "main";
 }
@@ -2550,6 +2662,111 @@ var ATMBrain = class extends DurableObject {
     const daydreams = new TaskPayoutReceiver("DAYDREAMS").capabilities(), hansa = new TaskPayoutReceiver("AGENTHANSA").capabilities(), x402 = await this.x402State();
     return { policy: { owner_funded_spend_usd: 0, autonomous_buy_side_x402: "DISABLED", autonomous_gas_or_fees: "DISABLED", reinvest_realized_earnings: "DISABLED", raw_private_key_runtime_custody: "REJECTED", execution_actor: RUNTIME_ACTOR, arq_execution: false }, providers: { external_x402: external, cloudflare_wallet: cloudflare }, payout_receivers: { DAYDREAMS: daydreams, AGENTHANSA: hansa }, x402_settlement: x402, tool_market: { x402_bazaar: "TOOL_MARKET_ONLY_NOT_EARNINGS", payable_api_spend: "DISABLED" } };
   }
+  async hpaMediaDrafts() {
+    const { HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
+    const queue = await this.get(HPA_QUEUE_KEY, []);
+    return Array.isArray(queue) ? queue.filter((x) => x && x.brand_id === HPA_BRAND_ID).slice(0, HPA_MAX_QUEUE_ITEMS) : [];
+  }
+  async generateHpaMediaDraft(body) {
+    const {
+      HPA_BRAND_ID, HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS,
+      generateHpaDraft, validateHpaGenerationInput
+    } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
+    const validated = validateHpaGenerationInput(body);
+    if (!validated.ok) return validated;
+    const request = validated.value;
+    const idempotencyKey = request.idempotency_key;
+    const reservationKey = "hpa_media_idempotency_v1:" + idempotencyKey;
+    const requestFingerprint = Array.from(new Uint8Array(await crypto.subtle.digest(
+      "SHA-256", new TextEncoder().encode(JSON.stringify(request))
+    ))).map((x) => x.toString(16).padStart(2, "0")).join("");
+    const leaseId = crypto.randomUUID();
+    const leaseMs = 5 * 60 * 1000;
+    const reservation = await this.ctx.storage.transaction(async (tx) => {
+      const existing = await tx.get(reservationKey);
+      if (existing?.request_fingerprint && existing.request_fingerprint !== requestFingerprint) return { kind: "CONFLICT" };
+      if (existing?.status === "COMPLETED" && existing.draft) return { kind: "COMPLETED", draft: existing.draft };
+      if (existing?.status === "IN_PROGRESS" && Number(existing.expires_at) > Date.now()) {
+        return { kind: "IN_PROGRESS", retry_after_ms: Math.max(1000, Number(existing.expires_at) - Date.now()) };
+      }
+      const storedQueue = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(storedQueue) ? storedQueue.filter((x) => x && x.brand_id === HPA_BRAND_ID) : [];
+      if (queue.length >= HPA_MAX_QUEUE_ITEMS && !queue.some((x) => x.idempotency_key === idempotencyKey)) {
+        return { kind: "FULL" };
+      }
+      await tx.put(reservationKey, {
+        status: "IN_PROGRESS", request_fingerprint: requestFingerprint,
+        lease_id: leaseId, started_at: Date.now(), expires_at: Date.now() + leaseMs
+      });
+      return { kind: "RESERVED" };
+    });
+    if (reservation.kind === "COMPLETED") return { ok: true, idempotent_replay: true, draft: reservation.draft };
+    if (reservation.kind === "CONFLICT") return { ok: false, status: 409, error: "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_REQUEST" };
+    if (reservation.kind === "IN_PROGRESS") {
+      return { ok: false, status: 409, error: "IDEMPOTENCY_IN_PROGRESS", retry_after_ms: reservation.retry_after_ms };
+    }
+    if (reservation.kind === "FULL") return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
+    const failReservation = async (error) => {
+      await this.ctx.storage.transaction(async (tx) => {
+        const current = await tx.get(reservationKey);
+        if (current?.lease_id !== leaseId || current?.status !== "IN_PROGRESS") return;
+        await tx.put(reservationKey, {
+          status: "FAILED", request_fingerprint: requestFingerprint,
+          failed_at: Date.now(), error: String(error || "MODEL_GENERATION_FAILED").slice(0, 80)
+        });
+      });
+    };
+    const generated = await generateHpaDraft({
+      input: request,
+      runModel: (messages, maxTokens) => this.runExecutionModel(messages, maxTokens),
+    });
+    if (!generated.ok) {
+      await failReservation(generated.error);
+      return generated;
+    }
+    const committed = await this.ctx.storage.transaction(async (tx) => {
+      const currentReservation = await tx.get(reservationKey);
+      if (currentReservation?.lease_id !== leaseId || currentReservation?.status !== "IN_PROGRESS") return { kind: "LEASE_LOST" };
+      const stored = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(stored) ? stored.filter((x) => x && x.brand_id === HPA_BRAND_ID) : [];
+      const existing = queue.find((x) => x.idempotency_key === idempotencyKey);
+      if (existing) {
+        await tx.put(reservationKey, { status: "COMPLETED", request_fingerprint: requestFingerprint, completed_at: Date.now(), draft: existing });
+        return { kind: "EXISTING", draft: existing };
+      }
+      if (queue.length >= HPA_MAX_QUEUE_ITEMS) {
+        await tx.put(reservationKey, { status: "FAILED", request_fingerprint: requestFingerprint, failed_at: Date.now(), error: "MEDIA_QUEUE_FULL" });
+        return { kind: "FULL" };
+      }
+      await tx.put(HPA_QUEUE_KEY, [generated.draft, ...queue]);
+      await tx.put(reservationKey, { status: "COMPLETED", request_fingerprint: requestFingerprint, completed_at: Date.now(), draft: generated.draft });
+      return { kind: "CREATED", draft: generated.draft };
+    });
+    if (committed.kind === "LEASE_LOST") return { ok: false, status: 409, error: "IDEMPOTENCY_LEASE_EXPIRED_RETRY" };
+    if (committed.kind === "FULL") return { ok: false, status: 429, error: "MEDIA_QUEUE_FULL" };
+    if (committed.kind === "EXISTING") return { ok: true, idempotent_replay: true, draft: committed.draft };
+    await this.activity("media_draft", "Borrador editorial de Hombrepsicoactivo creado", {
+      content_id: committed.draft.content_id, format: committed.draft.format,
+      review_status: committed.draft.review_status, asset_status: committed.draft.asset_status,
+    });
+    return { ok: true, idempotent_replay: false, draft: committed.draft };
+  }
+  async reviewHpaMediaDraft(body) {
+    const { HPA_QUEUE_KEY, HPA_MAX_QUEUE_ITEMS, reviewHpaDraft } = await import("./ATM-ORDER066-HPA-MEDIA-ENGINE-V1.mjs");
+    const result = await this.ctx.storage.transaction(async (tx) => {
+      const stored = await tx.get(HPA_QUEUE_KEY);
+      const queue = Array.isArray(stored) ? stored : [];
+      const reviewed = reviewHpaDraft(queue, body);
+      if (!reviewed.ok) return reviewed;
+      await tx.put(HPA_QUEUE_KEY, reviewed.queue.slice(0, HPA_MAX_QUEUE_ITEMS));
+      return { ok: true, draft: reviewed.draft };
+    });
+    if (!result.ok) return result;
+    await this.activity("media_review", "Revisión de guion de Hombrepsicoactivo registrada", {
+      content_id: result.draft.content_id, review_status: result.draft.review_status,
+    });
+    return { ok: true, draft: result.draft };
+  }
   async appendTaskEvent(opp, transition, meta = {}) {
     const events = await this.taskEvents(), termsHash = opp.terms_hash || await sha256Hex(JSON.stringify({ source: opp.source, raw_id: opp.raw_id, reward: opp.payout_amount, currency: opp.payout_currency, mode: opp.mode, deadline: opp.deadline, description: opp.description, blockers: opp.blockers, economics: opp.economics }));
     opp.terms_hash = termsHash;
@@ -3853,6 +4070,24 @@ Respond\xE9 ahora al pedido original usando SOLO esta evidencia. Si existe total
       const settlement_after = await this.monitorExecutionReadback("cron_post");
       return j({ ok: true, radar: radar.radar, uncertain, agentic: a, human_readbacks: h, settlement_before, settlement_after });
     }
+    if (p === "/media/drafts" && req.method === "GET") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      return j({ ok: true, brand_id: "hombrepsicoactivo", results: await this.hpaMediaDrafts() });
+    }
+    if (p === "/media/draft/generate" && req.method === "POST") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await this.generateHpaMediaDraft(body);
+      return j(result, result.status || 200);
+    }
+    if (p === "/media/draft/review" && req.method === "POST") {
+      if (req.headers.get("x-atm-owner-session") !== "verified") return j({ ok: false, error: "OWNER_SESSION_REQUIRED" }, 403);
+      let body = {};
+      try { body = await req.json(); } catch { return j({ ok: false, error: "INVALID_JSON" }, 400); }
+      const result = await this.reviewHpaMediaDraft(body);
+      return j(result, result.status || 200);
+    }
     if (p === "/money-loop") return j(await this.moneyLoopStatus());
     if (p === "/task-market") return j(await this.taskMarketStatus());
     if (p === "/payment-capabilities") return j({ ok: true, ...await this.paymentCapabilities() });
@@ -4630,6 +4865,40 @@ var human_gate_entry_default = {
       const rl = await publicRate(stub, "run_now", ip, 2, 10 * 60 * 1e3);
       if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
       return stub.fetch(new Request("https://do/run-now", { method: "POST" }));
+    }
+    if (p === "/media-studio" && req.method === "GET") {
+      return new Response(hpaMediaStudioHtml(), { headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      }});
+    }
+    if (p === "/api/media/drafts" && req.method === "GET") {
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const rl = await publicRate(stub, "hpa_media_queue", ip, 30, 6e4);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      return stub.fetch(new Request("https://do/media/drafts", { headers: { "x-atm-owner-session": "verified" } }));
+    }
+    if (p === "/api/media/draft/generate" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const bodyCheck = await boundedJsonBody(req, { max_bytes: 12000, allowed_keys: ["brand_id","topic","format","series_id","sources","idempotency_key"], required_keys: ["topic","idempotency_key"] });
+      if (!bodyCheck.ok) return j({ ok: false, error: bodyCheck.error }, bodyCheck.status);
+      const rl = await publicRate(stub, "hpa_media_generate", ip, 3, 60 * 60 * 1000);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED", reset_at: rl.reset_at }, 429);
+      return stub.fetch(new Request("https://do/media/draft/generate", { method: "POST", headers: { "content-type": "application/json", "x-atm-owner-session": "verified" }, body: JSON.stringify(bodyCheck.value) }));
+    }
+    if (p === "/api/media/draft/review" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      const owner = await ownerSessionFor(stub, req);
+      if (!owner.ok) return j({ ok: false, error: owner.error || "OWNER_SESSION_REQUIRED" }, 403);
+      const bodyCheck = await boundedJsonBody(req, { max_bytes: 2048, allowed_keys: ["content_id","decision","notes"], required_keys: ["content_id","decision"] });
+      if (!bodyCheck.ok) return j({ ok: false, error: bodyCheck.error }, bodyCheck.status);
+      const rl = await publicRate(stub, "hpa_media_review", ip, 20, 60 * 1000);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      return stub.fetch(new Request("https://do/media/draft/review", { method: "POST", headers: { "content-type": "application/json", "x-atm-owner-session": "verified" }, body: JSON.stringify(bodyCheck.value) }));
     }
     if ((p === "/api/agent/chat" || p === "/api/agent/stream") && req.method === "POST") {
       if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);

@@ -129,3 +129,48 @@ GitHub `main` and GitLab mirror are aligned at `a6aef9f60db7ecbe7f5ebc848ce24571
 - Mirror workflow [38466555956](https://github.com/simondalmasso/ATM/actions/runs/38466555956) succeeded: GitHub main and GitLab main both equal `50f7bec94b8c9ddff5d49f7970223e687816898c`; branch parity verified. The divergent legacy branch `feat/atm-rsi-decision-engine-v1` was skipped without force push or deletion.
 - Cloudflare schedule remains HTTP 200 / success true / exactly one native Cron entry `*/15 * * * *` after deployment. Keep `PAID_EXTERNAL=0`, owner spend $0, settlement readback receive-only, signer unchanged, no new secrets/tokens/paid services, no Zero Trust/card. **Issue #96 remains OPEN** until the next scheduled Cron invocation after deployment is observed to complete without `SQLITE_TOOBIG`. Do not manually POST `/__cron`; it can start automated discovery/acquisition. Direct unauthenticated `/health` and `/api/status` reads returned HTTP 403, so no alternate access path was attempted.
 
+
+
+## ORDER-066 HPA media render checkpoint — 2026-10-18
+
+### Live production readback
+- At 2026-10-18T01:58:29Z, GET https://atm.simondalmasso44.workers.dev/health returned HTTP 200, runtime=RUNNING, git_sha=50f7bec94b8c9ddff5d49f7970223e687816898c; /api/status returned HTTP 200.
+- At the same check, GET /media-studio returned HTTP 404. Current production does not expose the HPA studio found in the ORDER-066 feature branch.
+- git ls-remote origin: main=7623cfff2cced6a5d3c0c0bfb8795178bac73ec4; feat/order066-hpa-editorial-queue-v1=0aa1acad25edea80f9bfdeb0adaa59aa40d5d4fd.
+- GitHub PR #100 documents the editorial-draft queue only and explicitly says no MP4 renderer was added. Remote head CI run 38703274203 succeeded for the exact feature head before these local-only edits.
+
+### Local subtitle proof, explicitly unpublished
+- scripts/hpa-cinematic-render.py now applies FontSize=14, BorderStyle=1, MarginV=88, Alignment=2, WrapStyle=2; one occurrence changed from 24pt box-style captions. A .pre-subtitle-fix.bak is preserved.
+- Rebuilt artifacts/hpa-render/hombrepsicoactivo-area51-piloto-subtitulos-v2.mp4 from clean scene intermediates (no previously burned-in caption layer) and applied subtitles once.
+- Duration 69.456s; 720x1280, 30fps; size 25021833 bytes; SHA-256 4e21e24176cf84580303f676cba3b72e401f59dc9a80b9076de4673120de2609. Full FFmpeg decode check PASS; a 12-second frame was visually checked and shows a single small lower-third caption.
+- Receipt: artifacts/hpa-render/hombrepsicoactivo-area51-piloto-subtitulos-v2.receipt.json, SHA-256 b556cfb0b5fa4dcce5614a685cfbe2d74ecea95cec741aa04b1cf1ddbdd2fe27. It marks RENDERED_LOCAL_UNPUBLISHED, NOT_PUBLISHED, and NOT_DEPLOYED; external TTS free availability/terms are not guaranteed.
+- This is a local host artifact, not a downloadable asset hosted by ATM and not proof that the Worker has a render pipeline.
+
+### Regression and build evidence
+- 24 Node tests passed on the working copy; also python -m compileall -q scripts tests, python -m unittest discover -s tests -p test_*.py, python scripts/secret_doctor.py, python scripts/payout_doctor.py, and git diff --check exited 0.
+- npx --yes wrangler@4.151.1 deploy --dry-run --config cloudflare/order034/wrangler.order034.main.jsonc succeeded: 472.19 KiB upload size (119.38 KiB gzip); dry-run only, no deployment. Candidate bindings listed were ATM_BRAIN, TASKMARKET_SIGNER, and AI; no r2_buckets binding or rendering service exists in this config.
+- The added node scripts/hpa-render-adapter.test.mjs line in .github/workflows/ci.yml is local-only. The adapter files, cinematic renderer, assets, backups, video, and receipts are untracked in this working copy. Current snapshot: branch feat/order066-hpa-editorial-queue-v1, HEAD 0aa1acad25ed, zero staged, one tracked unstaged file and 26 untracked paths. No commit, push, merge, or production deploy was performed.
+
+### Runtime implementation boundary
+- Deployed/runtime media handling remains editorial drafts and review transitions (NOT_RENDERED, NOT_PUBLISHED). The local browser/CDP adapter is not imported by the Worker. A local Python/FFmpeg script is not a production integration.
+- Candidate project review: OpenChatCut (https://github.com/0xsline/OpenChatCut) is local-first React/Remotion/Electron; AutoClip (https://github.com/zhouxiaoka/autoclip) is desktop/local rendering and states cloud models are metered; Herk Edit Kit (https://github.com/nateherkai/herk-edit-kit) is a HyperFrames/GSAP editing kit for coding agents; StoryToolkitAI (https://github.com/octimot/StoryToolkitAI) is local editing/transcription; FireRed-OpenStoryline (https://github.com/FireRedTeam/FireRed-OpenStoryline), FunClip (https://github.com/modelscope/FunClip), and NarratoAI (https://github.com/linyqh/NarratoAI) are app/model pipelines, not drop-in Worker renderers; BackgroundRemover (https://github.com/nadermx/backgroundremover) requires Python, PyTorch and FFmpeg; LatentSync (https://github.com/bytedance/LatentSync) is hardware-heavy lip-sync inference. tmoroney/AutoSubs returned GitHub 404 for that exact repo name, and the earlier link was truncated, so its identity remains unresolved.
+- Current HPA Worker config has no R2 bucket binding, media object store, or render executor. The core create, persist and retrieve cinematic video from inside ATM objective is still incomplete. Do not mark drafts RENDERED based on a local artifact. Any follow-on must implement a real in-product rendering/output storage path, retain the $0/no-paid-API gate, then pass exact-SHA CI and the canonical authorized deployment/promotion/readback workflow before claiming production success. Do not bypass GitHub main or directly deploy from this dirty working copy.
+
+
+
+### R2 account activation gate — 2026-10-18
+- Authenticated Wrangler CLI read-only command `npx --yes wrangler@4.151.1 r2 bucket list` failed with Cloudflare API error 10042: “Please enable R2 through the Cloudflare Dashboard.” This confirms R2 is disabled for the connected account; no bucket was listed and no bucket creation was attempted.
+- Cloudflare documentation lists a monthly R2 Standard free tier of 10 GB-month storage, 1 million Class A requests, 10 million Class B requests and free egress; usage beyond included quantities is billable (https://developers.cloudflare.com/r2/pricing/). The initial activation flow is documented as a Dashboard checkout/subscription step (https://developers.cloudflare.com/r2/get-started/).
+- Because ATM hard-gates owner spend at $0 and requires a human for financial/legal acceptance, do not enable R2, run checkout, add a payment method, create a bucket or change production bindings autonomously. The owner must activate the R2 free tier in the Dashboard and keep billing bounded at $0 before the HPA asset-store integration can proceed.
+
+
+
+### ORDER-066 browser-local cinematic renderer — 2026-10-18
+
+- Implemented a zero-external-service browser renderer inside GET /media-studio in the current ORDER-066 branch. It creates vertical 720x1280 24-fps WebM using Canvas + MediaRecorder, animated abstract scene graphics, scene narration rendered as lower-third two-line captions, title/CTA cards and a minimal synthetic ambient tone.
+- Browser output is stored in IndexedDB in that same browser/profile, allows preview/download/delete, and keeps at most 10 local video records. It is NOT uploaded, is not stored in ATM Durable Object / R2, and does not change server asset_status; source state remains NOT_RENDERED until an actual production asset pipeline is separately implemented. The panel is explicit that free mode does not include voice narration.
+- Render action appears only for owner-session-visible drafts whose script state is SCRIPT_APPROVED_ASSET_PENDING and format REEL; existing origin/session/rate-limit and script-review gates are unchanged. Gallery is populated only after the owner-gated queue GET succeeds. CSP allows blob: only for media playback, with connect-src self unchanged.
+- Regression checks cover HTML presence, renderer-button visibility marker, honest no-upload/zero-cost narration labeling, CSP media policy, and JavaScript syntax parsing.
+- Verification on current dirty feature branch: all 24 Node CI tests PASS; Python compileall PASS; unit tests 3/3 PASS; secret_doctor.py PASS; payout_doctor.py PASS; git diff --check PASS; Wrangler 4.119.0 dry-run build PASS (492.30 KiB; 123.69 KiB gzip). Dry-run bindings remain ATM_BRAIN, TASKMARKET_SIGNER, AI; no R2 or external renderer binding.
+- No OAuth issue. No billing, R2 activation, asset upload, publish, or production change performed. Deployment remains through the existing protected GitHub-main exact-SHA workflow after PR #100 passes updated-head CI and is merged.
+- Product boundary: browser-generated output is a motion-graphics WebM with generated non-voice audio, not a photoreal stock-footage/camera-video renderer, does not synthesize speech, and only persists in the current browser. Do not describe it as a hosted MP4 or automatic voice-over.
