@@ -19,7 +19,7 @@ Provide a web control inside ATM for issuing and revoking time-limited bearer ca
 ## Grant policy
 
 - Allowed scope: tasks:read only.
-- TTL: integer from 5 minutes to 24 hours; the UI offers 15 minutes, 1 hour, 4 hours, 12 hours, or 24 hours.
+- TTL: integer from 5 minutes to 24 hours; the UI defaults to 30 minutes and also offers 15 minutes, 1 hour, 4 hours, 12 hours, or 24 hours.
 - Maximum: 50 unexpired, unrevoked grants.
 - Request limits: owner listing 60/minute, creation 10/minute, revocation 20/minute; agent task reads 120/minute per IP and 120/minute per grant.
 - Token shape: 64 lowercase hexadecimal characters; token must never be written to logs, persistent browser storage, or a grant-list response.

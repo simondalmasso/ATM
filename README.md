@@ -25,7 +25,7 @@ The dashboard includes an owner-gated panel for temporary task API grants. The o
 - List: GET /api/access-grants. Responses never include bearer tokens or token hashes.
 - Revoke: POST /api/access-grants/:id/revoke. Revocation is checked on every agent request.
 - Read tasks: GET /api/agent/tasks with Authorization: Bearer <token>.
-- Fixed scope: tasks:read. Grant TTL is 5 minutes to 24 hours; the UI offers 15 minutes, 1 hour, 4 hours, 12 hours, and 24 hours.
+- Fixed scope: tasks:read. Grant TTL is 5 minutes to 24 hours; the UI defaults to 30 minutes and also offers 15 minutes, 1 hour, 4 hours, 12 hours, and 24 hours.
 - Tokens are random 256-bit bearer capabilities. The raw token is returned once, and only its SHA-256 hash is persisted. Do not share it outside the intended agent.
 - The agent API returns at most 100 task records from an explicit allowlist. It does not accept task claims, submissions, signatures, payments, withdrawals, or other mutations.
 - No wallet or third-party account credentials are stored or delegated by this feature.
