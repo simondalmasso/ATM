@@ -17,6 +17,7 @@ check('TRUTH_UNKNOWN_NE_YES', src.includes('UNKNOWN ≠ YES'));
 check('BAD_ABORTED_STALLED', /ABORTED||STALLED\|FAILED\|ERROR\|REJECTED/.test(src));
 check('STALE_DATA_VISIBLE', src.includes("label:'STALE'") && src.includes("label:'LATE'"));
 check('READ_ONLY_GRANT_UI_PRESENT', src.includes('READ-ONLY ACCESS GRANTS') && src.includes('/api/access-grants') && src.includes('tasks:read'));
+check('GRANT_30M_PRESET_DEFAULT', /<option value="30" selected>30 minutos<\\/option>/.test(src));
 check('GRANT_UI_NO_MARKETPLACE_MUTATIONS', !/fetch\(['"]\/api\/(?:dispatch|human-gate\/approve|taskmarket|claim|submit)/i.test(src));
 check('GRANT_TOKEN_NOT_PERSISTED_IN_BROWSER', !/localStorage|sessionStorage/.test(src));
 check('META_HACKATHON_WATCH_VISIBLE', src.includes('META GLOBAL AI DEVELOPER HACKATHON') && src.includes('NOTIFICATION SENT · APPLICATIONS OPENING SOON') && src.includes('$1M cash prize pool') && src.includes('$150 Meta Model API credits per participant'));
