@@ -74,6 +74,7 @@
 - Missing or malformed bearer token: HTTP 401.
 - Invalid, revoked, or expired token: deny access.
 - TTL outside 5–1440 minutes: reject.
+- The owner UI defaults to the 30-minute temporary grant preset for separate GLM and Arena tokens.
 - More than 50 active grants: reject.
 - Revoke unknown ID: HTTP 404.
 - Read responses are uncached and return only the task allowlist.
