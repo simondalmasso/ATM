@@ -17,7 +17,7 @@ function shellHtml() {
 @media(max-width:800px){body{padding:7px;font-size:15px;line-height:1.32}.brandstrip{padding:10px 9px 9px;gap:6px}.atm-logo{width:min(54vw,255px)}.terminal-loader{padding-top:7px}.terminal-matrix{font-size:10px;letter-spacing:.075em}.hero,.split{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.menu{gap:12px;overflow:auto;white-space:nowrap}.titlebar{align-items:flex-start}.row{grid-template-columns:1fr 1fr}.row.head{display:none}.row>div{border-right:0;border-bottom:1px dotted var(--ink)}.row>div:nth-child(odd){border-right:2px solid var(--ink)}.row>div::before{display:block;font-size:10px;color:var(--muted);text-transform:uppercase}.row>div:nth-child(1)::before{content:"Tarea"}.row>div:nth-child(2)::before{content:"Estado"}.row>div:nth-child(3)::before{content:"Potencial"}.row>div:nth-child(4)::before{content:"Bloqueo"}}
 @media(max-width:420px){body{padding:5px;font-size:15px;line-height:1.34;font-weight:650}.quick-actions{gap:8px;padding:7px}.quick-actions-label{font-size:9px;flex:1 0 100%}.owner-login,.cofre-jump{flex:1;padding:9px 8px;font-size:12px}.brandstrip{padding:9px 7px 8px}.atm-logo{width:min(55.5vw,225px)}.terminal-matrix{font-size:10px;letter-spacing:.055em}.terminal-meta{font-size:10px}.titlebar{font-size:13px;padding:7px 8px}.menu{font-size:13px;padding:7px 8px;gap:14px}.statusline{font-size:12.5px}.moneyhero .label,.cell .label{font-size:12px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row>div:nth-child(odd){border-right:0}.moneyhero .value{font-size:42px}.menu{font-size:12px}.body{padding:7px}}
 
-#grantControls[hidden],#grantCreated[hidden]{display:none!important}.grant-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(120px,1fr) auto;gap:8px;align-items:end}.grant-form label{display:grid;gap:5px;font-size:12px}.grant-form input,.grant-form select,.grant-token{width:100%;min-width:0;border:1px solid var(--ink);background:#fff;padding:8px}.grant-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.grant-actions button,.grant-row button{border:2px solid var(--ink);background:var(--yellow);padding:8px 10px;cursor:pointer}.grant-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #c9bee0}.grant-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.grant-status{font-size:12px;margin:8px 0}.grant-status.bad{color:var(--bad)}.grant-status.good{color:var(--good)}@media(max-width:650px){.grant-form{grid-template-columns:1fr}.grant-row{grid-template-columns:1fr}}
+#grantControls[hidden],#grantCreated[hidden],#ownerBootstrapControls[hidden]{display:none!important}.owner-bootstrap-form{grid-template-columns:minmax(0,1fr) auto}.grant-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(120px,1fr) auto;gap:8px;align-items:end}.grant-form label{display:grid;gap:5px;font-size:12px}.grant-form input,.grant-form select,.grant-token{width:100%;min-width:0;border:1px solid var(--ink);background:#fff;padding:8px}.grant-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.grant-actions button,.grant-row button{border:2px solid var(--ink);background:var(--yellow);padding:8px 10px;cursor:pointer}.grant-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #c9bee0}.grant-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.grant-status{font-size:12px;margin:8px 0}.grant-status.bad{color:var(--bad)}.grant-status.good{color:var(--good)}@media(max-width:650px){.grant-form{grid-template-columns:1fr}.grant-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -87,7 +87,7 @@ function shellHtml() {
     <section class="window"><div class="titlebar"><span>EVENT LOG</span><span>latest</span></div><div class="body"><div class="log" id="events"></div></div></section>
   </aside>
 </div>
-<section class="window" id="accessGrantsWindow"><div class="titlebar"><span>COFRE TEMPORAL · READ-ONLY ACCESS GRANTS</span><span>OWNER-GATED</span></div><div class="body"><p>Tokens bearer temporales para consultar tareas ATM por API. Alcance fijo: <b>tasks:read</b>. Duración recomendada: 30 minutos. Compartilo solo con el agente previsto. No entrega API keys, sesiones de GitHub ni permisos de escritura, claims, submissions, firmas o gasto. El dashboard público sigue exponiendo su propia lista de oportunidades; este grant protege el endpoint dedicado del agente.</p><div id="grantAuthStatus" class="grant-status">Verificando sesión de propietario…</div><div id="grantControls" hidden><div class="grant-form"><label for="grantLabel">Etiqueta del agente<input id="grantLabel" maxlength="80" value="GLM · 30 min" autocomplete="off"></label><label for="grantTtl">Duración<select id="grantTtl"><option value="30" selected>30 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option></select></label><button id="createGrantBtn" type="button">Crear grant</button></div><div id="grantCreated" hidden><p><b>Token generado. Se muestra solo en esta sesión; copialo ahora.</b></p><input id="grantToken" class="grant-token" readonly aria-label="Token de acceso de solo lectura"><div class="grant-actions"><button id="copyGrantBtn" type="button">Copiar token</button><span id="grantCopyStatus" class="grant-status"></span></div><small>Endpoint compatible: GET /api/agent/tasks · Authorization: Bearer [token]</small></div><div id="grantList" aria-live="polite"></div></div></div></section>
+<section class="window" id="accessGrantsWindow"><div class="titlebar"><span>COFRE TEMPORAL · READ-ONLY ACCESS GRANTS</span><span>OWNER-GATED</span></div><div class="body"><p>Tokens bearer temporales para consultar tareas ATM por API. Alcance fijo: <b>tasks:read</b>. Duración recomendada: 30 minutos. Compartilo solo con el agente previsto. No entrega API keys, sesiones de GitHub ni permisos de escritura, claims, submissions, firmas o gasto. El dashboard público sigue exponiendo su propia lista de oportunidades; este grant protege el endpoint dedicado del agente.</p><div id="grantAuthStatus" class="grant-status">Verificando sesión de propietario…</div><div id="ownerBootstrapControls" hidden><p>Primera activación: configurá una clave secreta independiente llamada <code>ATM_OWNER_BOOTSTRAP_TOKEN</code> en Cloudflare Workers → Settings → Variables and Secrets. Después pegala aquí para emitir un vínculo de un solo uso. No uses el grant <code>tasks:read</code>.</p><div class="grant-form owner-bootstrap-form"><label for="ownerBootstrapToken">Clave de activación inicial<input id="ownerBootstrapToken" type="password" maxlength="256" autocomplete="off" spellcheck="false"></label><button id="ownerBootstrapBtn" type="button">GENERAR VÍNCULO Y ENTRAR</button></div></div><div id="grantControls" hidden><div class="grant-form"><label for="grantLabel">Etiqueta del agente<input id="grantLabel" maxlength="80" value="GLM · 30 min" autocomplete="off"></label><label for="grantTtl">Duración<select id="grantTtl"><option value="30" selected>30 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option></select></label><button id="createGrantBtn" type="button">Crear grant</button></div><div id="grantCreated" hidden><p><b>Token generado. Se muestra solo en esta sesión; copialo ahora.</b></p><input id="grantToken" class="grant-token" readonly aria-label="Token de acceso de solo lectura"><div class="grant-actions"><button id="copyGrantBtn" type="button">Copiar token</button><span id="grantCopyStatus" class="grant-status"></span></div><small>Endpoint compatible: GET /api/agent/tasks · Authorization: Bearer [token]</small></div><div id="grantList" aria-live="polite"></div></div></div></section>
 <section class="window"><div class="titlebar"><span>TRUTH RULES</span><span>ATM</span></div><div class="body">PAID ≠ SUBMITTED. POTENTIAL ≠ EARNED. UNKNOWN ≠ YES. OUT_OF_POCKET_SPEND_USD = 0. Dashboard read-only.</div><div class="statusline">Model: ${MODEL}</div></section>
 </main>
 <script>
@@ -109,7 +109,7 @@ function updateOwnerTopButton(session={}){
  ownerLoginTopBtn.textContent=active?'OWNER ACTIVO':session.reauth_available?'REENTRAR OWNER':'ACTIVAR OWNER';
 }
 async function activateOwnerFromWeb(){
- const panel=$('#accessGrantsWindow'),status=$('#grantAuthStatus');
+ const panel=$('#accessGrantsWindow'),status=$('#grantAuthStatus'),bootstrap=$('#ownerBootstrapControls');
  if(panel){const reduced=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;panel.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});}
  if(ownerLoginTopBtn){ownerLoginTopBtn.disabled=true;ownerLoginTopBtn.textContent='VERIFICANDO OWNER…';}
  try{
@@ -117,13 +117,16 @@ async function activateOwnerFromWeb(){
   const session=await sessionResponse.json().catch(()=>({ok:false,owner_session_status:'UNKNOWN'}));
   updateOwnerTopButton(session);
   if(sessionResponse.ok&&session.ok&&session.owner_session_status==='ACTIVE'){
+   if(bootstrap)bootstrap.hidden=true;
    if(status){status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';}
    await loadGrants();return;
   }
   if(!session.reauth_available){
-   if(status){status.textContent='ACTIVACIÓN INICIAL REQUERIDA. Este navegador no tiene un dispositivo owner registrado. Abrí el vínculo de activación inicial de un solo uso emitido por el operador autorizado. Un grant tasks:read no habilita el acceso de propietario.';status.className='grant-status warn';}
+   if(bootstrap)bootstrap.hidden=false;
+   if(status){status.textContent='Primera activación requerida: usá la clave bootstrap independiente para emitir un vínculo owner de un solo uso.';status.className='grant-status warn';}
    return;
   }
+  if(bootstrap)bootstrap.hidden=true;
   const response=await fetch('/api/owner/login',{method:'POST',cache:'no-store',credentials:'same-origin'});
   const result=await response.json().catch(()=>({ok:false,error:'INVALID_OWNER_LOGIN_RESPONSE'}));
   if(!response.ok||!result.ok)throw new Error(result.error||'OWNER_LOGIN_FAILED');
@@ -140,6 +143,29 @@ async function activateOwnerFromWeb(){
  }
 }
 if(ownerLoginTopBtn)ownerLoginTopBtn.addEventListener('click',activateOwnerFromWeb);
+const ownerBootstrapBtn=$('#ownerBootstrapBtn');
+if(ownerBootstrapBtn)ownerBootstrapBtn.addEventListener('click',async()=>{
+ const button=$('#ownerBootstrapBtn'),input=$('#ownerBootstrapToken'),status=$('#grantAuthStatus');
+ const secret=String(input.value||'').trim();
+ if(!secret){status.textContent='Pegá la clave secreta ATM_OWNER_BOOTSTRAP_TOKEN configurada en Cloudflare.';status.className='grant-status warn';return;}
+ button.disabled=true;button.textContent='GENERANDO VÍNCULO…';
+ try{
+  const response=await fetch('/api/owner/bootstrap-link',{method:'POST',headers:{'x-atm-owner-bootstrap-token':secret},cache:'no-store',credentials:'same-origin'});
+  input.value='';
+  const result=await response.json().catch(()=>({ok:false,error:'INVALID_OWNER_BOOTSTRAP_RESPONSE'}));
+  if(!response.ok||!result.ok||!result.url)throw new Error(result.error||'OWNER_BOOTSTRAP_FAILED');
+  const link=new URL(result.url);
+  if(link.origin!==window.location.origin||link.pathname!=='/owner/session'||!link.searchParams.has('token'))throw new Error('BOOTSTRAP_LINK_ORIGIN_MISMATCH');
+  status.textContent='Vínculo de un solo uso generado; entrando como propietario…';status.className='grant-status good';
+  window.location.assign(link.href);
+ }catch(error){
+  input.value='';
+  if(error.message==='OWNER_BOOTSTRAP_NOT_CONFIGURED')status.textContent='Falta configurar ATM_OWNER_BOOTSTRAP_TOKEN como secreto del Worker en Cloudflare. Recargá esta página cuando esté configurado.';
+  else if(error.message==='OWNER_BOOTSTRAP_TOKEN_INVALID')status.textContent='Clave bootstrap incorrecta. No uses el token tasks:read.';
+  else status.textContent='No se pudo iniciar sesión owner: '+error.message;
+  status.className='grant-status bad';
+ }finally{button.disabled=false;button.textContent='GENERAR VÍNCULO Y ENTRAR';}
+});
 function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
 function ageLabel(iso){const t=Date.parse(iso||'');if(!Number.isFinite(t))return{label:'UNKNOWN',cls:'warn',age:'sin timestamp'};const m=Math.max(0,Math.round((Date.now()-t)/60000));return m>20?{label:'STALE',cls:'bad',age:m+' min'}:m>15?{label:'LATE',cls:'warn',age:m+' min'}:{label:'FRESH',cls:'good',age:m+' min'}}
 let mcpBusy=false,mcpFrame=0,mcpSeen=null;
@@ -205,7 +231,8 @@ async function loadGrants(){
   const sessionResponse=await fetch('/api/owner/session',{cache:'no-store',credentials:'same-origin'});
   const session=await sessionResponse.json().catch(()=>({ok:false}));
   updateOwnerTopButton(session);
-  if(!sessionResponse.ok||!session.ok){controls.hidden=true;status.textContent=session.reauth_available?'Sesión owner no activa. Pulsa REENTRAR OWNER en la barra superior para reactivarla.':'ACTIVACIÓN INICIAL REQUERIDA. Este navegador no tiene un dispositivo owner registrado. Abrí el vínculo de activación inicial de un solo uso emitido por el operador autorizado. El grant tasks:read no permite activar la sesión.';status.className='grant-status warn';return;}
+  if(!sessionResponse.ok||!session.ok){controls.hidden=true;$('#ownerBootstrapControls').hidden=!!session.reauth_available;status.textContent=session.reauth_available?'Sesión owner no activa. Pulsa REENTRAR OWNER en la barra superior para reactivarla.':'Primera activación: configurá ATM_OWNER_BOOTSTRAP_TOKEN en Cloudflare y usá la clave independiente aquí para generar el vínculo de un solo uso. El grant tasks:read no sirve como clave owner.';status.className='grant-status warn';return;}
+  $('#ownerBootstrapControls').hidden=true;
   controls.hidden=false;status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';
   const data=await getJson('/api/access-grants');
   $('#grantList').innerHTML=(data.results||[]).length?(data.results||[]).map(grantRow).join(''):'<div class="empty">No hay grants creados.</div>';
