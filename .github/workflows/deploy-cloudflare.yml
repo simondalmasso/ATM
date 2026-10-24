@@ -228,7 +228,22 @@ jobs:
           NEW="${{ steps.upload.outputs.version_id }}"
           test -n "$PREVIOUS"
           test -n "$NEW"
-          npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS@100%" "$NEW@0%" -y --config "$MAIN_CONFIG" --message "ORDER-051 zero-percent smoke $SOURCE_SHA"
+          # Cloudflare can briefly lag after versions upload: retry the exact staged deployment, never promote on failure.
+          attempt=1
+          max_attempts=5
+          while true; do
+            if npx --yes wrangler@4.119.0 versions deploy "$PREVIOUS@100%" "$NEW@0%" -y --config "$MAIN_CONFIG" --message "ORDER-051 zero-percent smoke $SOURCE_SHA"; then
+              break
+            fi
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "ERROR: Cloudflare did not make the uploaded version deployable after $max_attempts attempts."
+              exit 1
+            fi
+            delay=$((attempt * 2))
+            echo "Cloudflare version not yet deployable; retrying in ${delay}s (attempt $((attempt + 1))/$max_attempts)."
+            sleep "$delay"
+            attempt=$((attempt + 1))
+          done
 
       - name: Candidate exact-SHA smoke with main rollback
         if: steps.changes.outputs.main == 'true'
