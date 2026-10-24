@@ -21,6 +21,9 @@ check('GRANT_30M_PRESET_DEFAULT', src.includes('<option value="30" selected>30 m
 check('COFRE_QUICK_BUTTON_NEAR_TOP', src.includes('<nav class="quick-actions"') && src.includes('id="cofreJumpBtn"') && src.indexOf('id="cofreJumpBtn"') < src.indexOf('id="accessGrantsWindow"'));
 check('COFRE_QUICK_BUTTON_STICKY', src.includes('.quick-actions{position:sticky;top:0;') && src.includes('#accessGrantsWindow{scroll-margin-top:68px}'));
 check('COFRE_QUICK_BUTTON_SCROLLS_TO_PANEL', src.includes("cofreJumpBtn=$('#cofreJumpBtn')") && src.includes("target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'})"));
+check('OWNER_WEB_BUTTON_VISIBLE', src.includes('id="ownerLoginTopBtn"') && src.indexOf('id="ownerLoginTopBtn"') < src.indexOf('id="accessGrantsWindow"'));
+check('OWNER_WEB_REAUTH_USES_EXISTING_SESSION_ENDPOINTS', src.includes("fetch('/api/owner/session'") && src.includes("fetch('/api/owner/login',{method:'POST'"));
+check('OWNER_WEB_BOOTSTRAP_FAILS_CLOSED', src.includes('ACTIVACIÓN INICIAL REQUERIDA') && src.includes('grant tasks:read no habilita el acceso de propietario') && !src.includes("fetch('/api/internal/owner-link'"));
 check('GRANT_UI_NO_MARKETPLACE_MUTATIONS', !/fetch\(['"]\/api\/(?:dispatch|human-gate\/approve|taskmarket|claim|submit)/i.test(src));
 check('GRANT_TOKEN_NOT_PERSISTED_IN_BROWSER', !/localStorage|sessionStorage/.test(src));
 check('META_HACKATHON_WATCH_VISIBLE', src.includes('META GLOBAL AI DEVELOPER HACKATHON') && src.includes('NOTIFICATION SENT · APPLICATIONS OPENING SOON') && src.includes('$1M cash prize pool') && src.includes('$150 Meta Model API credits per participant'));
@@ -56,7 +59,7 @@ const scriptEnd = html.indexOf('<\\/script>', scriptStart) >= 0 ? html.indexOf('
 check('RENDERED_SCRIPT_FOUND', scriptStart >= '<script>'.length && scriptEnd > scriptStart);
 const renderedScript = html.slice(scriptStart, scriptEnd);
 let renderedParseOk = true;
-try { new Function(renderedScript); } catch (err) { renderedParseOk = false; console.error('RENDERED_BROWSER_SCRIPT_SYNTAX_DETAIL', err?.stack || err); }
+try { new Function(renderedScript); } catch { renderedParseOk = false; }
 check('RENDERED_BROWSER_SCRIPT_SYNTAX', renderedParseOk);
 check('TERMINAL_LILAC', html.includes('--terminal:#A276FF') && html.includes('--logo:#A276FF') && html.includes('.atm-logo path{stroke:var(--logo)!important}'));
 check('TERMINAL_WRITES_WORD', html.includes("const MCP_BIG_FONT=") && html.includes("mcpWordBitmap(word)") && html.includes("if(d>=3)line[x]='█'") && html.includes('id="mcpTerminalCursor"'));
