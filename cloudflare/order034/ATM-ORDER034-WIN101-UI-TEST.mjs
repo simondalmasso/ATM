@@ -23,7 +23,7 @@ check('COFRE_QUICK_BUTTON_STICKY', src.includes('.quick-actions{position:sticky;
 check('COFRE_QUICK_BUTTON_SCROLLS_TO_PANEL', src.includes("cofreJumpBtn=$('#cofreJumpBtn')") && src.includes("target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'})"));
 check('OWNER_WEB_BUTTON_VISIBLE', src.includes('id="ownerLoginTopBtn"') && src.indexOf('id="ownerLoginTopBtn"') < src.indexOf('id="accessGrantsWindow"'));
 check('OWNER_WEB_REAUTH_USES_EXISTING_SESSION_ENDPOINTS', src.includes("fetch('/api/owner/session'") && src.includes("fetch('/api/owner/login',{method:'POST'"));
-check('OWNER_WEB_BOOTSTRAP_FAILS_CLOSED', src.includes('ACTIVACIÓN INICIAL REQUERIDA') && src.includes('grant tasks:read no habilita el acceso de propietario') && !src.includes("fetch('/api/internal/owner-link'"));
+check('OWNER_WEB_BOOTSTRAP_FAILS_CLOSED', src.includes('ATM_OWNER_BOOTSTRAP_TOKEN') && src.includes('OWNER_BOOTSTRAP_NOT_CONFIGURED') && !src.includes("fetch('/api/internal/owner-link'"));
 check('OWNER_BOOTSTRAP_FORM_PRESENT', src.includes('id="ownerBootstrapControls"') && src.includes('id="ownerBootstrapToken"') && src.includes('type="password"'));
 check('OWNER_BOOTSTRAP_USES_DEDICATED_ENDPOINT', src.includes("fetch('/api/owner/bootstrap-link'") && src.includes("'x-atm-owner-bootstrap-token':secret"));
 check('OWNER_BOOTSTRAP_SECRET_CLEARED', src.includes("input.value='';") && !/localStorage|sessionStorage/.test(src));
