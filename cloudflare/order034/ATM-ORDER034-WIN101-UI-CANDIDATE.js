@@ -92,7 +92,15 @@ function shellHtml() {
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c.charCodeAt(0)===34?"&quot;":"&#39;");
-const usd=v=>'function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
+const usd=v=>'$'+Number(v||0).toFixed(2);
+const cofreJumpBtn=$('#cofreJumpBtn');
+if(cofreJumpBtn)cofreJumpBtn.addEventListener('click',()=>{
+ const target=$('#accessGrantsWindow');
+ if(!target)return;
+ const reduceMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+});
+function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
 function ageLabel(iso){const t=Date.parse(iso||'');if(!Number.isFinite(t))return{label:'UNKNOWN',cls:'warn',age:'sin timestamp'};const m=Math.max(0,Math.round((Date.now()-t)/60000));return m>20?{label:'STALE',cls:'bad',age:m+' min'}:m>15?{label:'LATE',cls:'warn',age:m+' min'}:{label:'FRESH',cls:'good',age:m+' min'}}
 let mcpBusy=false,mcpFrame=0,mcpSeen=null;
 function setMcpHeartbeat(mcp={}){mcpBusy=mcp.active===true;mcpSeen=mcp.last_seen_at||null;const box=$('#mcpTerminal');box.classList.toggle('busy',mcpBusy);$('#mcpWord').textContent=mcpBusy?'BUSY':'IDLE';const seen=mcpSeen?new Date(mcpSeen).toLocaleTimeString('es-AR'):null;const live=Array.isArray(mcp.active_consumers)?mcp.active_consumers:[];const who=(live.length?live.map(x=>x&&x.name).filter(Boolean):[mcp.last_client_name]).filter(Boolean).slice(0,3).join(' + ')||'cliente desconocido';const count=mcpBusy?(mcp.active_clients||live.length||1):0;$('#mcpMeta').textContent=mcpBusy?('MCP · /mcp · '+count+' cliente(s) · '+who+' · último uso '+(seen||'—')):(seen?('MCP · /mcp · '+who+' · último uso '+seen):'MCP · /mcp · esperando tráfico')}
