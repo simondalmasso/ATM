@@ -26,3 +26,27 @@ for (const path of [
 }
 
 console.log("ORDER-068 deploy path gate: PASS");
+
+function stepBlock(name) {
+  const marker = `- name: ${name}`;
+  const start = workflow.indexOf(marker);
+  assert.ok(start >= 0, `missing workflow step: ${name}`);
+  const next = workflow.indexOf("\\n      - name:", start + marker.length);
+  return workflow.slice(start, next < 0 ? workflow.length : next);
+}
+
+const signerUpload = stepBlock("Upload signer candidate");
+const mainUpload = stepBlock("Upload main candidate without production traffic");
+for (const [name, block, logName] of [
+  ["signer", signerUpload, "signer-upload.log"],
+  ["main", mainUpload, "main-upload.log"]
+]) {
+  assert.ok(block.includes("versions upload"), `${name} must upload a version`);
+  assert.ok(block.includes(logName), `${name} upload output must be captured`);
+  assert.ok(block.includes("Worker Version ID:"), `${name} must extract Wrangler's direct version ID`);
+  assert.ok(block.includes("console.log('version_id=' + match[1])"), `${name} must expose the uploaded version ID to following steps`);
+  assert.equal(block.includes("versions list --json"), false, `${name} must not rely on eventual consistency of versions list`);
+}
+assert.equal(workflow.includes("candidate exact-SHA version not found"), false, "brittle list-based exact-SHA parser must be removed");
+
+console.log("ORDER-051 upload version ID parsing: PASS");

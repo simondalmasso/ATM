@@ -138,16 +138,13 @@ jobs:
         id: signer_upload
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.119.0 versions upload --config "$SIGNER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub signer $SOURCE_SHA"
-          npx --yes wrangler@4.119.0 versions list --json --config "$SIGNER_CONFIG" > "$RUNNER_TEMP/signer-versions.json"
+          npx --yes wrangler@4.119.0 versions upload --config "$SIGNER_CONFIG" --tag "$SOURCE_SHA" --message "GitHub signer $SOURCE_SHA" 2>&1 | tee "$RUNNER_TEMP/signer-upload.log"
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const fs = require('fs');
-          const sha = process.env.SOURCE_SHA;
-          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/signer-versions.json', 'utf8'));
-          const rows = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
-          const row = rows.find(x => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
-          if (!row) throw new Error('signer candidate exact-SHA version not found');
-          console.log('version_id=' + row.id);
+          const output = fs.readFileSync(process.env.RUNNER_TEMP + '/signer-upload.log', 'utf8');
+          const match = output.match(/Worker Version ID:\s*([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})/i);
+          if (!match) throw new Error('signer upload did not return a Worker Version ID');
+          console.log('version_id=' + match[1]);
           NODE
 
       - name: Promote signer candidate
@@ -214,16 +211,13 @@ jobs:
         id: upload
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.119.0 versions upload --config "$MAIN_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA"
-          npx --yes wrangler@4.119.0 versions list --json --config "$MAIN_CONFIG" > "$RUNNER_TEMP/versions-after.json"
+          npx --yes wrangler@4.119.0 versions upload --config "$MAIN_CONFIG" --tag "$SOURCE_SHA" --message "GitHub $SOURCE_SHA" 2>&1 | tee "$RUNNER_TEMP/main-upload.log"
           node - <<'NODE' >> "$GITHUB_OUTPUT"
           const fs = require('fs');
-          const sha = process.env.SOURCE_SHA;
-          const raw = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/versions-after.json', 'utf8'));
-          const rows = Array.isArray(raw) ? raw : (raw.versions || raw.result || []);
-          const row = rows.find(x => JSON.stringify(x).includes(sha) && typeof x?.id === 'string');
-          if (!row) throw new Error('main candidate exact-SHA version not found');
-          console.log('version_id=' + row.id);
+          const output = fs.readFileSync(process.env.RUNNER_TEMP + '/main-upload.log', 'utf8');
+          const match = output.match(/Worker Version ID:\s*([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})/i);
+          if (!match) throw new Error('main upload did not return a Worker Version ID');
+          console.log('version_id=' + match[1]);
           NODE
 
       - name: Stage main candidate at zero percent
