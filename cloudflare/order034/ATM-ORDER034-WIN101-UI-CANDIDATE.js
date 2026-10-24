@@ -11,13 +11,13 @@ function shellHtml() {
 <title>ATM 1.01 · Money Truth</title>
 <style>
 :root{--desk:#e8e2f0;--paper:#f7f4fa;--chrome:#d9d2e3;--ink:#000;--blue:#6666cc;--yellow:#fff3a6;--good:#087a08;--warn:#9a6100;--bad:#b00020;--muted:#555;--mcp:#4cd08a;--logo:#A276FF;--terminal:#A276FF}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}body{padding:10px;font-size:14.5px;line-height:1.28;font-weight:600;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}button,input{font:inherit}.shell{width:min(1180px,100%);margin:0 auto}.brandstrip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:14px 16px 12px;margin:0 0 12px}.brandmark{display:flex;align-items:center;justify-content:center;width:100%}.atm-logo{width:clamp(158px,23.25vw,285px);height:auto;display:block}.atm-logo path{stroke:var(--logo)!important}.terminal-loader{width:min(820px,100%);overflow:hidden;border-top:1px solid #c9bee0;padding:10px 0 4px;color:var(--terminal);user-select:none;display:flex;flex-direction:column;align-items:center}.terminal-matrix{position:relative;display:inline-flex;width:max-content;max-width:96%;margin-inline:auto;flex-direction:column;overflow:hidden;font:700 10px/.9 "Geist Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;letter-spacing:.12em;color:var(--terminal);text-shadow:0 0 8px rgba(162,118,255,.28)}.terminal-row{white-space:pre;height:.9em}.terminal-cursor{position:absolute;top:0;bottom:0;left:-10%;width:calc(3ch + .9em);background:var(--terminal);box-shadow:0 0 10px rgba(162,118,255,.35);will-change:left;transition:left 45ms linear;pointer-events:none}.terminal-meta{display:flex;width:100%;justify-content:flex-end;align-items:center;gap:12px;margin-top:7px;font-size:9px;color:#625a70}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.terminal-cursor{transition:none}.terminal-matrix{text-shadow:none}}.window{background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin:0 0 12px}.titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--blue);color:#fff;border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.menu{display:flex;gap:20px;background:var(--yellow);border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.015em}.body{padding:10px}.statusline{border-top:2px solid var(--ink);background:var(--chrome);padding:6px 8px;font-size:12.5px;font-weight:650}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}body{padding:10px;font-size:14.5px;line-height:1.28;font-weight:600;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}button,input{font:inherit}.shell{width:min(1180px,100%);margin:0 auto}.brandstrip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:14px 16px 12px;margin:0 0 12px}.brandmark{display:flex;align-items:center;justify-content:center;width:100%}.atm-logo{width:clamp(158px,23.25vw,285px);height:auto;display:block}.atm-logo path{stroke:var(--logo)!important}.terminal-loader{width:min(820px,100%);overflow:hidden;border-top:1px solid #c9bee0;padding:10px 0 4px;color:var(--terminal);user-select:none;display:flex;flex-direction:column;align-items:center}.terminal-matrix{position:relative;display:inline-flex;width:max-content;max-width:96%;margin-inline:auto;flex-direction:column;overflow:hidden;font:700 10px/.9 "Geist Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;letter-spacing:.12em;color:var(--terminal);text-shadow:0 0 8px rgba(162,118,255,.28)}.terminal-row{white-space:pre;height:.9em}.terminal-cursor{position:absolute;top:0;bottom:0;left:-10%;width:calc(3ch + .9em);background:var(--terminal);box-shadow:0 0 10px rgba(162,118,255,.35);will-change:left;transition:left 45ms linear;pointer-events:none}.terminal-meta{display:flex;width:100%;justify-content:flex-end;align-items:center;gap:12px;margin-top:7px;font-size:9px;color:#625a70}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.terminal-cursor{transition:none}.terminal-matrix{text-shadow:none}}.window{background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin:0 0 12px}.titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--blue);color:#fff;border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.menu{display:flex;gap:20px;background:var(--yellow);border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.015em}.quick-actions{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:8px 10px;margin:0 0 12px}.quick-actions-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cofre-jump{flex-shrink:0;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);background:var(--yellow);color:var(--ink);padding:9px 12px;font-weight:900;cursor:pointer}.cofre-jump:hover{background:#ffe85d}.cofre-jump:focus-visible,.owner-login:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.owner-login{flex-shrink:0;border:2px solid var(--ink);background:var(--chrome);color:var(--ink);padding:9px 10px;font-weight:900;cursor:pointer}.owner-login[disabled]{opacity:.75;cursor:default}#accessGrantsWindow{scroll-margin-top:68px}.body{padding:10px}.statusline{border-top:2px solid var(--ink);background:var(--chrome);padding:6px 8px;font-size:12.5px;font-weight:650}
 .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}.moneyhero{border:2px solid var(--ink);padding:10px;background:var(--paper)}.moneyhero .label,.cell .label{font-size:11.5px;font-weight:700;text-transform:uppercase}.moneyhero .value{font-size:clamp(34px,7vw,68px);line-height:1;font-weight:700;margin:6px 0}.notearned{background:var(--yellow);border:2px solid var(--ink);padding:8px;margin-top:8px}.truthrules{display:grid;gap:6px}.truthrule{border:2px solid var(--ink);background:var(--chrome);padding:8px}.truthrule b{display:block;margin-top:3px;font-weight:800}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px solid var(--ink);border-left:2px solid var(--ink)}.cell{min-width:0;padding:8px;background:var(--paper);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}.cell b{display:block;margin-top:3px;font-size:17px;font-weight:800;overflow-wrap:anywhere}.cell small{display:block;color:var(--muted);margin-top:3px;font-size:12px;font-weight:600;overflow-wrap:anywhere}.split{display:grid;grid-template-columns:1.35fr .65fr;gap:12px}.table{border:2px solid var(--ink)}.row{display:grid;grid-template-columns:minmax(180px,2fr) 95px 100px minmax(160px,1fr);border-bottom:2px solid var(--ink);background:var(--paper)}.row:last-child{border-bottom:0}.row.head{background:var(--chrome);font-weight:700}.row>div{min-width:0;padding:7px;border-right:2px solid var(--ink);overflow-wrap:anywhere}.row>div:last-child{border-right:0}.sourcegrid{display:grid;gap:0;border:2px solid var(--ink)}.source{display:grid;grid-template-columns:1fr auto;gap:8px;padding:7px;background:var(--paper);border-bottom:2px solid var(--ink)}.source:last-child{border-bottom:0}.source small{display:block;color:var(--muted);font-weight:600}.log{max-height:290px;overflow:auto;border:2px solid var(--ink);background:var(--paper)}.event{padding:7px;border-bottom:1px solid var(--ink)}.event:last-child{border-bottom:0}.event time{display:block;color:var(--muted);font-size:11px;margin-top:2px}.empty{padding:16px;background:var(--paper);border:2px solid var(--ink)}
 @media(max-width:800px){body{padding:7px;font-size:15px;line-height:1.32}.brandstrip{padding:10px 9px 9px;gap:6px}.atm-logo{width:min(54vw,255px)}.terminal-loader{padding-top:7px}.terminal-matrix{font-size:10px;letter-spacing:.075em}.hero,.split{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.menu{gap:12px;overflow:auto;white-space:nowrap}.titlebar{align-items:flex-start}.row{grid-template-columns:1fr 1fr}.row.head{display:none}.row>div{border-right:0;border-bottom:1px dotted var(--ink)}.row>div:nth-child(odd){border-right:2px solid var(--ink)}.row>div::before{display:block;font-size:10px;color:var(--muted);text-transform:uppercase}.row>div:nth-child(1)::before{content:"Tarea"}.row>div:nth-child(2)::before{content:"Estado"}.row>div:nth-child(3)::before{content:"Potencial"}.row>div:nth-child(4)::before{content:"Bloqueo"}}
-@media(max-width:420px){body{padding:5px;font-size:15px;line-height:1.34;font-weight:650}.brandstrip{padding:9px 7px 8px}.atm-logo{width:min(55.5vw,225px)}.terminal-matrix{font-size:10px;letter-spacing:.055em}.terminal-meta{font-size:10px}.titlebar{font-size:13px;padding:7px 8px}.menu{font-size:13px;padding:7px 8px;gap:14px}.statusline{font-size:12.5px}.moneyhero .label,.cell .label{font-size:12px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row>div:nth-child(odd){border-right:0}.moneyhero .value{font-size:42px}.menu{font-size:12px}.body{padding:7px}}
+@media(max-width:420px){body{padding:5px;font-size:15px;line-height:1.34;font-weight:650}.quick-actions{gap:8px;padding:7px}.quick-actions-label{font-size:9px;flex:1 0 100%}.owner-login,.cofre-jump{flex:1;padding:9px 8px;font-size:12px}.brandstrip{padding:9px 7px 8px}.atm-logo{width:min(55.5vw,225px)}.terminal-matrix{font-size:10px;letter-spacing:.055em}.terminal-meta{font-size:10px}.titlebar{font-size:13px;padding:7px 8px}.menu{font-size:13px;padding:7px 8px;gap:14px}.statusline{font-size:12.5px}.moneyhero .label,.cell .label{font-size:12px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row>div:nth-child(odd){border-right:0}.moneyhero .value{font-size:42px}.menu{font-size:12px}.body{padding:7px}}
 
-#grantControls[hidden],#grantCreated[hidden]{display:none!important}.grant-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(120px,1fr) auto;gap:8px;align-items:end}.grant-form label{display:grid;gap:5px;font-size:12px}.grant-form input,.grant-form select,.grant-token{width:100%;min-width:0;border:1px solid var(--ink);background:#fff;padding:8px}.grant-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.grant-actions button,.grant-row button{border:2px solid var(--ink);background:var(--yellow);padding:8px 10px;cursor:pointer}.grant-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #c9bee0}.grant-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.grant-status{font-size:12px;margin:8px 0}.grant-status.bad{color:var(--bad)}.grant-status.good{color:var(--good)}@media(max-width:650px){.grant-form{grid-template-columns:1fr}.grant-row{grid-template-columns:1fr}}
+#grantControls[hidden],#grantCreated[hidden],#ownerBootstrapControls[hidden]{display:none!important}.owner-bootstrap-form{grid-template-columns:minmax(0,1fr) auto}.grant-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(120px,1fr) auto;gap:8px;align-items:end}.grant-form label{display:grid;gap:5px;font-size:12px}.grant-form input,.grant-form select,.grant-token{width:100%;min-width:0;border:1px solid var(--ink);background:#fff;padding:8px}.grant-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.grant-actions button,.grant-row button{border:2px solid var(--ink);background:var(--yellow);padding:8px 10px;cursor:pointer}.grant-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 0;border-bottom:1px solid #c9bee0}.grant-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.grant-status{font-size:12px;margin:8px 0}.grant-status.bad{color:var(--bad)}.grant-status.good{color:var(--good)}@media(max-width:650px){.grant-form{grid-template-columns:1fr}.grant-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -39,6 +39,11 @@ function shellHtml() {
     <div class="terminal-meta"><span id="mcpMeta">MCP · /mcp · esperando tráfico</span></div>
   </div>
 </header>
+<nav class="quick-actions" aria-label="Accesos rápidos">
+  <span class="quick-actions-label">ACCESO DIRECTO</span>
+  <button id="ownerLoginTopBtn" class="owner-login" type="button">ACTIVAR OWNER</button>
+  <button id="cofreJumpBtn" class="cofre-jump" type="button" aria-controls="accessGrantsWindow">COFRE TEMPORAL</button>
+</nav>
 <section class="window">
   <div class="titlebar"><span>ATM 1.01 · MONEY TRUTH</span><span id="clock">—</span></div>
   <div class="menu"><span>MONEY</span><span>EXECUTION</span><span>MARKET</span><span>LOG</span></div>
@@ -82,13 +87,85 @@ function shellHtml() {
     <section class="window"><div class="titlebar"><span>EVENT LOG</span><span>latest</span></div><div class="body"><div class="log" id="events"></div></div></section>
   </aside>
 </div>
-<section class="window" id="accessGrantsWindow"><div class="titlebar"><span>COFRE TEMPORAL · READ-ONLY ACCESS GRANTS</span><span>OWNER-GATED</span></div><div class="body"><p>Tokens bearer temporales para consultar tareas ATM por API. Alcance fijo: <b>tasks:read</b>. Duración recomendada: 30 minutos. Compartilo solo con el agente previsto. No entrega API keys, sesiones de GitHub ni permisos de escritura, claims, submissions, firmas o gasto. El dashboard público sigue exponiendo su propia lista de oportunidades; este grant protege el endpoint dedicado del agente.</p><div id="grantAuthStatus" class="grant-status">Verificando sesión de propietario…</div><div id="grantControls" hidden><div class="grant-form"><label for="grantLabel">Etiqueta del agente<input id="grantLabel" maxlength="80" value="GLM · 30 min" autocomplete="off"></label><label for="grantTtl">Duración<select id="grantTtl"><option value="30" selected>30 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option></select></label><button id="createGrantBtn" type="button">Crear grant</button></div><div id="grantCreated" hidden><p><b>Token generado. Se muestra solo en esta sesión; copialo ahora.</b></p><input id="grantToken" class="grant-token" readonly aria-label="Token de acceso de solo lectura"><div class="grant-actions"><button id="copyGrantBtn" type="button">Copiar token</button><span id="grantCopyStatus" class="grant-status"></span></div><small>Endpoint compatible: GET /api/agent/tasks · Authorization: Bearer [token]</small></div><div id="grantList" aria-live="polite"></div></div></div></section>
+<section class="window" id="accessGrantsWindow"><div class="titlebar"><span>COFRE TEMPORAL · READ-ONLY ACCESS GRANTS</span><span>OWNER-GATED</span></div><div class="body"><p>Tokens bearer temporales para consultar tareas ATM por API. Alcance fijo: <b>tasks:read</b>. Duración recomendada: 30 minutos. Compartilo solo con el agente previsto. No entrega API keys, sesiones de GitHub ni permisos de escritura, claims, submissions, firmas o gasto. El dashboard público sigue exponiendo su propia lista de oportunidades; este grant protege el endpoint dedicado del agente.</p><div id="grantAuthStatus" class="grant-status">Verificando sesión de propietario…</div><div id="ownerBootstrapControls" hidden><p>Primera activación: configurá una clave secreta independiente llamada <code>ATM_OWNER_BOOTSTRAP_TOKEN</code> en Cloudflare Workers → Settings → Variables and Secrets. Después pegala aquí para emitir un vínculo de un solo uso. No uses el grant <code>tasks:read</code>.</p><div class="grant-form owner-bootstrap-form"><label for="ownerBootstrapToken">Clave de activación inicial<input id="ownerBootstrapToken" type="password" maxlength="256" autocomplete="off" spellcheck="false"></label><button id="ownerBootstrapBtn" type="button">GENERAR VÍNCULO Y ENTRAR</button></div></div><div id="grantControls" hidden><div class="grant-form"><label for="grantLabel">Etiqueta del agente<input id="grantLabel" maxlength="80" value="GLM · 30 min" autocomplete="off"></label><label for="grantTtl">Duración<select id="grantTtl"><option value="30" selected>30 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option><option value="240">4 horas</option><option value="720">12 horas</option><option value="1440">24 horas</option></select></label><button id="createGrantBtn" type="button">Crear grant</button></div><div id="grantCreated" hidden><p><b>Token generado. Se muestra solo en esta sesión; copialo ahora.</b></p><input id="grantToken" class="grant-token" readonly aria-label="Token de acceso de solo lectura"><div class="grant-actions"><button id="copyGrantBtn" type="button">Copiar token</button><span id="grantCopyStatus" class="grant-status"></span></div><small>Endpoint compatible: GET /api/agent/tasks · Authorization: Bearer [token]</small></div><div id="grantList" aria-live="polite"></div></div></div></section>
 <section class="window"><div class="titlebar"><span>TRUTH RULES</span><span>ATM</span></div><div class="body">PAID ≠ SUBMITTED. POTENTIAL ≠ EARNED. UNKNOWN ≠ YES. OUT_OF_POCKET_SPEND_USD = 0. Dashboard read-only.</div><div class="statusline">Model: ${MODEL}</div></section>
 </main>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c.charCodeAt(0)===34?"&quot;":"&#39;");
 const usd=v=>'$'+Number(v||0).toFixed(2);
+const cofreJumpBtn=$('#cofreJumpBtn');
+if(cofreJumpBtn)cofreJumpBtn.addEventListener('click',()=>{
+ const target=$('#accessGrantsWindow');
+ if(!target)return;
+ const reduceMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+});
+const ownerLoginTopBtn=$('#ownerLoginTopBtn');
+function updateOwnerTopButton(session={}){
+ if(!ownerLoginTopBtn)return;
+ const active=session.ok===true&&session.owner_session_status==='ACTIVE';
+ ownerLoginTopBtn.disabled=active;
+ ownerLoginTopBtn.textContent=active?'OWNER ACTIVO':session.reauth_available?'REENTRAR OWNER':'ACTIVAR OWNER';
+}
+async function activateOwnerFromWeb(){
+ const panel=$('#accessGrantsWindow'),status=$('#grantAuthStatus'),bootstrap=$('#ownerBootstrapControls');
+ if(panel){const reduced=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;panel.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});}
+ if(ownerLoginTopBtn){ownerLoginTopBtn.disabled=true;ownerLoginTopBtn.textContent='VERIFICANDO OWNER…';}
+ try{
+  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store',credentials:'same-origin'});
+  const session=await sessionResponse.json().catch(()=>({ok:false,owner_session_status:'UNKNOWN'}));
+  updateOwnerTopButton(session);
+  if(sessionResponse.ok&&session.ok&&session.owner_session_status==='ACTIVE'){
+   if(bootstrap)bootstrap.hidden=true;
+   if(status){status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';}
+   await loadGrants();return;
+  }
+  if(!session.reauth_available){
+   if(bootstrap)bootstrap.hidden=false;
+   if(status){status.textContent='Primera activación requerida: usá la clave bootstrap independiente para emitir un vínculo owner de un solo uso.';status.className='grant-status warn';}
+   return;
+  }
+  if(bootstrap)bootstrap.hidden=true;
+  const response=await fetch('/api/owner/login',{method:'POST',cache:'no-store',credentials:'same-origin'});
+  const result=await response.json().catch(()=>({ok:false,error:'INVALID_OWNER_LOGIN_RESPONSE'}));
+  if(!response.ok||!result.ok)throw new Error(result.error||'OWNER_LOGIN_FAILED');
+  const verify=await fetch('/api/owner/session',{cache:'no-store',credentials:'same-origin'});
+  const state=await verify.json().catch(()=>({ok:false}));
+  updateOwnerTopButton(state);
+  if(!verify.ok||!state.ok||state.owner_session_status!=='ACTIVE')throw new Error('OWNER_SESSION_NOT_ACTIVE');
+  if(status){status.textContent='Propietario autenticado. Ya podés crear o revocar grants tasks:read.';status.className='grant-status good';}
+  await loadGrants();
+ }catch(error){
+  if(status){status.textContent='No se pudo activar la sesión owner: '+error.message;status.className='grant-status bad';}
+ }finally{
+  try{const r=await fetch('/api/owner/session',{cache:'no-store',credentials:'same-origin'});const s=await r.json().catch(()=>({ok:false}));updateOwnerTopButton(s);if(ownerLoginTopBtn&&!s.ok)ownerLoginTopBtn.disabled=false;}catch{if(ownerLoginTopBtn)ownerLoginTopBtn.disabled=false;}
+ }
+}
+if(ownerLoginTopBtn)ownerLoginTopBtn.addEventListener('click',activateOwnerFromWeb);
+const ownerBootstrapBtn=$('#ownerBootstrapBtn');
+if(ownerBootstrapBtn)ownerBootstrapBtn.addEventListener('click',async()=>{
+ const button=$('#ownerBootstrapBtn'),input=$('#ownerBootstrapToken'),status=$('#grantAuthStatus');
+ const secret=String(input.value||'').trim();
+ if(!secret){status.textContent='Pegá la clave secreta ATM_OWNER_BOOTSTRAP_TOKEN configurada en Cloudflare.';status.className='grant-status warn';return;}
+ button.disabled=true;button.textContent='GENERANDO VÍNCULO…';
+ try{
+  const response=await fetch('/api/owner/bootstrap-link',{method:'POST',headers:{'x-atm-owner-bootstrap-token':secret},cache:'no-store',credentials:'same-origin'});
+  input.value='';
+  const result=await response.json().catch(()=>({ok:false,error:'INVALID_OWNER_BOOTSTRAP_RESPONSE'}));
+  if(!response.ok||!result.ok||!result.url)throw new Error(result.error||'OWNER_BOOTSTRAP_FAILED');
+  const link=new URL(result.url);
+  if(link.origin!==window.location.origin||link.pathname!=='/owner/session'||!link.searchParams.has('token'))throw new Error('BOOTSTRAP_LINK_ORIGIN_MISMATCH');
+  status.textContent='Vínculo de un solo uso generado; entrando como propietario…';status.className='grant-status good';
+  window.location.assign(link.href);
+ }catch(error){
+  input.value='';
+  if(error.message==='OWNER_BOOTSTRAP_NOT_CONFIGURED')status.textContent='Falta configurar ATM_OWNER_BOOTSTRAP_TOKEN como secreto del Worker en Cloudflare. Recargá esta página cuando esté configurado.';
+  else if(error.message==='OWNER_BOOTSTRAP_TOKEN_INVALID')status.textContent='Clave bootstrap incorrecta. No uses el token tasks:read.';
+  else status.textContent='No se pudo iniciar sesión owner: '+error.message;
+  status.className='grant-status bad';
+ }finally{button.disabled=false;button.textContent='GENERAR VÍNCULO Y ENTRAR';}
+});
 function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
 function ageLabel(iso){const t=Date.parse(iso||'');if(!Number.isFinite(t))return{label:'UNKNOWN',cls:'warn',age:'sin timestamp'};const m=Math.max(0,Math.round((Date.now()-t)/60000));return m>20?{label:'STALE',cls:'bad',age:m+' min'}:m>15?{label:'LATE',cls:'warn',age:m+' min'}:{label:'FRESH',cls:'good',age:m+' min'}}
 let mcpBusy=false,mcpFrame=0,mcpSeen=null;
@@ -151,9 +228,11 @@ function grantRow(g){
 async function loadGrants(){
  const status=$('#grantAuthStatus'),controls=$('#grantControls');
  try{
-  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store'});
+  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store',credentials:'same-origin'});
   const session=await sessionResponse.json().catch(()=>({ok:false}));
-  if(!sessionResponse.ok||!session.ok){controls.hidden=true;status.textContent='Se requiere una sesión de propietario ATM activa para crear o revocar grants.';status.className='grant-status warn';return;}
+  updateOwnerTopButton(session);
+  if(!sessionResponse.ok||!session.ok){controls.hidden=true;$('#ownerBootstrapControls').hidden=!!session.reauth_available;status.textContent=session.reauth_available?'Sesión owner no activa. Pulsa REENTRAR OWNER en la barra superior para reactivarla.':'Primera activación: configurá ATM_OWNER_BOOTSTRAP_TOKEN en Cloudflare y usá la clave independiente aquí para generar el vínculo de un solo uso. El grant tasks:read no sirve como clave owner.';status.className='grant-status warn';return;}
+  $('#ownerBootstrapControls').hidden=true;
   controls.hidden=false;status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';
   const data=await getJson('/api/access-grants');
   $('#grantList').innerHTML=(data.results||[]).length?(data.results||[]).map(grantRow).join(''):'<div class="empty">No hay grants creados.</div>';

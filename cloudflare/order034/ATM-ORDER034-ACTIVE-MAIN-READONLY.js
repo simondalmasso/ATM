@@ -4764,6 +4764,18 @@ var human_gate_entry_default = {
       await internalJson(stub, "/owner/session/revoke", { token });
       return j({ ok: true }, 200, { "set-cookie": "atm_owner_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0" });
     }
+    if (p === "/api/owner/bootstrap-link" && req.method === "POST") {
+      if (!strictMutationOrigin(req)) return j({ ok: false, error: "ORIGIN_DENIED" }, 403);
+      if (!await emptyMutationBody(req)) return j({ ok: false, error: "EMPTY_BODY_REQUIRED" }, 400);
+      const rl = await publicRate(stub, "owner_bootstrap_link", ip, 3, 60 * 60 * 1e3);
+      if (!rl.ok) return j({ ok: false, error: "RATE_LIMITED" }, 429);
+      const expected = String(env.ATM_OWNER_BOOTSTRAP_TOKEN || "");
+      if (expected.length < 32) return j({ ok: false, error: "OWNER_BOOTSTRAP_NOT_CONFIGURED" }, 503);
+      const auth = await constantSecretMatch(req.headers.get("x-atm-owner-bootstrap-token"), expected);
+      if (!auth) return j({ ok: false, error: "OWNER_BOOTSTRAP_TOKEN_INVALID" }, 403);
+      const { response, data } = await internalJson(stub, "/owner/magic/create", {});
+      return j(data, response.status, { "cache-control": "no-store", "referrer-policy": "no-referrer" });
+    }
     if (p === "/api/internal/owner-link" && req.method === "POST") {
       const auth = await constantSecretMatch(req.headers.get("x-atm-run-token"), env.RUN_NOW_TEST_TOKEN);
       if (!auth) return j({ ok: false, error: "OWNER_ADMIN_AUTH_REQUIRED" }, 403);
