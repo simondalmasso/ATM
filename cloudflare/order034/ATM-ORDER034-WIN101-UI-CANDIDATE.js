@@ -11,7 +11,7 @@ function shellHtml() {
 <title>ATM 1.01 · Money Truth</title>
 <style>
 :root{--desk:#e8e2f0;--paper:#f7f4fa;--chrome:#d9d2e3;--ink:#000;--blue:#6666cc;--yellow:#fff3a6;--good:#087a08;--warn:#9a6100;--bad:#b00020;--muted:#555;--mcp:#4cd08a;--logo:#A276FF;--terminal:#A276FF}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}body{padding:10px;font-size:14.5px;line-height:1.28;font-weight:600;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}button,input{font:inherit}.shell{width:min(1180px,100%);margin:0 auto}.brandstrip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:14px 16px 12px;margin:0 0 12px}.brandmark{display:flex;align-items:center;justify-content:center;width:100%}.atm-logo{width:clamp(158px,23.25vw,285px);height:auto;display:block}.atm-logo path{stroke:var(--logo)!important}.terminal-loader{width:min(820px,100%);overflow:hidden;border-top:1px solid #c9bee0;padding:10px 0 4px;color:var(--terminal);user-select:none;display:flex;flex-direction:column;align-items:center}.terminal-matrix{position:relative;display:inline-flex;width:max-content;max-width:96%;margin-inline:auto;flex-direction:column;overflow:hidden;font:700 10px/.9 "Geist Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;letter-spacing:.12em;color:var(--terminal);text-shadow:0 0 8px rgba(162,118,255,.28)}.terminal-row{white-space:pre;height:.9em}.terminal-cursor{position:absolute;top:0;bottom:0;left:-10%;width:calc(3ch + .9em);background:var(--terminal);box-shadow:0 0 10px rgba(162,118,255,.35);will-change:left;transition:left 45ms linear;pointer-events:none}.terminal-meta{display:flex;width:100%;justify-content:flex-end;align-items:center;gap:12px;margin-top:7px;font-size:9px;color:#625a70}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.terminal-cursor{transition:none}.terminal-matrix{text-shadow:none}}.window{background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin:0 0 12px}.titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--blue);color:#fff;border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.menu{display:flex;gap:20px;background:var(--yellow);border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.015em}.body{padding:10px}.statusline{border-top:2px solid var(--ink);background:var(--chrome);padding:6px 8px;font-size:12.5px;font-weight:650}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--desk);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}body{padding:10px;font-size:14.5px;line-height:1.28;font-weight:600;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}button,input{font:inherit}.shell{width:min(1180px,100%);margin:0 auto}.brandstrip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:14px 16px 12px;margin:0 0 12px}.brandmark{display:flex;align-items:center;justify-content:center;width:100%}.atm-logo{width:clamp(158px,23.25vw,285px);height:auto;display:block}.atm-logo path{stroke:var(--logo)!important}.terminal-loader{width:min(820px,100%);overflow:hidden;border-top:1px solid #c9bee0;padding:10px 0 4px;color:var(--terminal);user-select:none;display:flex;flex-direction:column;align-items:center}.terminal-matrix{position:relative;display:inline-flex;width:max-content;max-width:96%;margin-inline:auto;flex-direction:column;overflow:hidden;font:700 10px/.9 "Geist Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;letter-spacing:.12em;color:var(--terminal);text-shadow:0 0 8px rgba(162,118,255,.28)}.terminal-row{white-space:pre;height:.9em}.terminal-cursor{position:absolute;top:0;bottom:0;left:-10%;width:calc(3ch + .9em);background:var(--terminal);box-shadow:0 0 10px rgba(162,118,255,.35);will-change:left;transition:left 45ms linear;pointer-events:none}.terminal-meta{display:flex;width:100%;justify-content:flex-end;align-items:center;gap:12px;margin-top:7px;font-size:9px;color:#625a70}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(prefers-reduced-motion:reduce){.terminal-cursor{transition:none}.terminal-matrix{text-shadow:none}}.window{background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin:0 0 12px}.titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--blue);color:#fff;border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.menu{display:flex;gap:20px;background:var(--yellow);border-bottom:2px solid var(--ink);padding:6px 8px;font-weight:800;letter-spacing:.015em}.quick-actions{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:8px 10px;margin:0 0 12px}.quick-actions-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cofre-jump{flex-shrink:0;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);background:var(--yellow);color:var(--ink);padding:9px 12px;font-weight:900;cursor:pointer}.cofre-jump:hover{background:#ffe85d}.cofre-jump:focus-visible{outline:3px solid var(--blue);outline-offset:3px}#accessGrantsWindow{scroll-margin-top:68px}@media(max-width:420px){.quick-actions{gap:8px;padding:7px}.quick-actions-label{font-size:9px}.cofre-jump{padding:9px 10px;font-size:12px}}.body{padding:10px}.statusline{border-top:2px solid var(--ink);background:var(--chrome);padding:6px 8px;font-size:12.5px;font-weight:650}
 .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}.moneyhero{border:2px solid var(--ink);padding:10px;background:var(--paper)}.moneyhero .label,.cell .label{font-size:11.5px;font-weight:700;text-transform:uppercase}.moneyhero .value{font-size:clamp(34px,7vw,68px);line-height:1;font-weight:700;margin:6px 0}.notearned{background:var(--yellow);border:2px solid var(--ink);padding:8px;margin-top:8px}.truthrules{display:grid;gap:6px}.truthrule{border:2px solid var(--ink);background:var(--chrome);padding:8px}.truthrule b{display:block;margin-top:3px;font-weight:800}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px solid var(--ink);border-left:2px solid var(--ink)}.cell{min-width:0;padding:8px;background:var(--paper);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}.cell b{display:block;margin-top:3px;font-size:17px;font-weight:800;overflow-wrap:anywhere}.cell small{display:block;color:var(--muted);margin-top:3px;font-size:12px;font-weight:600;overflow-wrap:anywhere}.split{display:grid;grid-template-columns:1.35fr .65fr;gap:12px}.table{border:2px solid var(--ink)}.row{display:grid;grid-template-columns:minmax(180px,2fr) 95px 100px minmax(160px,1fr);border-bottom:2px solid var(--ink);background:var(--paper)}.row:last-child{border-bottom:0}.row.head{background:var(--chrome);font-weight:700}.row>div{min-width:0;padding:7px;border-right:2px solid var(--ink);overflow-wrap:anywhere}.row>div:last-child{border-right:0}.sourcegrid{display:grid;gap:0;border:2px solid var(--ink)}.source{display:grid;grid-template-columns:1fr auto;gap:8px;padding:7px;background:var(--paper);border-bottom:2px solid var(--ink)}.source:last-child{border-bottom:0}.source small{display:block;color:var(--muted);font-weight:600}.log{max-height:290px;overflow:auto;border:2px solid var(--ink);background:var(--paper)}.event{padding:7px;border-bottom:1px solid var(--ink)}.event:last-child{border-bottom:0}.event time{display:block;color:var(--muted);font-size:11px;margin-top:2px}.empty{padding:16px;background:var(--paper);border:2px solid var(--ink)}
 @media(max-width:800px){body{padding:7px;font-size:15px;line-height:1.32}.brandstrip{padding:10px 9px 9px;gap:6px}.atm-logo{width:min(54vw,255px)}.terminal-loader{padding-top:7px}.terminal-matrix{font-size:10px;letter-spacing:.075em}.hero,.split{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.menu{gap:12px;overflow:auto;white-space:nowrap}.titlebar{align-items:flex-start}.row{grid-template-columns:1fr 1fr}.row.head{display:none}.row>div{border-right:0;border-bottom:1px dotted var(--ink)}.row>div:nth-child(odd){border-right:2px solid var(--ink)}.row>div::before{display:block;font-size:10px;color:var(--muted);text-transform:uppercase}.row>div:nth-child(1)::before{content:"Tarea"}.row>div:nth-child(2)::before{content:"Estado"}.row>div:nth-child(3)::before{content:"Potencial"}.row>div:nth-child(4)::before{content:"Bloqueo"}}
@@ -39,6 +39,10 @@ function shellHtml() {
     <div class="terminal-meta"><span id="mcpMeta">MCP · /mcp · esperando tráfico</span></div>
   </div>
 </header>
+<nav class="quick-actions" aria-label="Accesos rápidos">
+  <span class="quick-actions-label">ACCESO DIRECTO</span>
+  <button id="cofreJumpBtn" class="cofre-jump" type="button" aria-controls="accessGrantsWindow">COFRE TEMPORAL</button>
+</nav>
 <section class="window">
   <div class="titlebar"><span>ATM 1.01 · MONEY TRUTH</span><span id="clock">—</span></div>
   <div class="menu"><span>MONEY</span><span>EXECUTION</span><span>MARKET</span><span>LOG</span></div>
@@ -88,7 +92,157 @@ function shellHtml() {
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c.charCodeAt(0)===34?"&quot;":"&#39;");
-const usd=v=>'$'+Number(v||0).toFixed(2);
+const usd=v=>'function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
+function ageLabel(iso){const t=Date.parse(iso||'');if(!Number.isFinite(t))return{label:'UNKNOWN',cls:'warn',age:'sin timestamp'};const m=Math.max(0,Math.round((Date.now()-t)/60000));return m>20?{label:'STALE',cls:'bad',age:m+' min'}:m>15?{label:'LATE',cls:'warn',age:m+' min'}:{label:'FRESH',cls:'good',age:m+' min'}}
+let mcpBusy=false,mcpFrame=0,mcpSeen=null;
+function setMcpHeartbeat(mcp={}){mcpBusy=mcp.active===true;mcpSeen=mcp.last_seen_at||null;const box=$('#mcpTerminal');box.classList.toggle('busy',mcpBusy);$('#mcpWord').textContent=mcpBusy?'BUSY':'IDLE';const seen=mcpSeen?new Date(mcpSeen).toLocaleTimeString('es-AR'):null;const live=Array.isArray(mcp.active_consumers)?mcp.active_consumers:[];const who=(live.length?live.map(x=>x&&x.name).filter(Boolean):[mcp.last_client_name]).filter(Boolean).slice(0,3).join(' + ')||'cliente desconocido';const count=mcpBusy?(mcp.active_clients||live.length||1):0;$('#mcpMeta').textContent=mcpBusy?('MCP · /mcp · '+count+' cliente(s) · '+who+' · último uso '+(seen||'—')):(seen?('MCP · /mcp · '+who+' · último uso '+seen):'MCP · /mcp · esperando tráfico')}
+let mcpRenderWord='IDLE';
+const MCP_BIG_FONT={
+  I:['11111','00100','00100','00100','11111'],
+  D:['11110','10001','10001','10001','11110'],
+  L:['10000','10000','10000','10000','11111'],
+  E:['11111','10000','11110','10000','11111'],
+  B:['11110','10001','11110','10001','11110'],
+  U:['10001','10001','10001','10001','11111'],
+  S:['11111','10000','11111','00001','11111'],
+  Y:['10001','01010','00100','00100','00100']
+};
+function mcpWordBitmap(word){
+  return Array.from({length:5},(_,r)=>word.split('').map(ch=>MCP_BIG_FONT[ch][r]).join('0'));
+}
+function renderTerminalLoader(){
+  const matrix=$('#mcpTerminalMatrix'),cursor=$('#mcpTerminalCursor');if(!matrix||!cursor)return;
+  const rowEls=[...matrix.querySelectorAll('.terminal-row')],rows=5,cols=innerWidth<=420?52:innerWidth<=800?60:72,word=mcpBusy?'BUSY':'IDLE';
+  if(word!==mcpRenderWord){mcpRenderWord=word;mcpFrame=0}
+  const bitmap=mcpWordBitmap(word),wordWidth=bitmap[0].length,wordStart=Math.floor((cols-wordWidth)/2);
+  const travel=cols+18,head=(mcpFrame%travel)-7,h=Math.floor(head);
+  for(let r=0;r<rows;r++){
+    const line=Array(cols).fill('.');
+    const trail=[['░',h-3],['▒',h-2],['▓',h-1]];
+    for(const [g,x] of trail)if(x>=0&&x<cols)line[x]=g;
+    for(let x=0;x<h-4;x++){
+      const d=h-x;
+      if(d>6&&d<22&&((x*13+r*17+mcpFrame)%Math.max(9,d+5)===0))line[x]=d<12?'▒':'░';
+    }
+    for(let bx=0;bx<wordWidth;bx++){
+      if(bitmap[r][bx]!=='1')continue;
+      const x=wordStart+bx,d=h-x;
+      if(x<0||x>=cols)continue;
+      if(d>=3)line[x]='█';
+      else if(d===2)line[x]='▓';
+      else if(d===1)line[x]='▒';
+      else if(d===0)line[x]='░';
+    }
+    rowEls[r].textContent=line.join('');
+  }
+  const pct=(head/cols)*100;
+  cursor.style.left=Math.max(-12,Math.min(108,pct))+'%';
+  mcpFrame++;
+}
+setInterval(renderTerminalLoader,45);renderTerminalLoader();
+function cell(k,v,s=''){return'<div class="cell"><span class="label">'+esc(k)+'</span><b>'+esc(v)+'</b>'+(s?'<small>'+esc(s)+'</small>':'')+'</div>'}
+function row(x){const state=x.execution_stage||x.ai_executability||'UNKNOWN',block=(x.blockers||[]).join(' · ')||'NONE';return'<div class="row"><div><b>'+esc(x.title||x.source_task_id||x.opportunity_id||'TASK')+'</b><small>'+esc(x.source||'—')+'</small></div><div class="'+tone(state)+'">'+esc(state)+'</div><div>'+usd(x.estimated_net_usd||x.potential_not_earned_usd||0)+'</div><div>'+esc(block)+'</div></div>'}
+function queueRow(x){const state=x.state||x.execution_stage||x.queue_classification||'UNKNOWN';return'<div class="row"><div><b>'+esc(x.title||x.source_task_id||x.opportunity_id||'TASK')+'</b><small>'+esc(x.source||'—')+'</small></div><div class="'+tone(state)+'">'+esc(state)+'</div><div>'+usd(x.potential_not_earned_usd||0)+'</div><div>'+esc((x.blockers||[]).join(' · ')||x.queue_classification||'NONE')+'</div></div>'}
+function head(){return'<div class="row head"><div>TAREA</div><div>ESTADO</div><div>POTENCIAL</div><div>BLOQUEO</div></div>'}
+function eventRow(x){const type=x.transition||x.type||'EVENT',at=x.timestamp||x.observed_at||x.at||'';return'<div class="event"><b class="'+tone(type)+'">'+esc(type)+'</b> · '+esc(x.message||x.source_task_id||x.task_id||'—')+'<time>'+esc(at)+'</time></div>'}
+async function getJson(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(url+' HTTP '+r.status);return r.json()}
+function grantRow(g){
+ const status=String(g.status||'UNKNOWN');
+ const detail='Scope '+String(g.scope||'—')+' · expira '+String(g.expires_at||'—')+' · usos '+Number(g.use_count||0)+' · último uso '+String(g.last_used_at||'nunca');
+ return '<div class="grant-row"><div><b>'+esc(g.label||g.id)+'</b> <span class="'+(status==='ACTIVE'?'good':status==='REVOKED'?'bad':'warn')+'">'+esc(status)+'</span><small>'+esc(detail)+'</small></div>'+(status==='ACTIVE'?'<button type="button" data-revoke="'+esc(g.id)+'">Revocar</button>':'')+'</div>';
+}
+async function loadGrants(){
+ const status=$('#grantAuthStatus'),controls=$('#grantControls');
+ try{
+  const sessionResponse=await fetch('/api/owner/session',{cache:'no-store'});
+  const session=await sessionResponse.json().catch(()=>({ok:false}));
+  if(!sessionResponse.ok||!session.ok){controls.hidden=true;status.textContent='Se requiere una sesión de propietario ATM activa para crear o revocar grants.';status.className='grant-status warn';return;}
+  controls.hidden=false;status.textContent='Sesión de propietario activa · grants limitados a tasks:read.';status.className='grant-status good';
+  const data=await getJson('/api/access-grants');
+  $('#grantList').innerHTML=(data.results||[]).length?(data.results||[]).map(grantRow).join(''):'<div class="empty">No hay grants creados.</div>';
+  $('#grantList').querySelectorAll('[data-revoke]').forEach(button=>button.addEventListener('click',async()=>{
+   button.disabled=true;
+   try{const response=await fetch('/api/access-grants/'+encodeURIComponent(button.dataset.revoke)+'/revoke',{method:'POST',cache:'no-store'});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'REVOKE_FAILED');$('#grantCreated').hidden=true;await loadGrants();}
+   catch(error){status.textContent='No se pudo revocar: '+error.message;status.className='grant-status bad';button.disabled=false;}
+  }));
+ }catch(error){controls.hidden=true;status.textContent='Gestión de grants no disponible: '+error.message;status.className='grant-status bad';}
+}
+$('#createGrantBtn').addEventListener('click',async()=>{
+ const button=$('#createGrantBtn'),status=$('#grantAuthStatus');button.disabled=true;
+ try{
+  const response=await fetch('/api/access-grants',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify({label:$('#grantLabel').value,ttl_minutes:Number($('#grantTtl').value)})});
+  const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'GRANT_CREATE_FAILED');
+  $('#grantToken').value=result.token;$('#grantCreated').hidden=false;$('#grantCopyStatus').textContent='';await loadGrants();status.textContent='Grant creado. Copiá el token; el servidor no puede volver a mostrarlo.';status.className='grant-status good';
+ }catch(error){status.textContent='No se pudo crear el grant: '+error.message;status.className='grant-status bad';}
+ finally{button.disabled=false;}
+});
+$('#copyGrantBtn').addEventListener('click',async()=>{
+ const field=$('#grantToken'),status=$('#grantCopyStatus');field.focus();field.select();
+ try{await navigator.clipboard.writeText(field.value);status.textContent='Copiado.';}
+ catch{status.textContent='Seleccionado: copiá manualmente con Ctrl+C.';}
+});
+async function load(){
+  $('#clock').textContent=new Date().toLocaleString('es-AR');
+  try{
+    const [s,o,money,eventFeed]=await Promise.all([getJson('/api/status'),getJson('/api/opportunities'),getJson('/api/money-loop'),getJson('/api/task-events')]);
+    setMcpHeartbeat(s.mcp_activity||{});
+    const e=money.earnings||{};
+    $('#realized').textContent=usd(e.paid);
+    $('#paidDetail').textContent='PAID '+usd(e.paid)+' · WITHDRAWABLE '+usd(e.withdrawable)+' · WITHDRAWN '+usd(e.withdrawn);
+    $('#submitted').textContent='SUBMITTED · NOT EARNED '+usd(e.submitted);
+    $('#accepted').textContent='ACCEPTED · NOT EARNED '+usd(e.accepted);
+    const queue=money.execution_queue?.rows||[];
+    const opps=o.results||[];
+    const potential=[...queue,...opps].reduce((a,x)=>a+Number(x.potential_not_earned_usd??x.estimated_net_usd??0),0);
+    $('#potential').textContent='POTENTIAL · NOT EARNED '+usd(potential);
+
+    const ex=s.agentic_execution?.status||'UNKNOWN';
+    $('#exec').textContent=ex;$('#exec').className=tone(ex);$('#execDetail').textContent=(s.agentic_execution?.auto_eligible_now??0)+' auto-eligible · '+(s.agentic_execution?.signer_ready?'signer ready':'signer standby');
+    const wd=s.economic_watchdog||{};const wds=wd.classification||'UNKNOWN';$('#watchdog').textContent=wds;$('#watchdog').className=tone(wds);$('#anomaly').textContent=(wd.anomaly||'NONE')+' · recovery '+(wd.recommended_action||'NONE');
+    const fresh=ageLabel(s.source_discovery?.last_discovery);$('#freshness').textContent=fresh.label;$('#freshness').className=fresh.cls;$('#freshnessDetail').textContent=fresh.age+' · '+(s.source_discovery?.last_discovery||'sin last_discovery');
+    $('#truthline').textContent='REALIZED='+usd(e.paid)+' · EXECUTION='+ex+' · WATCHDOG='+(wd.anomaly||wds)+' · MARKET='+fresh.label;
+
+    const rd=s.source_discovery||{},tm=s.task_market||{};
+    $('#marketGrid').innerHTML=[['OPEN',tm.open_tasks??rd.raw_found??0,'mercado'],['AUTO_ELIGIBLE',s.agentic_execution?.auto_eligible_now??0,'ejecutables'],['SOURCES OK',rd.sources_ok??0,'discover'],['SOURCES FAIL',rd.sources_failed??0,'discover'],['DAYDREAMS',tm.daydreams?.open_tasks??0,'open'],['ZERO COST',tm.daydreams?.zero_cost_routes??0,'routes'],['LAST',rd.last_discovery||'—','discovery'],['NEXT',rd.next_discovery||'—','discovery']].map(x=>cell(...x)).join('');
+
+    $('#queueSummary').textContent=queue.length+' rows';
+    $('#queue').innerHTML=queue.length?head()+queue.slice(0,40).map(queueRow).join(''):'<div class="empty">Cola vacía.</div>';
+    const sorted=[...opps].sort((a,b)=>Number(b.estimated_net_usd||0)-Number(a.estimated_net_usd||0));
+    $('#oppsCount').textContent=sorted.length+' reales';
+    $('#opps').innerHTML=sorted.length?head()+sorted.slice(0,40).map(row).join(''):'<div class="empty">0 oportunidades abiertas.</div>';
+
+    const sources=Object.values(s.sources||{});$('#sourcesSummary').textContent=sources.length+' sources';
+    $('#sources').innerHTML=sources.length?sources.map(x=>'<div class="source"><div><b>'+esc(x.source||x.id||'SOURCE')+'</b><small>'+esc(x.discovery_mode||'—')+' · '+esc(x.automatic_action_level||'—')+'</small><small>attempt '+esc(x.last_attempt||'—')+' · success '+esc(x.last_success||'—')+' · results '+esc(x.result_count??0)+'</small></div><b class="'+(x.running?'good':'warn')+'">'+(x.running?'RUNNING':'OFF')+'</b></div>').join(''):'<div class="empty">Sin fuentes.</div>';
+    const material=(eventFeed.results||[]).slice(0,30);const activity=(s.activity||[]).slice(0,20);const events=[...material,...activity].sort((a,b)=>String(b.timestamp||b.observed_at||b.at||'').localeCompare(String(a.timestamp||a.observed_at||a.at||''))).slice(0,30);$('#events').innerHTML=events.length?events.map(eventRow).join(''):'<div class="empty">Sin eventos.</div>';
+  }catch(err){$('#truthline').textContent='DEGRADED · '+err.message;$('#truthline').className='statusline bad'}
+}
+async function pollMcp(){try{setMcpHeartbeat(await getJson('/api/mcp-heartbeat'))}catch{}}
+load();pollMcp();loadGrants();setInterval(load,15000);setInterval(pollMcp,3000);setInterval(loadGrants,30000);
+<\/script>
+</body></html>`;
+}
+
+const candidate = {
+  ...runtime,
+  async fetch(req, env, ctx) {
+    const u = new URL(req.url);
+    if (req.method === "GET" && u.pathname === "/") {
+      return new Response(shellHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+    }
+    return runtime.fetch(req, env, ctx);
+  },
+};
+
+export { ATMBrain };
+export default candidate;
++Number(v||0).toFixed(2);
+const cofreJumpBtn=$('#cofreJumpBtn');
+if(cofreJumpBtn)cofreJumpBtn.addEventListener('click',()=>{
+ const target=$('#accessGrantsWindow');
+ if(!target)return;
+ const reduceMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});
+});
 function tone(x){x=String(x||'');if(/ABORTED|STALLED|FAILED|ERROR|REJECTED/.test(x))return'bad';if(/DEGRADED|WAITING|RETRY|STALE/.test(x))return'warn';if(/RUNNING|PASS|HEALTHY|PAID|READY|IDLE_NO_AUTO_ELIGIBLE/.test(x))return'good';return''}
 function ageLabel(iso){const t=Date.parse(iso||'');if(!Number.isFinite(t))return{label:'UNKNOWN',cls:'warn',age:'sin timestamp'};const m=Math.max(0,Math.round((Date.now()-t)/60000));return m>20?{label:'STALE',cls:'bad',age:m+' min'}:m>15?{label:'LATE',cls:'warn',age:m+' min'}:{label:'FRESH',cls:'good',age:m+' min'}}
 let mcpBusy=false,mcpFrame=0,mcpSeen=null;
