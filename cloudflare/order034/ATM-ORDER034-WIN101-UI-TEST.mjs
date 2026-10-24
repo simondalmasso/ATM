@@ -56,7 +56,7 @@ const scriptEnd = html.indexOf('<\\/script>', scriptStart) >= 0 ? html.indexOf('
 check('RENDERED_SCRIPT_FOUND', scriptStart >= '<script>'.length && scriptEnd > scriptStart);
 const renderedScript = html.slice(scriptStart, scriptEnd);
 let renderedParseOk = true;
-try { new Function(renderedScript); } catch { renderedParseOk = false; }
+try { new Function(renderedScript); } catch (err) { renderedParseOk = false; console.error('RENDERED_BROWSER_SCRIPT_SYNTAX_DETAIL', err?.stack || err); }
 check('RENDERED_BROWSER_SCRIPT_SYNTAX', renderedParseOk);
 check('TERMINAL_LILAC', html.includes('--terminal:#A276FF') && html.includes('--logo:#A276FF') && html.includes('.atm-logo path{stroke:var(--logo)!important}'));
 check('TERMINAL_WRITES_WORD', html.includes("const MCP_BIG_FONT=") && html.includes("mcpWordBitmap(word)") && html.includes("if(d>=3)line[x]='█'") && html.includes('id="mcpTerminalCursor"'));
