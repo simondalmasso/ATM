@@ -31,7 +31,7 @@ function stepBlock(name) {
   const marker = `- name: ${name}`;
   const start = workflow.indexOf(marker);
   assert.ok(start >= 0, `missing workflow step: ${name}`);
-  const next = workflow.indexOf("\\n      - name:", start + marker.length);
+  const next = workflow.indexOf("\n      - name:", start + marker.length);
   return workflow.slice(start, next < 0 ? workflow.length : next);
 }
 
@@ -50,3 +50,10 @@ for (const [name, block, logName] of [
 assert.equal(workflow.includes("candidate exact-SHA version not found"), false, "brittle list-based exact-SHA parser must be removed");
 
 console.log("ORDER-051 upload version ID parsing: PASS");
+const stage = stepBlock("Stage main candidate at zero percent");
+assert.ok(stage.includes("max_attempts=5"), "staging must retry Cloudflare's eventual-consistency window with a bound");
+assert.ok(stage.includes("sleep \"$delay\""), "staging retries must back off between attempts");
+assert.ok(stage.includes("exit 1"), "staging must fail closed after bounded retries");
+assert.ok(stage.includes("$PREVIOUS@100%") && stage.includes("$NEW@0%"), "staging retries must preserve previous 100% / candidate 0%");
+console.log("ORDER-051 bounded zero-percent staging retry: PASS");
+
