@@ -24,6 +24,10 @@ check('COFRE_QUICK_BUTTON_SCROLLS_TO_PANEL', src.includes("cofreJumpBtn=$('#cofr
 check('OWNER_WEB_BUTTON_VISIBLE', src.includes('id="ownerLoginTopBtn"') && src.indexOf('id="ownerLoginTopBtn"') < src.indexOf('id="accessGrantsWindow"'));
 check('OWNER_WEB_REAUTH_USES_EXISTING_SESSION_ENDPOINTS', src.includes("fetch('/api/owner/session'") && src.includes("fetch('/api/owner/login',{method:'POST'"));
 check('OWNER_WEB_BOOTSTRAP_FAILS_CLOSED', src.includes('ACTIVACIÓN INICIAL REQUERIDA') && src.includes('grant tasks:read no habilita el acceso de propietario') && !src.includes("fetch('/api/internal/owner-link'"));
+check('OWNER_BOOTSTRAP_FORM_PRESENT', src.includes('id="ownerBootstrapControls"') && src.includes('id="ownerBootstrapToken"') && src.includes('type="password"'));
+check('OWNER_BOOTSTRAP_USES_DEDICATED_ENDPOINT', src.includes("fetch('/api/owner/bootstrap-link'") && src.includes("'x-atm-owner-bootstrap-token':secret"));
+check('OWNER_BOOTSTRAP_SECRET_CLEARED', src.includes("input.value='';") && !/localStorage|sessionStorage/.test(src));
+check('OWNER_BOOTSTRAP_LINK_ORIGIN_CHECK', src.includes('link.origin!==window.location.origin') && src.includes("link.pathname!=='/owner/session'"));
 check('GRANT_UI_NO_MARKETPLACE_MUTATIONS', !/fetch\(['"]\/api\/(?:dispatch|human-gate\/approve|taskmarket|claim|submit)/i.test(src));
 check('GRANT_TOKEN_NOT_PERSISTED_IN_BROWSER', !/localStorage|sessionStorage/.test(src));
 check('META_HACKATHON_WATCH_VISIBLE', src.includes('META GLOBAL AI DEVELOPER HACKATHON') && src.includes('NOTIFICATION SENT · APPLICATIONS OPENING SOON') && src.includes('$1M cash prize pool') && src.includes('$150 Meta Model API credits per participant'));
