@@ -149,6 +149,11 @@ if(passive.CLAW_EARN?.state!=="REJECT_OWNER_SPEND"||passive.CLAW_EARN?.auto_elig
 if(passive.XENTO?.state!=="WATCH_ONLY"||passive.XENTO?.runtime_source!==false) throw new Error("XENTO_PROMOTED");
 if(passive.OPIRE?.state!=="WATCH_READ_ONLY_VERIFY"||passive.OPIRE?.runtime_source!==false) throw new Error("OPIRE_NOT_PASSIVE");
 if(passive.ALGORA?.state!=="WATCH_READ_ONLY_VERIFY"||passive.ALGORA?.runtime_source!==false) throw new Error("ALGORA_NOT_PASSIVE");
+for (const [id,url] of [["WIZZHQ","https://app.wizzhq.xyz/dash/bounties"],["POIDH","https://poidh.xyz/"],["CRE8CORE","https://cre8core.fun/bounties"],["STALLION","https://stallion.so/dashboard/bounties"],["LPARMY","https://www.lparmy.com/bounties"],["ZEROAUTHORITYDAO","https://zeroauthoritydao.com/bounty"],["WURK","https://wurk.fun/jobs/timeline"],["GIB_WORK","https://gib.work/"],["BITDEGREE","https://www.bitdegree.org/"]]) {
+  if(passive[id]?.state!=="WATCH_READ_ONLY_VERIFY" || passive[id]?.runtime_source!==false || passive[id]?.auto_eligible!==false) throw new Error(id+"_NOT_WATCH_ONLY");
+  if(passive[id]?.first_party!==url) throw new Error(id+"_URL_MISMATCH");
+  if(!Array.isArray(passive[id]?.blockers) || passive[id].blockers.length===0) throw new Error(id+"_MISSING_BLOCKERS");
+}
 
 if(passive.MQL5_K2?.state!=="PRIMARY_EXTERNAL_EXPERIMENT"||passive.MQL5_K2?.current_order_mutation!==false) throw new Error("MQL5_K2_NOT_PRESERVED");
 
