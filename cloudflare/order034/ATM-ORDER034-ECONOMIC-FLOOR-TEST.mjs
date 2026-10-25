@@ -34,11 +34,13 @@ if(technical.includes('PROMOTIONAL_CAMPAIGN_REQUIRED')) throw new Error('TECHNIC
 const tempo=mod.normalize('DAYDREAMS',{...raw(3_000_000),id:'tempo-task',chainId:4217,title:'Write a technical report',description:'Write a concise technical report.'});
 if(!tempo.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')) throw new Error('TEMPO_NETWORK_NOT_BLOCKED:'+JSON.stringify(tempo.blockers));
 if(tempo.ai_executability!=='BLOCKED'||tempo.payout_currency==='USDC'||tempo.estimated_net_usd!==null) throw new Error('TEMPO_REWARD_MISLABELED_AS_BASE_USDC:'+JSON.stringify({currency:tempo.payout_currency,estimated_net_usd:tempo.estimated_net_usd,blockers:tempo.blockers}));
+if(tempo.eligibility?.payout_path_known!==false) throw new Error('TEMPO_PAYOUT_PATH_INCORRECTLY_MARKED_KNOWN');
 const unknownNetwork={...raw(3_000_000),id:'unknown-network-task',chainId:undefined,title:'Write a technical report',description:'Write a concise technical report.'};
 const unknown=mod.normalize('DAYDREAMS',unknownNetwork);
 if(!unknown.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')||unknown.ai_executability!=='BLOCKED') throw new Error('UNKNOWN_TASKMARKET_NETWORK_NOT_FAIL_CLOSED:'+JSON.stringify(unknown.blockers));
 const baseTask=mod.normalize('DAYDREAMS',{...raw(3_000_000),id:'base-task',title:'Write a technical report',description:'Write a concise technical report.'});
 if(baseTask.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')||baseTask.payout_currency!=='USDC') throw new Error('BASE_USDC_TASK_REGRESSED:'+JSON.stringify({currency:baseTask.payout_currency,blockers:baseTask.blockers}));
+if(baseTask.eligibility?.payout_path_known!==true) throw new Error('BASE_PAYOUT_PATH_NOT_MARKED_KNOWN');
 
 console.log('MIN_PRIMARY_REWARD_USD=1');
 console.log('SUB_DOLLAR_REWARD_BLOCKED=PASS');
