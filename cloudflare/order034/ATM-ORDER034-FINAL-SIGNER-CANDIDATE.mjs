@@ -5397,7 +5397,7 @@ async function account(env) {
 __name(account, "account");
 function promotionalCampaignTask(t) {
   const text = `${t?.title || ""} ${t?.description || ""}`;
-  return /\\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\\s+campaign\\b|\\bcampaign\\s+(?:launch|promotion|promotional|marketing|advertising)\\b/i.test(text);
+  return /\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\s+campaign\b|\bcampaign\s+(?:launch|promotion|promotional|marketing|advertising)\b/i.test(text);
 }
 __name(promotionalCampaignTask, "promotionalCampaignTask");
 async function policy(b, t, env) {
