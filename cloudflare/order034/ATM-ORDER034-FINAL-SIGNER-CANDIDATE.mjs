@@ -5403,7 +5403,7 @@ __name(promotionalCampaignTask, "promotionalCampaignTask");
 async function policy(b, t, env) {
   const p = b?.policy_proof || {}, th = await termsHash(t), d = decision(t, env.TASKMARKET_WORKER_ADDRESS, b.operation), ph = await sha(stable(d.pending_action_snapshot));
   const forbidden = ["to", "recipient", "value", "transaction", "typedData", "payment", "x402", "chainId", "privateKey", "rawKey"].find((k) => b?.[k] !== void 0);
-  const bad = forbidden ? "FORBIDDEN_AUTHORITY" : !TASK.test(String(b.task_id || "")) ? "INVALID_TASK" : !UUID.test(String(b.idempotency_key || "")) ? "INVALID_IDEMPOTENCY" : th !== b.terms_hash ? "TASK_TERMS_CHANGED" : p.pending_action_snapshot_hash !== ph ? "PENDING_ACTION_SNAPSHOT_CHANGED" : !p || p.source !== "DAYDREAMS" || p.execution_actor !== "ATM_RUNTIME_AGENT" || p.arq_execution !== false || p.policy !== "DETERMINISTIC_CONTROL_PLANE" || p.policy_decision !== "AUTO_ELIGIBLE" || Number(p.action_cost_usdc) !== 0 || p.operation !== b.operation || p.task_id !== b.task_id || p.terms_hash !== b.terms_hash ? "POLICY_PROOF_REQUIRED" : promotionalCampaignTask(t) ? "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED" : !d.auto_eligible ? "FRESH_POLICY_BLOCKED" : null;
+  const bad = forbidden ? "FORBIDDEN_AUTHORITY" : !TASK.test(String(b.task_id || "")) ? "INVALID_TASK" : !UUID.test(String(b.idempotency_key || "")) ? "INVALID_IDEMPOTENCY" : th !== b.terms_hash ? "TASK_TERMS_CHANGED" : p.pending_action_snapshot_hash !== ph ? "PENDING_ACTION_SNAPSHOT_CHANGED" : !p || p.source !== "DAYDREAMS" || p.execution_actor !== "ATM_RUNTIME_AGENT" || p.arq_execution !== false || p.policy !== "DETERMINISTIC_CONTROL_PLANE" || p.policy_decision !== "AUTO_ELIGIBLE" || Number(p.action_cost_usdc) !== 0 || p.operation !== b.operation || p.task_id !== b.task_id || p.terms_hash !== b.terms_hash ? "POLICY_PROOF_REQUIRED" : Number(t?.chainId) !== 8453 ? "TASKMARKET_NETWORK_UNSUPPORTED" : promotionalCampaignTask(t) ? "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED" : !d.auto_eligible ? "FRESH_POLICY_BLOCKED" : null;
   return bad ? { ok: false, error: bad, terms_hash: th, pending_action_snapshot_hash: ph, decision: d } : { ok: true, terms_hash: th, pending_action_snapshot_hash: ph, decision: d };
 }
 __name(policy, "policy");
@@ -5497,7 +5497,7 @@ var TaskmarketSignerGuard = class {
     }
     await this.ctx.storage.put(k, { request_hash: h, terminal: false, started_at: (/* @__PURE__ */ new Date()).toISOString() });
     try {
-      const r = await exec(b, this.env), terminal = !!r.ok || ["OPERATION_NOT_ALLOWED", "TASK_TERMS_CHANGED", "PENDING_ACTION_SNAPSHOT_CHANGED", "FRESH_POLICY_BLOCKED", "POLICY_PROOF_REQUIRED", "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED"].includes(r.error);
+      const r = await exec(b, this.env), terminal = !!r.ok || ["OPERATION_NOT_ALLOWED", "TASK_TERMS_CHANGED", "PENDING_ACTION_SNAPSHOT_CHANGED", "FRESH_POLICY_BLOCKED", "POLICY_PROOF_REQUIRED", "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED", "TASKMARKET_NETWORK_UNSUPPORTED"].includes(r.error);
       await this.ctx.storage.put(k, { request_hash: h, terminal, result: r, finished_at: (/* @__PURE__ */ new Date()).toISOString() });
       return out(r, r.ok ? 200 : 409);
     } catch (e) {
