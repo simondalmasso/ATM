@@ -5438,7 +5438,7 @@ async function submit(b, env) {
   t1 = t1.task || t1;
   const p1 = await policy(b, t1, env);
   if (!p1.ok) throw Error(`PRE_SUBMIT_${p1.error}`);
-  const sig = await a.signMessage({ message: `taskmarket:market:submit:${b.task_id}:${inputs.map((x) => x.artifactKey).join(",")}` });
+  const sig = await a.signMessage({ message: `taskmarket:market:submit:${b.task_id}` });
   const rr = await fetch(`${API}/api/tasks/${b.task_id}/submissions/from-keys`, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "X-Taskmarket-Idempotency-Key": b.idempotency_key }, body: JSON.stringify({ taskId: b.task_id, workerAddress: a.address, artifacts: inputs, signature: sig }) }), txt = await rr.text();
   let r;
   try {
