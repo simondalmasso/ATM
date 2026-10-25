@@ -8,13 +8,12 @@ const SOURCE=path.join(here,'ATM-ORDER034-FINAL-SIGNER-CANDIDATE.mjs');
 const FIXTURE=path.join(os.tmpdir(),`atm-signer-${process.pid}-${Date.now()}.mjs`);
 const sourceBytes=fs.readFileSync(SOURCE);
 const sourceText=sourceBytes.toString('utf8')+'\nexport { privateKeyToAccount as __testAccountFromScalar };\n';
-const requiredSignatureForms=[
-  ['claim', '`taskmarket:market:claim:${b.task_id}`'],
-  ['submit upload authorization', '`taskmarket:market:submit:${b.task_id}`'],
-  ['submit artifact manifest', '`taskmarket:market:submit:${b.task_id}:${inputs.map((x) => x.artifactKey).join(",")}`']
-];
-for(const [label,form] of requiredSignatureForms) if(!sourceText.includes(form)) throw new Error('TASKMARKET_SIGNATURE_FORMAT_MISSING:'+label);
-if(sourceText.includes('`taskmarket:claim:${b.task_id}`')||sourceText.includes('`taskmarket:submit:${b.task_id}`')) throw new Error('LEGACY_TASKMARKET_SIGNATURE_FORMAT_REMAINS');
+const claimSignature = '\`taskmarket:market:claim:\${b.task_id}\`';
+const submitSignature = '\`taskmarket:market:submit:\${b.task_id}\`';
+if(!sourceText.includes(claimSignature)) throw new Error('TASKMARKET_CLAIM_SIGNATURE_FORMAT_MISSING');
+if(sourceText.split(submitSignature).length-1 < 2) throw new Error('TASKMARKET_SUBMIT_SIGNATURE_FORMAT_MISSING');
+if(sourceText.includes('\`taskmarket:claim:\${b.task_id}\`')||sourceText.includes('\`taskmarket:submit:\${b.task_id}\`')) throw new Error('LEGACY_TASKMARKET_SIGNATURE_FORMAT_REMAINS');
+if(sourceText.includes('\`taskmarket:market:submit:\${b.task_id}:\${inputs.map((x) => x.artifactKey).join(",")}\`')) throw new Error('NONCANONICAL_TASKMARKET_ARTIFACT_SIGNATURE_REMAINS');
 
 fs.writeFileSync(FIXTURE,sourceText,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(FIXTURE)}catch{}});
