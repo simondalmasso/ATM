@@ -25,6 +25,11 @@ const high=mod.normalize('DAYDREAMS',raw(100_000_000));
 if(high.blockers.includes('BELOW_MIN_REWARD_USD')) throw new Error('HIGHER_REWARD_BLOCKED');
 const unsafe=mod.detectBlockers({source:'XGODO',title:'Create a Google account',description:'Create a Google account automatically and return the account email and password.',raw:{}});
 if(!unsafe.includes('ACCOUNT_FARMING_OR_BULK_ACCOUNT_CREATION')) throw new Error('XGODO_GOOGLE_ACCOUNT_NOT_SAFETY_BLOCKED:'+JSON.stringify(unsafe));
+const promo=mod.detectBlockers({source:'DAYDREAMS',title:'Launch campaign',description:'Design a launch campaign around Taskmarket launching on Tempo using OUSD.',raw:{}});
+if(!promo.includes('PROMOTIONAL_CAMPAIGN_REQUIRED')) throw new Error('PROMOTIONAL_CAMPAIGN_NOT_BLOCKED:'+JSON.stringify(promo));
+const technical=mod.detectBlockers({source:'DAYDREAMS',title:'Implement API parser',description:'Write a parser for JSON API responses.',raw:{}});
+if(technical.includes('PROMOTIONAL_CAMPAIGN_REQUIRED')) throw new Error('TECHNICAL_TASK_FALSE_POSITIVE:'+JSON.stringify(technical));
+
 console.log('MIN_PRIMARY_REWARD_USD=1');
 console.log('SUB_DOLLAR_REWARD_BLOCKED=PASS');
 console.log('USD_1_50_AND_HIGHER_REWARDS_ADMITTED_BY_FLOOR=PASS');
