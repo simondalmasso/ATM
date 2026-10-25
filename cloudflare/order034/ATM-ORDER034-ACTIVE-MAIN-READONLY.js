@@ -1849,6 +1849,7 @@ function detectBlockers({ source, title, description, raw }) {
   }, "add");
   if (/\b(github|pull request|repository|repo\b)/i.test(text)) add("GITHUB_REQUIRED");
   if (/\b(x\b|twitter|tweet|retweet|quote tweet|instagram|tiktok|linkedin|reddit|discord|telegram|social media|newsletter|press mention|post must be live|public audit page|your own (?:public )?(?:page|blog|board)|public submission (?:page|link)|post on your own account|your own account)\b/i.test(text)) add("SOCIAL_OR_PUBLICATION_REQUIRED");
+  if (/\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\s+campaign\b|\bcampaign\s+(?:launch|promotion|promotional|marketing|advertising)\b/i.test(text)) add("PROMOTIONAL_CAMPAIGN_REQUIRED");
   if (/\b(outreach|contact the buyer|contact buyer|contact restaurant|email the|phone call|sales call|schedule meeting|recruit|referral link)\b/i.test(text)) add("OUTREACH_REQUIRED");
   if (/\b(video|selfie|voice|interview|human[- ]only|remote assistance|wechat)\b/i.test(text)) add("HUMAN_INTERACTION_REQUIRED");
   if (/\b(kyc|identity verification|photo id|government id)\b/i.test(text)) add("KYC_OR_IDENTITY_REQUIRED");
