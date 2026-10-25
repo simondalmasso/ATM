@@ -5395,10 +5395,15 @@ async function account(env) {
   return a;
 }
 __name(account, "account");
+function promotionalCampaignTask(t) {
+  const text = `${t?.title || ""} ${t?.description || ""}`;
+  return /\\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\\s+campaign\\b|\\bcampaign\\s+(?:launch|promotion|promotional|marketing|advertising)\\b/i.test(text);
+}
+__name(promotionalCampaignTask, "promotionalCampaignTask");
 async function policy(b, t, env) {
   const p = b?.policy_proof || {}, th = await termsHash(t), d = decision(t, env.TASKMARKET_WORKER_ADDRESS, b.operation), ph = await sha(stable(d.pending_action_snapshot));
   const forbidden = ["to", "recipient", "value", "transaction", "typedData", "payment", "x402", "chainId", "privateKey", "rawKey"].find((k) => b?.[k] !== void 0);
-  const bad = forbidden ? "FORBIDDEN_AUTHORITY" : !TASK.test(String(b.task_id || "")) ? "INVALID_TASK" : !UUID.test(String(b.idempotency_key || "")) ? "INVALID_IDEMPOTENCY" : th !== b.terms_hash ? "TASK_TERMS_CHANGED" : p.pending_action_snapshot_hash !== ph ? "PENDING_ACTION_SNAPSHOT_CHANGED" : !p || p.source !== "DAYDREAMS" || p.execution_actor !== "ATM_RUNTIME_AGENT" || p.arq_execution !== false || p.policy !== "DETERMINISTIC_CONTROL_PLANE" || p.policy_decision !== "AUTO_ELIGIBLE" || Number(p.action_cost_usdc) !== 0 || p.operation !== b.operation || p.task_id !== b.task_id || p.terms_hash !== b.terms_hash ? "POLICY_PROOF_REQUIRED" : !d.auto_eligible ? "FRESH_POLICY_BLOCKED" : null;
+  const bad = forbidden ? "FORBIDDEN_AUTHORITY" : !TASK.test(String(b.task_id || "")) ? "INVALID_TASK" : !UUID.test(String(b.idempotency_key || "")) ? "INVALID_IDEMPOTENCY" : th !== b.terms_hash ? "TASK_TERMS_CHANGED" : p.pending_action_snapshot_hash !== ph ? "PENDING_ACTION_SNAPSHOT_CHANGED" : !p || p.source !== "DAYDREAMS" || p.execution_actor !== "ATM_RUNTIME_AGENT" || p.arq_execution !== false || p.policy !== "DETERMINISTIC_CONTROL_PLANE" || p.policy_decision !== "AUTO_ELIGIBLE" || Number(p.action_cost_usdc) !== 0 || p.operation !== b.operation || p.task_id !== b.task_id || p.terms_hash !== b.terms_hash ? "POLICY_PROOF_REQUIRED" : promotionalCampaignTask(t) ? "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED" : !d.auto_eligible ? "FRESH_POLICY_BLOCKED" : null;
   return bad ? { ok: false, error: bad, terms_hash: th, pending_action_snapshot_hash: ph, decision: d } : { ok: true, terms_hash: th, pending_action_snapshot_hash: ph, decision: d };
 }
 __name(policy, "policy");
@@ -5409,7 +5414,7 @@ async function put(url, bytes, mime) {
 }
 __name(put, "put");
 async function claim(b, env, p) {
-  const a = await account(env), sig = await a.signMessage({ message: `taskmarket:claim:${b.task_id}` }), r = await api(`/api/tasks/${b.task_id}/claim`, { method: "POST", headers: { "X-Taskmarket-Idempotency-Key": b.idempotency_key }, body: JSON.stringify({ workerAddress: a.address, signature: sig }) });
+  const a = await account(env), sig = await a.signMessage({ message: `taskmarket:market:claim:${b.task_id}` }), r = await api(`/api/tasks/${b.task_id}/claim`, { method: "POST", headers: { "X-Taskmarket-Idempotency-Key": b.idempotency_key }, body: JSON.stringify({ workerAddress: a.address, signature: sig }) });
   return { ok: true, operation: "claim", task_id: b.task_id, worker_address: a.address, claim_id: r.claimId || r.id || null, idempotency_key: b.idempotency_key, pre_action_readback: p.decision, external_ack: true };
 }
 __name(claim, "claim");
@@ -5421,7 +5426,7 @@ async function submit(b, env) {
   t0 = t0.task || t0;
   let p0 = await policy(b, t0, env);
   if (!p0.ok) throw Error(`PRE_UPLOAD_${p0.error}`);
-  const a = await account(env), base = await a.signMessage({ message: `taskmarket:submit:${b.task_id}` }), inputs = [];
+  const a = await account(env), base = await a.signMessage({ message: `taskmarket:market:submit:${b.task_id}` }), inputs = [];
   for (let i = 0; i < arts.length; i++) {
     const x = arts[i] || {}, name = String(x.file_name || `artifact-${i + 1}.md`), mime = String(x.mime_type || "text/markdown"), role = String(x.role || "final"), bytes = new TextEncoder().encode(String(x.content || ""));
     if (!["preview", "source", "final", "attachment"].includes(role) || bytes.length < 1 || bytes.length > 262144) throw Error("INVALID_ARTIFACT");
@@ -5433,7 +5438,7 @@ async function submit(b, env) {
   t1 = t1.task || t1;
   const p1 = await policy(b, t1, env);
   if (!p1.ok) throw Error(`PRE_SUBMIT_${p1.error}`);
-  const sig = await a.signMessage({ message: `taskmarket:submit:${b.task_id}:${inputs.map((x) => x.artifactKey).join(",")}` });
+  const sig = await a.signMessage({ message: `taskmarket:market:submit:${b.task_id}:${inputs.map((x) => x.artifactKey).join(",")}` });
   const rr = await fetch(`${API}/api/tasks/${b.task_id}/submissions/from-keys`, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "X-Taskmarket-Idempotency-Key": b.idempotency_key }, body: JSON.stringify({ taskId: b.task_id, workerAddress: a.address, artifacts: inputs, signature: sig }) }), txt = await rr.text();
   let r;
   try {
@@ -5492,7 +5497,7 @@ var TaskmarketSignerGuard = class {
     }
     await this.ctx.storage.put(k, { request_hash: h, terminal: false, started_at: (/* @__PURE__ */ new Date()).toISOString() });
     try {
-      const r = await exec(b, this.env), terminal = !!r.ok || ["OPERATION_NOT_ALLOWED", "TASK_TERMS_CHANGED", "PENDING_ACTION_SNAPSHOT_CHANGED", "FRESH_POLICY_BLOCKED", "POLICY_PROOF_REQUIRED"].includes(r.error);
+      const r = await exec(b, this.env), terminal = !!r.ok || ["OPERATION_NOT_ALLOWED", "TASK_TERMS_CHANGED", "PENDING_ACTION_SNAPSHOT_CHANGED", "FRESH_POLICY_BLOCKED", "POLICY_PROOF_REQUIRED", "PROMOTIONAL_CAMPAIGN_TASK_BLOCKED"].includes(r.error);
       await this.ctx.storage.put(k, { request_hash: h, terminal, result: r, finished_at: (/* @__PURE__ */ new Date()).toISOString() });
       return out(r, r.ok ? 200 : 409);
     } catch (e) {
