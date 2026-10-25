@@ -262,7 +262,7 @@ function moneyPathConstraintV1(opp={},bundle=sourceEvidenceBundleV1(opp),economi
 
 function pendingStateFromRuntimeV1(stage){
   const s=String(stage||"").toUpperCase();
-  if(["PAID","REJECTED","EXPIRED","STALE","WRITE_UNCERTAIN","ACCEPTED","SUBMITTED","CLAIMED","APPLIED","WAITING_REPLY","WAITING_HUMAN","ACTION_READY"].includes(s))return s;
+  if(["PAID","REJECTED","NO_AWARD","EXPIRED","STALE","WRITE_UNCERTAIN","ACCEPTED","SUBMITTED","CLAIMED","APPLIED","WAITING_REPLY","WAITING_HUMAN","ACTION_READY"].includes(s))return s;
   if(s==="WAITING_ACCEPTANCE"||s==="SUBMITTING")return "SUBMITTED";
   if(s==="WAITING_OWNER")return "WAITING_HUMAN";
   if(["ACQUIRING","EVALUATING","AUTO_ELIGIBLE","EXECUTING","VERIFYING","RETRY_WAIT"].includes(s))return "ACTION_READY";
@@ -3293,7 +3293,7 @@ var ATMBrain = class extends DurableObject {
     const runtimes = await this.taskRuntime(), opps = await this.opportunities(), reads = await this.get("execution_readbacks", []), subRead = await this.taskmarketSubmissionReadback();
     let checked = 0, pending = 0, paid = 0, accepted = 0, rejected = 0;
     for (const [oppId, runtime] of Object.entries(runtimes)) {
-      if (!runtime?.submission_id || ["PAID", "REJECTED", "ABORTED"].includes(runtime?.stage)) continue;
+      if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "ABORTED"].includes(runtime?.stage)) continue;
       if (runtime?.source === "AGENTHANSA") {
         checked++;
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
@@ -3330,6 +3330,9 @@ var ATMBrain = class extends DurableObject {
       runtime.external_submission_readback = exactSubmission && workerExact ? "PASS" : "PENDING";
       runtime.last_settlement_check = row.at;
       runtime.settlement_watcher_trigger = trigger;
+      const taskTerminalResolved = taskRead.ok && taskExact && String(task?.status || "").toLowerCase() === "completed" && String(task?.phase || "").toLowerCase() === "resolved" && task?.submissionWindowOpen === false;
+      const taskAwards = Array.isArray(task?.awards) ? task.awards : null;
+      const noAwardProven = exactSubmission && workerExact && taskTerminalResolved && taskAwards !== null && !award;
       if (sub?.rejectedAt) {
         runtime.stage = "REJECTED";
         runtime.terminal = true;
@@ -3375,6 +3378,50 @@ var ATMBrain = class extends DurableObject {
           runtime.stage = "ACCEPTED";
           opp.execution_stage = "ACCEPTED";
         }
+      } else if (noAwardProven) {
+        // Terminal no-award is distinct from rejection and never implies a payout.
+        runtime.stage = "NO_AWARD";
+        runtime.terminal = true;
+        runtime.external_submission_readback = "NO_AWARD";
+        runtime.no_award_at = row.at;
+        runtime.no_award_evidence = {
+          source: "TASKMARKET_PUBLIC_READBACK",
+          task_id: String(runtime.task_id),
+          submission_id: String(runtime.submission_id),
+          task_status: String(task.status),
+          task_phase: String(task.phase),
+          submission_window_open: false,
+          award_count: taskAwards.length,
+          worker_award_present: false,
+          observed_at: row.at
+        };
+        opp.execution_stage = "NO_AWARD";
+        const priorWatchdog = await this.economicWatchdogState();
+        await this.put("economic_watchdog", {
+          ...priorWatchdog,
+          task_id: String(runtime.task_id),
+          opportunity_id: oppId,
+          last_stage: "NO_AWARD",
+          last_progress_at: row.at,
+          last_submission_id: String(runtime.submission_id),
+          last_external_readback: "NO_AWARD",
+          last_error_code: null,
+          classification: "HEALTHY",
+          recommended_action: "NONE",
+          anomaly: "NONE",
+          anomaly_fingerprint: null,
+          anomaly_count: 0
+        });
+        await this.appendTaskEvent(opp, "NO_AWARD", {
+          submission_id: runtime.submission_id,
+          external_status: "NO_AWARD",
+          external_readback: true,
+          reference: runtime.submission_id,
+          task_status: String(task.status),
+          task_phase: String(task.phase),
+          award_count: taskAwards.length,
+          worker_award_present: false
+        });
       } else {
         pending++;
         runtime.stage = "WAITING_ACCEPTANCE";
@@ -3382,7 +3429,7 @@ var ATMBrain = class extends DurableObject {
       }
       runtime.last_readback_at=row.at;
       runtime.last_readback_hash=await sha256Hex(stableJson(row));
-      await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":runtime.stage==="PAID"?"NONE":"SETTLEMENT_READBACK"});
+      await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":["REJECTED","NO_AWARD","PAID"].includes(runtime.stage)?"NONE":"SETTLEMENT_READBACK"});
       runtimes[oppId] = runtime;
       reads.unshift(row);
     }
