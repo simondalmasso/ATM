@@ -13,7 +13,7 @@ fs.writeFileSync(tmp,code,'utf8');
 process.on('exit',()=>{try{fs.unlinkSync(tmp)}catch{}});
 const mod=await import(pathToFileURL(tmp).href+'?v='+Date.now());
 if(mod.MIN_PRIMARY_REWARD_USD!==1) throw new Error(`MIN_PRIMARY_REWARD_USD_EXPECTED_1:${mod.MIN_PRIMARY_REWARD_USD}`);
-const raw=(netReward)=>({id:'task-'+netReward,description:'Write a concise plain-text report.',netReward:String(netReward),reward:String(netReward),status:'open',mode:'bounty',stakeRequired:false,stakeBps:0,submissionWindowOpen:true,pendingActions:[{role:'worker',action:'submit',requiresPayment:false,paymentAmount:null}]});
+const raw=(netReward)=>({id:'task-'+netReward,chainId:8453,description:'Write a concise plain-text report.',netReward:String(netReward),reward:String(netReward),status:'open',mode:'bounty',stakeRequired:false,stakeBps:0,submissionWindowOpen:true,pendingActions:[{role:'worker',action:'submit',requiresPayment:false,paymentAmount:null}]});
 const below=mod.normalize('DAYDREAMS',raw(500_000));
 if(!below.blockers.includes('BELOW_MIN_REWARD_USD')) throw new Error('SUB_DOLLAR_REWARD_NOT_BLOCKED:'+JSON.stringify(below.blockers));
 if(below.ai_executability!=='BLOCKED') throw new Error('SUB_DOLLAR_AI_EXECUTABLE');
@@ -31,6 +31,14 @@ if(!promo.blockers.includes('PROMOTIONAL_CAMPAIGN_REQUIRED')) throw new Error('P
 if(promo.ai_executability!=='BLOCKED') throw new Error('PROMOTIONAL_CAMPAIGN_AUTO_ELIGIBLE');
 const technical=mod.detectBlockers({source:'DAYDREAMS',title:'Implement API parser',description:'Write a parser for JSON API responses.',raw:{}});
 if(technical.includes('PROMOTIONAL_CAMPAIGN_REQUIRED')) throw new Error('TECHNICAL_TASK_FALSE_POSITIVE:'+JSON.stringify(technical));
+const tempo=mod.normalize('DAYDREAMS',{...raw(3_000_000),id:'tempo-task',chainId:4217,title:'Write a technical report',description:'Write a concise technical report.'});
+if(!tempo.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')) throw new Error('TEMPO_NETWORK_NOT_BLOCKED:'+JSON.stringify(tempo.blockers));
+if(tempo.ai_executability!=='BLOCKED'||tempo.payout_currency==='USDC'||tempo.estimated_net_usd!==null) throw new Error('TEMPO_REWARD_MISLABELED_AS_BASE_USDC:'+JSON.stringify({currency:tempo.payout_currency,estimated_net_usd:tempo.estimated_net_usd,blockers:tempo.blockers}));
+const unknownNetwork={...raw(3_000_000),id:'unknown-network-task',chainId:undefined,title:'Write a technical report',description:'Write a concise technical report.'};
+const unknown=mod.normalize('DAYDREAMS',unknownNetwork);
+if(!unknown.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')||unknown.ai_executability!=='BLOCKED') throw new Error('UNKNOWN_TASKMARKET_NETWORK_NOT_FAIL_CLOSED:'+JSON.stringify(unknown.blockers));
+const baseTask=mod.normalize('DAYDREAMS',{...raw(3_000_000),id:'base-task',title:'Write a technical report',description:'Write a concise technical report.'});
+if(baseTask.blockers.includes('TASKMARKET_NETWORK_UNSUPPORTED')||baseTask.payout_currency!=='USDC') throw new Error('BASE_USDC_TASK_REGRESSED:'+JSON.stringify({currency:baseTask.payout_currency,blockers:baseTask.blockers}));
 
 console.log('MIN_PRIMARY_REWARD_USD=1');
 console.log('SUB_DOLLAR_REWARD_BLOCKED=PASS');
