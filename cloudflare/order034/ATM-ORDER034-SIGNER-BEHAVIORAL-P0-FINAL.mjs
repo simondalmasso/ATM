@@ -64,6 +64,9 @@ globalThis.fetch=async (input,init={})=>{
   if(u.pathname.includes('/api/devices/')&&u.pathname.endsWith('/key')&&method==='POST') return Response.json({deviceEncryptionKey:hex(keyBytes)});
   if(u.pathname===`/api/tasks/${TASK}`&&method==='GET') return Response.json({task});
   if(u.pathname===`/api/tasks/${TASK}/claim`&&method==='POST'){
+    const payload=JSON.parse(init.body);
+    const expectedSignature=await account.signMessage({message:`taskmarket:market:claim:${TASK}`});
+    if(payload.signature!==expectedSignature) throw new Error('TASKMARKET_CLAIM_SIGNATURE_FORMAT_MISMATCH');
     marketplaceMutationCount++;
     return Response.json({claimId:'mock-claim-001'});
   }
@@ -91,4 +94,14 @@ const s16=first.status===200&&first.json?.ok===true&&firstCount===1&&replay.stat
 const s17=conflicting.status===409&&conflicting.json?.error==='IDEMPOTENCY_CONFLICT'&&additional===0;
 if(!s16) throw new Error('S16_BEHAVIORAL_FAIL');
 if(!s17) throw new Error('S17_BEHAVIORAL_FAIL');
+task.description='Design a launch campaign around Taskmarket launching on Tempo using OUSD.';
+const campaignTh=await termsHash(task);
+const campaignDecision=decision(task,account.address,'claim');
+const campaignPh=await sha(mod.stable(campaignDecision.pending_action_snapshot));
+const campaignBody={...base,idempotency_key:cryptoNode.randomUUID(),terms_hash:campaignTh,policy_proof:{...base.policy_proof,terms_hash:campaignTh,pending_action_snapshot_hash:campaignPh}};
+const beforeCampaign=marketplaceMutationCount;
+const campaignResult=await call(campaignBody);
+if(campaignResult.status!==409||campaignResult.json?.error!=='PROMOTIONAL_CAMPAIGN_TASK_BLOCKED'||marketplaceMutationCount!==beforeCampaign) throw new Error('PROMOTIONAL_CAMPAIGN_SIGNER_GUARD_FAILED:'+JSON.stringify(campaignResult));
+const campaignReplay=await call(structuredClone(campaignBody));
+if(campaignReplay.status!==409||campaignReplay.json?.replayed!==true||marketplaceMutationCount!==beforeCampaign) throw new Error('PROMOTIONAL_CAMPAIGN_GUARD_NOT_TERMINAL:'+JSON.stringify(campaignReplay));
 globalThis.fetch=realFetch;
