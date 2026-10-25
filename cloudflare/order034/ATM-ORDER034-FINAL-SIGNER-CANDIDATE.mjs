@@ -5493,7 +5493,7 @@ var TaskmarketSignerGuard = class {
     const h = await sha(stable(b)), k = `idem:${id}`, prev = await this.ctx.storage.get(k);
     if (prev) {
       if (prev.request_hash !== h) return out({ ok: false, error: "IDEMPOTENCY_CONFLICT" }, 409);
-      if (prev.terminal) return out({ ...prev.result, replayed: true });
+      if (prev.terminal) return out({ ...prev.result, replayed: true }, prev.result?.ok ? 200 : 409);
     }
     await this.ctx.storage.put(k, { request_hash: h, terminal: false, started_at: (/* @__PURE__ */ new Date()).toISOString() });
     try {
