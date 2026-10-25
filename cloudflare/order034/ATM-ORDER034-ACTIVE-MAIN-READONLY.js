@@ -107,7 +107,6 @@ __name2(daydreamsEconomics, "daydreamsEconomics");
 function classifyCapability(title, description, blockers = []) {
   const text = `${title || ""} ${description || ""}`.toLowerCase();
   if (blockers.some((x) => ["HUMAN_INTERACTION_REQUIRED", "SOCIAL_OR_PUBLICATION_REQUIRED", "OUTREACH_REQUIRED", "KYC_OR_IDENTITY_REQUIRED"].includes(x))) return "HUMAN_ONLY";
-  if (/\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\s+campaign\b|\bcampaign\s+(?:launch|promotion|promotional|marketing|advertising)\b/i.test(text)) add("PROMOTIONAL_CAMPAIGN_REQUIRED");
   if (/\b(next\.js|react|typescript|javascript|python|codebase|implement|build an? |deploy|package|repository|unit tests?|integration tests?|smart contract|training code|model training|source code|runnable project|working self-contained artifact)\b/i.test(text)) return "CODE_SANDBOX_REQUIRED";
   if (/\b(browser|webpage|website|screenshot|click|form|login|ui automation)\b/i.test(text)) return "BROWSER_ALLOWED";
   if (/\b(http(?:s)?:\/\/|fetch|curl|webhook|rss|feed\.xml|download (?:the )?(?:json|csv|dataset)|retrieve (?:the )?(?:json|csv|dataset)|query (?:the )?(?:api|endpoint)|call (?:the |an? )?(?:api|endpoint)|http get)\b/i.test(text)) return "HTTP_TOOL";
@@ -1850,6 +1849,7 @@ function detectBlockers({ source, title, description, raw }) {
   }, "add");
   if (/\b(github|pull request|repository|repo\b)/i.test(text)) add("GITHUB_REQUIRED");
   if (/\b(x\b|twitter|tweet|retweet|quote tweet|instagram|tiktok|linkedin|reddit|discord|telegram|social media|newsletter|press mention|post must be live|public audit page|your own (?:public )?(?:page|blog|board)|public submission (?:page|link)|post on your own account|your own account)\b/i.test(text)) add("SOCIAL_OR_PUBLICATION_REQUIRED");
+  if (/\b(?:launch|marketing|promotional|promotion|social(?: media)?|influencer|advertising|advertisement|ad)\s+campaign\b|\bcampaign\s+(?:launch|promotion|promotional|marketing|advertising)\b/i.test(text)) add("PROMOTIONAL_CAMPAIGN_REQUIRED");
   if (/\b(outreach|contact the buyer|contact buyer|contact restaurant|email the|phone call|sales call|schedule meeting|recruit|referral link)\b/i.test(text)) add("OUTREACH_REQUIRED");
   if (/\b(video|selfie|voice|interview|human[- ]only|remote assistance|wechat)\b/i.test(text)) add("HUMAN_INTERACTION_REQUIRED");
   if (/\b(kyc|identity verification|photo id|government id)\b/i.test(text)) add("KYC_OR_IDENTITY_REQUIRED");
