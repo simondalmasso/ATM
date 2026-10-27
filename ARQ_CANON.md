@@ -1,99 +1,51 @@
 # ATM — ARQ CANON
 
-**PROJECT**: ATM — Agent Teller Machine  
-**PURPOSE**: zero-spend autonomous earning system; optimize externally settled USD/hour, never activity metrics.  
-**REPO**: https://github.com/simondalmasso/ATM  
-**LIVE**: https://atm.simondalmasso44.workers.dev/ · `/health` · `/api/status` · `/mcp`
+Updated: 2026-10-27. Treat this file as the current operational authority summary; re-read live endpoints before any external mutation.
 
-## LAST_VERIFIED / AUTHORITY (2026-10-08)
-- Audit baseline GitHub `main` = `9c17b4ba03f022f3c754073ec6ac5a2535ce0faf`; GitLab `main` parity PASS. Resolve fresh main before changes.
-- Live production `/health.git_sha=47c029199d904f12ea7ce929b33478db1b3a7546`; intentional docs-only main/runtime SHA separation after PR #89.
-- Ruleset 23903496 enforcement active; main protected by PR + `verify` and no bypass. Main CI run 36413015246 SUCCESS; GitLab mirror 36413015325 SUCCESS; Cloudflare docs-only workflow 36413051154 SUCCESS (no runtime promotion).
-- ORDER-059 (#78), ORDER-060 (#81), ORDER-061 (#87, merged PR #88), ORDER-063 (#90, merged PR #91) COMPLETED. PR #86 closed unmerged and #85 closed duplicate after diff/functional comparison against ORDER-061.
-- 2026-10-08 runtime: `claimed=3`, `submitted=1`, `accepted=0`, `paid=0`, `auto_eligible_now=0`, `owner_spend_usd=0`, `EXPECTED_REALIZED_USD_PER_HOUR=UNKNOWN`, `next_binding_constraint=PENDING_WORK`.
-- MONEY_PATH_V1: `PAID_EXTERNAL=0`, `SUBMITTED_WITH_FRESH_READBACK=1`, `WAITING_HUMAN=4`, `SOURCE_PROOF_REQUIRED=44`. `money_loop.queue_states.waiting_human=0` and `human_gate.pending=0` count different populations, not a proven bug.
-- Settlement watcher last seen at `2026-10-08T19:11:36.092Z` (`do_alarm`, pending=1, paid=0); discovery last run `2026-10-01T10:30:48.803Z` (DEGRADED, 7 attempted/5 OK/2 failed, 49 raw/0 admitted). Freshness symptom confirmed, root cause UNKNOWN.
-- Code route `scheduled -> /__cron -> refreshRadar -> radar.last_run`; DO alarm independently monitors settlement. Versioned main Wrangler config has no `triggers.crons`; actual deployed Cloudflare trigger state/logs not yet read back. Do not declare missing cron or change production without external verification.
+## Source and deployment authority
 
-## CANONICAL LINKS
-- Contract: https://github.com/simondalmasso/ATM/blob/main/AGENTS.md
-- Ruleset: https://github.com/simondalmasso/ATM/rules/23903496
-- Completed ORDER-055: https://github.com/simondalmasso/ATM/issues/62
-- Post-055 hardening: https://github.com/simondalmasso/ATM/pull/76
-- Worker candidate registry: https://github.com/simondalmasso/ATM/blob/main/research/current/external-worker-candidates.json
-- Architecture handoff: https://github.com/simondalmasso/ATM/blob/main/docs/handoff/ATM-AUTONOMOUS-WORK-HANDOFF-V1.md
-- GitLab mirror: https://gitlab.com/simondalmasso/ATM
-- Completed ORDER-059: https://github.com/simondalmasso/ATM/issues/78
-- Completed ORDER-060: https://github.com/simondalmasso/ATM/issues/81
-- Completed ORDER-061: https://github.com/simondalmasso/ATM/issues/87 · https://github.com/simondalmasso/ATM/pull/88
-- Completed docs-only ORDER-063: https://github.com/simondalmasso/ATM/issues/90 · https://github.com/simondalmasso/ATM/pull/91
+- Canonical repository: https://github.com/simondalmasso/ATM
+- Current main SHA: `4be5f1bb56c47d3ae2435f525eadeee6f402fde0`
+- Exact-head CI: [40157484893](https://github.com/simondalmasso/ATM/actions/runs/40157484893) — SUCCESS.
+- GitLab downstream mirror: [40157484920](https://github.com/simondalmasso/ATM/actions/runs/40157484920) — SUCCESS.
+- Cloudflare exact-SHA deployment and production smoke: [40157502856](https://github.com/simondalmasso/ATM/actions/runs/40157502856) — SUCCESS.
+- Cache-busted production `/health` reports the same SHA as main and a RUNNING runtime.
 
-## CURRENT STATE
-- **Work only in GitHub. GitLab is downstream mirror-only.**
-- ORDER-055 + post-055 source-truth hardening are complete and deployed.
-- Galaxy hard rules: capability taxonomy; skill != executor; `UNKNOWN != YES`; owner-spend/source/payout/executor truth all fail closed.
-- DAYDREAMS uses source-specific TaskMarket evidence; AGENTHANSA uses fresh explicit fields/readbacks.
-- Laya/System2/GLM and upstream repos remain advisory/source evidence unless a future order proves a bounded executor.
-- Public MCP stays read-only.
-- SeneX and boqa are READ_ONLY worker candidates only; **do not modify their repos**.
-- m0kill may be consumed only as READ_ONLY research/killtest/negative-memory input; Moneykiller GitLab is archive.
-- Latest authoritative money truth remains `PAID=0`.
+## Current economic/runtime state (live read 2026-10-27)
 
-## DONE
-- GitHub canonical migration + Cloudflare exact-SHA deployment control.
-- Automatic GitHub -> GitLab downstream mirror with SHA-parity readback.
-- ORDER-054 AgentBounties read-only source; Xento WATCH_ONLY.
-- ORDER-055 Galaxy Radar capability/executor hardening.
-- Post-055 source/payout-truth hardening.
-- Existing install-free skill broker.
-- External worker candidates inventoried without mutating upstream repos.
-- ORDER-059/060/061 completed; MONEY_PATH recovery and settlement tests merged as PR #88, deployed at 47c0291. PR #86 closed unmerged; #85 duplicate closed.
-- ORDER-063 (#90 / PR #91) completed as a docs-only protected merge; post-merge GitLab mirror parity verified; Cloudflare upload and promotion skipped.
+- Discovery: DEGRADED; 7 sources attempted, 4 healthy, 3 failed; 30 raw opportunities, 0 admitted, 30 rejected.
+- Execution: `IDLE_NO_AUTO_ELIGIBLE_TASK`; claimed=3, submitted=1, accepted=0, paid=0.
+- Settlement watcher: pending=1 and `write_uncertain_pending=1`; money-loop paid=0, withdrawable=0.
+- Watchdog: `RECOVERY_REQUIRED` at `RETRY_WAIT`; recommended action `FRESH_SOURCE_READBACK_AND_TERMINAL_FAILURE_REVIEW`.
+- Persisted error says Taskmarket rejected the legacy signature namespace. Current signer source already uses `taskmarket:market:claim:<taskId>` and `taskmarket:market:submit:<taskId>`. The watchdog record is older than the latest runtime reads, so this is not proof the current code still fails. Read back the exact task and submission before changing code or retrying.
+- No externally settled funds were observed in this read. Owner spend remains USD 0.
 
-## ACTIVE WORK / WHERE_TO_RESUME
-**ORDER-063 (#90 / PR #91) COMPLETE.** GitHub main after protected merge `6e4f179a233dc84361e8e097ce243d6bed586812`, post-merge CI `37831490045` SUCCESS, mirror `37831489947` SUCCESS, Cloudflare workflow `37831525088` SUCCESS with runtime promotion SKIPPED; production still at `47c029199d904f12ea7ce929b33478db1b3a7546`.
-No runtime implementation order active. Next order must be selected by AUD from new evidence; first investigate the deployed Cloudflare cron in READ_ONLY mode.
+## Operating contract
 
-## WHAT TO DO NOW
-1. Re-read GitHub main / AGENTS.md / progress.md and fresh `/health` + `/api/status`, rejecting search-cache responses without current timestamps.
-2. Keep `PAID_EXTERNAL=0`, `PENDING_WORK`, `UNKNOWN != YES`, owner spend 0; continue receive-only settlement readback.
-3. Diagnose discovery freshness with read-only **deployed Cloudflare cron trigger list, schedule settings and scheduled invocation logs**. Source code's scheduled->/__cron->refreshRadar path is confirmed; reason for the 2026-10-01 last-run stall is not.
-4. If genuine trigger/handler failure is proven, create exactly one bounded repair order with tests and external smoke; until then DO NOT change trigger settings or runtime.
-5. Maintain GitHub-only protected development; mirror downstream GitLab and never use runner minutes there.
+Canonical loop: `DISCOVER -> ECONOMIC GATE -> ACQUIRE -> WORK -> CHECK -> SUBMIT -> SETTLEMENT READBACK -> LEARN`.
 
-## PENDING
-- `MONEY_PATH_V1.next_binding_constraint=PENDING_WORK`: one submitted task awaiting authoritative settlement; `PAID_EXTERNAL=0`.
-- Discovery freshness investigation: Cloudflare live cron trigger + scheduled logs must be verified read-only before any fix.
-- ORDER-053 (#55) pending, #65/#66 parked; no parallel code implementation.
-- SeneX/boqa candidates remain READ_ONLY and unproven; m0kill is negative-memory research only.
+Maintain `UNKNOWN != YES`; source, terms, payout path, and executor capability must be proven. No paid API/credits, deposits, stakes, trading, gambling, mining, account farming, or unsupported reward claims. No private key/seed exposure. No outgoing spend, autonomous wallet transfers, or withdrawals. Use bounded idempotent retries, fresh source reads before acquire and submit, independent CHECK before SUBMIT, and authoritative settlement evidence.
 
-## BLOCKERS / RISKS
-- No proven cash machine; no unsupported revenue projections.
-- Discovery last_run has not advanced since 2026-10-01 despite 2026-10-08 DO alarm activity; never infer absent cron trigger without Cloudflare readback.
-- Fresh dynamic status required before economic claims.
-- Worker availability != executor truth.
-- boqa requires authorized scope; SeneX is PAPER-only.
-- Oracle capacity must be freshly inventoried before any compute plan.
+GitHub main is the only authoring/deploy source. GitLab is a non-authoritative downstream mirror. Do not create a second scheduler/controller or install agent orchestration into the production Worker without measured benefit and a separately reviewed order.
 
-## WHAT_NOT_TO REPEAT
-- Do not redo ORDER-054/055 or PR #76.
-- Do not create work in GitLab.
-- Do not modify SeneX/boqa to make ATM integration easier.
-- Do not install framework/runtime candidates merely because they were researched.
-- Do not give model/advisory output authority over economic/safety gates.
-- Do not run pending orders concurrently.
+## Canonical paths
 
-## DO_NOT_TOUCH
-Private signer/raw keys, payout destination, wallet/card/withdrawal actions, SeneX/boqa repos, GitLab runners/deploys, direct GitHub `main`, force-push, unrelated files.
+- Main config: `cloudflare/order034/wrangler.order034.main.jsonc`
+- UI entry: `cloudflare/order034/ATM-ORDER034-WIN101-UI-CANDIDATE.js`
+- Active runtime: `cloudflare/order034/ATM-ORDER034-ACTIVE-MAIN-READONLY.js`
+- Private signer: `cloudflare/order034/ATM-ORDER034-FINAL-SIGNER-CANDIDATE.mjs`
+- Signer config: `cloudflare/order034/wrangler.order034.signer.jsonc`
+- Repository map: [docs/REPOSITORY_MAP.md](docs/REPOSITORY_MAP.md)
+- Latest audit: [report/order076-main-audit.md](report/order076-main-audit.md)
 
-## AUTHORITIES / GATES
-`AGENTS.md` + current GitHub `main` are source authority. Required GitHub `verify` and protected-main rules are mandatory.  
-Hard economics (owner-directed ORDER-067): `MIN_REWARD_USD>=1`; prioritize USD $1–$50 rewards without excluding higher rewards; ideal monthly net-settlement target USD $400 (not guaranteed); owner spend `0`; `UNKNOWN != YES`; fresh task readback before mutation, independent CHECK, authoritative settlement only for PAID.
+## Next action — read-only first
 
-## ACCEPTANCE / STOP CONDITIONS
-**COMPLETE** only with exact-head CI green, protected merge, deploy/smoke when runtime changed, mirror success, and no unsupported money claim.
+Read back the exact Taskmarket task/submission linked to the uncertain pending item. Determine whether the old HTTP 400 is a stale terminal attempt, unsupported task state, or a still-reproducible signature incompatibility. Do not resubmit or mutate to test a hypothesis. Only then write a narrowly scoped implementation order if evidence supports it.
 
-**STOP / HUMAN_GATE** for owner money, KYC/MFA/CAPTCHA/legal acceptance, card/wallet/financial signature, secret disclosure, paid dependency, protection bypass, unauthorized target/scope, or scope expansion.
+## Change acceptance gates
 
-## NEXT EXACT ACTION
-ORDER-067 is the owner-authorized economic-floor change, handled only through a protected PR and exact-head verification. After it completes, resume the pending Cloudflare Cron Trigger/scheduled-log **READ_ONLY** forensic check. No automatic claim/submit, paid service, signer/withdrawal widening or speculative executor work.
+1. State the exact observed failure and a falsifiable hypothesis.
+2. Add a regression test before changing behavior.
+3. Keep the patch minimal; do not widen signer, payment, wallet, or network authority.
+4. Run the relevant behavioral tests and full CI on the exact PR head.
+5. Verify post-merge mirror and exact-SHA deployment/readback before declaring completion.
