@@ -7,7 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, 'ATM-ORDER034-ACTIVE-MAIN-READONLY.js');
 const tmp = path.join(os.tmpdir(), `atm-order079-github-${process.pid}-${Date.now()}.mjs`);
 let sourceText = fs.readFileSync(src, 'utf8');
-if (!sourceText.includes('GITHUB_ISSUES')) throw new Error('GITHUB_ISSUES_SOURCE_NOT_REGISTERED');
+if (!sourceText.includes('api.github.com/search/issues')) throw new Error('GITHUB_SOURCE_NOT_REGISTERED');
 sourceText = sourceText.replace('import { DurableObject } from "cloudflare:workers";', 'class DurableObject { constructor(ctx, env) {} }');
 sourceText = sourceText.replace('import { createReadOnlyGrant, listReadOnlyGrants, authorizeReadOnlyGrant, revokeReadOnlyGrant, sanitizeReadOnlyTasks } from "./ATM-ORDER068-READONLY-GRANTS.mjs";', '');
 sourceText += '\nexport { normalize, discoverSource, sourceBase };\n';
