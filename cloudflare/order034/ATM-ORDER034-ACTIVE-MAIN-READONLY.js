@@ -2107,7 +2107,7 @@ async function discoverSource(id) {
         try { parsed = new URL(url); } catch { continue; }
         if (parsed.protocol !== "https:" || parsed.hostname !== "github.com" || !/\/issues\/\d+$/.test(parsed.pathname)) continue;
         const key = String(row?.id ?? "");
-        if (!key || !row?.title || !unique.has(key)) continue;
+        if (!key || !row?.title || unique.has(key)) continue;
         unique.set(key, { ...row, state: String(row.state || "").toLowerCase() });
       }
       raws = [...unique.values()].filter(row => row.state === "open");
