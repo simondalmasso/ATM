@@ -1821,6 +1821,7 @@ var SOURCE_DEFS = [
   { id: "AGENTHANSA", mode: "PUBLIC_API_PLUS_AGENT_API", url: "https://www.agenthansa.com/api/collective/bounties/public?page=1&per_page=100", action: "CLAIM_AND_SUBMIT_IF_AUTO_ELIGIBLE" },
   { id: "0XWORK", mode: "PUBLIC_API", url: "https://api.0xwork.org/tasks?status=open", action: "DISCOVER_ONLY" },
   { id: "AGENTBOUNTIES", mode: "PUBLIC_API_READ_ONLY", url: AGENTBOUNTIES_API, action: "DISCOVER_ONLY_READ_ONLY" },
+  { id: "GITHUB", mode: "PUBLIC_API_READ_ONLY", url: "https://api.github.com/search/issues?q=is%3Aissue+is%3Aopen+bounty&sort=updated&order=desc&per_page=30", action: "DISCOVER_ONLY_READ_ONLY" },
   { id: "MICROWORKERS", mode: "USER_ASSISTED_IMPORT", url: null, action: "IMPORT_ONLY" },
   { id: "PROMOTE_FUN", mode: "DISABLED_UNPROVEN", url: null, action: "NONE" },
   { id: "X", mode: "DISABLED_CREDIT_UNVERIFIED", url: null, action: "NONE" }
@@ -1947,9 +1948,20 @@ function normalize(source, raw) {
     status = raw.status;
     createdAt = raw.created_at;
     deadline = raw.deadline;
+  } else if (source === "GITHUB") {
+    id = raw.id;
+    title = raw.title || "";
+    description = raw.body || "";
+    payout = 0;
+    currency = "UNKNOWN";
+    url = raw.html_url || "";
+    status = raw.state || "open";
+    createdAt = raw.created_at;
+    deadline = null;
   } else return null;
   if (id === void 0 || id === null) return null;
   const blockers = detectBlockers({ source, title, description, raw });
+  if (source === "GITHUB") blockers.push("GITHUB_REWARD_UNVERIFIED", "DISCOVERY_ONLY_NO_EXECUTION_ADAPTER");
   if (source === "DAYDREAMS" && Number(raw?.chainId) !== 8453) blockers.push("TASKMARKET_NETWORK_UNSUPPORTED");
   if (source === "SUPERTEAM" && raw?.agentAccess === "AGENT_ALLOWED" && !description) blockers.push("REQUIREMENTS_NOT_HYDRATED");
   const estimatedNet = usdLike(currency) ? Math.max(0, payout) : null;
@@ -2081,6 +2093,30 @@ async function discoverSource(id) {
       state.raw_count = data.length;
       state.duplicate_count = Math.max(0, data.length - raws.length);
       state.canonical_payment_evidence = ["BountySettled","CompetitionSettledV2"];
+    } else if (id === "GITHUB") {
+      const query = new URLSearchParams({ q: "is:issue is:open bounty", sort: "updated", order: "desc", per_page: "30" });
+      const { data } = await fetchJson(`https://api.github.com/search/issues?${query.toString()}`, {
+        method: "GET",
+        headers: { "accept": "application/vnd.github+json", "x-github-api-version": "2022-11-28" }
+      });
+      if (!Array.isArray(data?.items)) throw new Error("MALFORMED_GITHUB_ISSUES_SEARCH");
+      const unique = new Map();
+      for (const row of data.items) {
+        const url = String(row?.html_url || "");
+        let parsed;
+        try { parsed = new URL(url); } catch { continue; }
+        if (parsed.protocol !== "https:" || parsed.hostname !== "github.com" || !/\/issues\/\d+$/.test(parsed.pathname)) continue;
+        const key = String(row?.id ?? "");
+        if (!key || !row?.title || !unique.has(key)) continue;
+        unique.set(key, { ...row, state: String(row.state || "").toLowerCase() });
+      }
+      raws = [...unique.values()].filter(row => row.state === "open");
+      state.read_only = true;
+      state.owner_spend_policy = "ZERO_ONLY_FAIL_CLOSED";
+      state.result_count_reported = Number.isFinite(Number(data.total_count)) ? Number(data.total_count) : null;
+      state.incomplete_results = data.incomplete_results === true;
+      state.query = "is:issue is:open bounty";
+      state.automatic_action_level = "DISCOVER_ONLY_READ_ONLY";
     } else {
       state.error = id === "MICROWORKERS" ? "USER_ASSISTED_IMPORT_ONLY" : id === "PROMOTE_FUN" ? "CURRENT_DISCOVERY_NOT_PROVEN" : "CREDIT_STATE_UNVERIFIED";
       state.eligibility = "NOT_AUTOMATIC";
@@ -3488,7 +3524,7 @@ var ATMBrain = class extends DurableObject {
   async refreshRadar(reason = "manual") {
     const started = now();
     await this.activity("searching", `Radar ${reason}: buscando fuentes reales`);
-    const ids = ["DAYDREAMS", "SUPERTEAM", "MOLTJOBS", "WORKPROTOCOL", "AGENTHANSA", "0XWORK", "AGENTBOUNTIES"];
+    const ids = ["DAYDREAMS", "SUPERTEAM", "MOLTJOBS", "WORKPROTOCOL", "AGENTHANSA", "0XWORK", "AGENTBOUNTIES", "GITHUB"];
     const results = await Promise.all(ids.map((id) => discoverSource(id)));
     const sourceStates = await this.sources();
     let all = [];
