@@ -46,7 +46,7 @@ try {
     if (opp.ai_executability !== 'BLOCKED') throw new Error('GITHUB_ISSUE_BECAME_AUTO_EXECUTABLE');
   }
   if (result.state.automatic_action_level !== 'DISCOVER_ONLY_READ_ONLY') throw new Error('GITHUB_ACTION_LEVEL_NOT_READ_ONLY');
-  console.log('ORDER-079 RED: GitHub discovery adapter is not registered; fail-closed assertions are in place.');
+  console.log('ORDER-079 PASS: read-only discovery normalizes candidates and keeps unverified rewards blocked.');
 } finally {
   globalThis.fetch = originalFetch;
 }
