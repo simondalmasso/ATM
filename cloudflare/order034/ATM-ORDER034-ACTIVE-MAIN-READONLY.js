@@ -2481,9 +2481,9 @@ var ATMBrain = class extends DurableObject {
           }
         }else if(op==="submit"&&opp.source==="DAYDREAMS"){
           taskmarketSubmissions=taskmarketSubmissions||await this.taskmarketSubmissionReadback();
-          const sub=(taskmarketSubmissions.results||[]).find((x)=>String(x?.taskId||"")===String(runtime.task_id)&&String(x?.workerAddress||"").toLowerCase()===TASKMARKET_WORKER_ADDRESS.toLowerCase())||null;
+          const sub=taskmarketSubmissions.ok===true?(taskmarketSubmissions.results||[]).find((x)=>String(x?.taskId||"")===String(runtime.task_id))||null:null;
           if(sub){
-            runtime.submission_id=String(sub.id||sub.submissionId||sub.submission_id||""); runtime.stage="WAITING_ACCEPTANCE"; runtime.external_submission_readback="PASS"; runtime.last_readback_at=taskmarketSubmissions.read_at||now(); runtime.last_readback_hash=await sha256Hex(stableJson(sub)); runtime.pending_external_intent=null; runtime.write_uncertain=false;
+            runtime.submission_id=String(sub.id||sub.submissionId||sub.submission_id||runtime.submission_id||""); runtime.stage="WAITING_ACCEPTANCE"; runtime.external_submission_readback="PASS"; runtime.last_readback_at=taskmarketSubmissions.read_at||now(); runtime.last_readback_hash=await sha256Hex(stableJson(sub)); runtime.pending_external_intent=null; runtime.write_uncertain=false;
             pending.items[oppId]={...pendingWorkRecordV1(opp,runtime),state:"SUBMITTED",submission_ref:runtime.submission_id,allow_mutation:false,required_action:"SETTLEMENT_READBACK",last_readback_at:runtime.last_readback_at,last_readback_hash:runtime.last_readback_hash,updated_at:now()};
             resolved++; continue;
           }
@@ -3293,7 +3293,9 @@ var ATMBrain = class extends DurableObject {
     const runtimes = await this.taskRuntime(), opps = await this.opportunities(), reads = await this.get("execution_readbacks", []), subRead = await this.taskmarketSubmissionReadback();
     let checked = 0, pending = 0, paid = 0, accepted = 0, rejected = 0;
     for (const [oppId, runtime] of Object.entries(runtimes)) {
-      if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "EXPIRED", "ABORTED"].includes(runtime?.stage)) continue;
+      const wasExpiredNoSubmission = runtime?.stage === "EXPIRED" && runtime?.external_submission_readback === "EXPIRED_NO_SUBMISSION";
+      const revalidateExpiredNoSubmission = wasExpiredNoSubmission && !runtime?.expiry_revalidated_at;
+      if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "ABORTED"].includes(runtime?.stage) || (runtime?.stage === "EXPIRED" && !revalidateExpiredNoSubmission)) continue;
       if (runtime?.source === "AGENTHANSA") {
         checked++;
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
@@ -3323,10 +3325,12 @@ var ATMBrain = class extends DurableObject {
       checked++;
       const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id: oppId, raw_id: runtime.task_id, source: "DAYDREAMS", title: runtime.title || runtime.task_id, payout_amount: 0, payout_currency: "USDC", estimated_net_usd: 0, terms_hash: runtime.terms_hash, blockers: [], mode: null, capability_class: null };
       const taskRead = await this.daydreamsReadTask(runtime.task_id), task = taskRead.task || {};
-      const sub = (subRead.results || []).find((x) => String(x?.id) === String(runtime.submission_id) && String(x?.taskId) === String(runtime.task_id) && String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
+      // /submissions/mine is already scoped to TASKMARKET_WORKER_ADDRESS by the request query.
+      // Its real rows may omit both "id" and "workerAddress"; taskId is the available join key.
+      const workerTaskSubmission = subRead.ok === true ? (subRead.results || []).find((x) => String(x?.taskId || "") === String(runtime.task_id)) || null : null;
+      const sub = workerTaskSubmission;
       const awards = Array.isArray(task?.awards) ? task.awards : [], award = awards.find((x) => String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
-      const exactSubmission = !!sub, taskExact = String(task?.id || runtime.task_id) === String(runtime.task_id), workerExact = exactSubmission && String(sub.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase();
-      const workerTaskSubmission = (subRead.results || []).find((x) => String(x?.taskId || "") === String(runtime.task_id) && String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
+      const exactSubmission = !!sub, taskExact = String(task?.id || "") === String(runtime.task_id), workerExact = subRead.ok === true && exactSubmission;
       const expiryAt = Date.parse(String(task?.expiryTime || ""));
       const expiredNoSubmissionProven = subRead.ok === true && taskRead.ok === true && taskExact && task?.submissionWindowOpen === false && Number.isFinite(expiryAt) && expiryAt <= Date.now() && !workerTaskSubmission && Array.isArray(task?.awards) && !award;
       const taskTerminalResolved = taskRead.ok === true && taskExact && String(task?.status || "").toLowerCase() === "completed" && String(task?.phase || "").toLowerCase() === "resolved" && task?.submissionWindowOpen === false;
@@ -3341,9 +3345,10 @@ var ATMBrain = class extends DurableObject {
         runtime.stage = "EXPIRED";
         runtime.terminal = true;
         runtime.expired_at = row.at;
-        runtime.expiry_evidence = { source: "TASKMARKET_PUBLIC_READBACK", task_id: String(runtime.task_id), local_submission_id: String(runtime.submission_id), task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), submission_window_open: false, worker_task_submission_present: false, worker_award_present: false, observed_at: row.at };
+        runtime.expiry_revalidated_at = row.at;
+        runtime.expiry_evidence = { source: "TASKMARKET_PUBLIC_READBACK", task_id: String(runtime.task_id), local_submission_id: String(runtime.submission_id), task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), submission_window_open: false, worker_task_submission_present: false, worker_award_present: false, observed_at: row.at, revalidated_at: row.at };
         opp.execution_stage = "EXPIRED";
-        await this.appendTaskEvent(opp, "EXPIRED", { submission_id: runtime.submission_id, external_status: "EXPIRED_NO_SUBMISSION", external_readback: true, reference: runtime.submission_id, task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), worker_task_submission_present: false, worker_award_present: false });
+        if (!wasExpiredNoSubmission) await this.appendTaskEvent(opp, "EXPIRED", { submission_id: runtime.submission_id, external_status: "EXPIRED_NO_SUBMISSION", external_readback: true, reference: runtime.submission_id, task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), worker_task_submission_present: false, worker_award_present: false });
         const priorWatchdog = await this.economicWatchdogState();
         await this.put("economic_watchdog", { ...priorWatchdog, task_id: String(runtime.task_id), opportunity_id: oppId, last_stage: "EXPIRED", last_progress_at: row.at, last_submission_id: String(runtime.submission_id), last_external_readback: "EXPIRED_NO_SUBMISSION", last_error_code: null, classification: "HEALTHY", recommended_action: "NONE", anomaly: "NONE", anomaly_fingerprint: null, anomaly_count: 0 });
       } else if (sub?.rejectedAt) {
