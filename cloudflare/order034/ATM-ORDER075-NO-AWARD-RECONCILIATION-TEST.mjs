@@ -30,7 +30,8 @@ const task={id:opp.raw_id,status:'completed',phase:'resolved',submissionWindowOp
  {workerAddress:'0x4f75000000000000000000000000000000000000',workerPayment:'400000',settlementTxHash:'0xaward2'},
  {workerAddress:'0x03b7000000000000000000000000000000000000',workerPayment:'400000',settlementTxHash:'0xaward3'}
 ]};
-const submission={taskId:runtime.task_id,taskStatus:'completed',submittedAt:at,deliverableHash:'0xdeliverablehash',submitTxHash:'0xsubmittransaction'};\nif ('id' in submission || 'workerAddress' in submission) throw new Error('FIXTURE_MUST_MATCH_WORKER_SCOPED_TASKMARKET_FEED_SCHEMA');
+const submission={taskId:runtime.task_id,taskStatus:'completed',submittedAt:at,deliverableHash:'0xdeliverablehash',submitTxHash:'0xsubmittransaction'};
+if ('id' in submission || 'workerAddress' in submission) throw new Error('FIXTURE_MUST_MATCH_WORKER_SCOPED_TASKMARKET_FEED_SCHEMA');
 const storage=new Storage({task_runtime:{[opp.opportunity_id]:runtime},opportunities:[opp],execution_readbacks:[],pending_work_v1:{version:'PENDING_WORK_ENGINE_V1',items:{},updated_at:at}});
 const brain=new ATMBrain({storage},{});
 brain.taskmarketSubmissionReadback=async()=>({ok:true,results:[submission],read_at:at});
