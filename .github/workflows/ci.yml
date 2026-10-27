@@ -59,6 +59,7 @@ jobs:
           node cloudflare/order034/ATM-ORDER061-RECOVERY-CONSISTENCY-TEST.mjs
           node cloudflare/order034/ATM-ORDER070-EXTERNAL-API-RESEARCH-CANDIDATES-TEST.mjs
           node cloudflare/order034/ATM-ORDER071-ECONOMIC-WATCHDOG-TRUTH-TEST.mjs
+          node cloudflare/order034/ATM-ORDER077-EXPIRED-TASKMARKET-NO-SUBMISSION-TEST.mjs
           node scripts/order051-smoke-retry-test.mjs
           node scripts/order054-pathgate-unknown-sha-test.mjs
 
