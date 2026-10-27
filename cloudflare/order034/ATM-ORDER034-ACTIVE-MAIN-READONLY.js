@@ -3293,7 +3293,7 @@ var ATMBrain = class extends DurableObject {
     const runtimes = await this.taskRuntime(), opps = await this.opportunities(), reads = await this.get("execution_readbacks", []), subRead = await this.taskmarketSubmissionReadback();
     let checked = 0, pending = 0, paid = 0, accepted = 0, rejected = 0;
     for (const [oppId, runtime] of Object.entries(runtimes)) {
-      if (!runtime?.submission_id || ["PAID", "REJECTED", "ABORTED"].includes(runtime?.stage)) continue;
+      if (!runtime?.submission_id || ["PAID", "REJECTED", "EXPIRED", "ABORTED"].includes(runtime?.stage)) continue;
       if (runtime?.source === "AGENTHANSA") {
         checked++;
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
@@ -3326,11 +3326,24 @@ var ATMBrain = class extends DurableObject {
       const sub = (subRead.results || []).find((x) => String(x?.id) === String(runtime.submission_id) && String(x?.taskId) === String(runtime.task_id) && String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
       const awards = Array.isArray(task?.awards) ? task.awards : [], award = awards.find((x) => String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
       const exactSubmission = !!sub, taskExact = String(task?.id || runtime.task_id) === String(runtime.task_id), workerExact = exactSubmission && String(sub.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase();
-      const row = { at: now(), trigger, opportunity_id: oppId, task_id: runtime.task_id, submission_id: runtime.submission_id, worker_address: TASKMARKET_WORKER_ADDRESS, submission_readback: exactSubmission ? "PASS" : "PENDING", task_readback: taskRead.ok && taskExact ? "PASS" : "PENDING", worker_match: workerExact, submission_rejected_at: sub?.rejectedAt || null, task_status: task?.status || null, task_phase: task?.phase || null, award: award ? { worker_address: award.workerAddress, rank: award.rank, is_primary: award.isPrimary, worker_payment_atomic: award.workerPayment, platform_fee_atomic: award.platformFee, settlement_tx_hash: award.settlementTxHash, settled_at: award.settledAt } : null };
-      runtime.external_submission_readback = exactSubmission && workerExact ? "PASS" : "PENDING";
+      const workerTaskSubmission = (subRead.results || []).find((x) => String(x?.taskId || "") === String(runtime.task_id) && String(x?.workerAddress || "").toLowerCase() === TASKMARKET_WORKER_ADDRESS.toLowerCase()) || null;
+      const expiryAt = Date.parse(String(task?.expiryTime || ""));
+      const expiredNoSubmissionProven = subRead.ok === true && taskRead.ok === true && taskExact && task?.submissionWindowOpen === false && Number.isFinite(expiryAt) && expiryAt <= Date.now() && !workerTaskSubmission && Array.isArray(task?.awards) && !award;
+      const row = { at: now(), trigger, opportunity_id: oppId, task_id: runtime.task_id, submission_id: runtime.submission_id, worker_address: TASKMARKET_WORKER_ADDRESS, submission_readback: expiredNoSubmissionProven ? "EXPIRED_NO_SUBMISSION" : exactSubmission ? "PASS" : "PENDING", task_readback: taskRead.ok && taskExact ? "PASS" : "PENDING", worker_match: workerExact, submission_rejected_at: sub?.rejectedAt || null, task_status: task?.status || null, task_phase: task?.phase || null, task_expiry_time: task?.expiryTime || null, submission_window_open: task?.submissionWindowOpen ?? null, worker_task_submission_present: !!workerTaskSubmission, no_submission_proven: expiredNoSubmissionProven, award: award ? { worker_address: award.workerAddress, rank: award.rank, is_primary: award.isPrimary, worker_payment_atomic: award.workerPayment, platform_fee_atomic: award.platformFee, settlement_tx_hash: award.settlementTxHash, settled_at: award.settledAt } : null };
+      runtime.external_submission_readback = expiredNoSubmissionProven ? "EXPIRED_NO_SUBMISSION" : exactSubmission && workerExact ? "PASS" : "PENDING";
       runtime.last_settlement_check = row.at;
       runtime.settlement_watcher_trigger = trigger;
-      if (sub?.rejectedAt) {
+      if (expiredNoSubmissionProven) {
+        // Expiry plus a successful worker-specific read proves the local write never became an external submission.
+        runtime.stage = "EXPIRED";
+        runtime.terminal = true;
+        runtime.expired_at = row.at;
+        runtime.expiry_evidence = { source: "TASKMARKET_PUBLIC_READBACK", task_id: String(runtime.task_id), local_submission_id: String(runtime.submission_id), task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), submission_window_open: false, worker_task_submission_present: false, worker_award_present: false, observed_at: row.at };
+        opp.execution_stage = "EXPIRED";
+        await this.appendTaskEvent(opp, "EXPIRED", { submission_id: runtime.submission_id, external_status: "EXPIRED_NO_SUBMISSION", external_readback: true, reference: runtime.submission_id, task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), worker_task_submission_present: false, worker_award_present: false });
+        const priorWatchdog = await this.economicWatchdogState();
+        await this.put("economic_watchdog", { ...priorWatchdog, task_id: String(runtime.task_id), opportunity_id: oppId, last_stage: "EXPIRED", last_progress_at: row.at, last_submission_id: String(runtime.submission_id), last_external_readback: "EXPIRED_NO_SUBMISSION", last_error_code: null, classification: "HEALTHY", recommended_action: "NONE", anomaly: "NONE", anomaly_fingerprint: null, anomaly_count: 0 });
+      } else if (sub?.rejectedAt) {
         runtime.stage = "REJECTED";
         runtime.terminal = true;
         runtime.rejected_at = sub.rejectedAt;
@@ -3382,7 +3395,7 @@ var ATMBrain = class extends DurableObject {
       }
       runtime.last_readback_at=row.at;
       runtime.last_readback_hash=await sha256Hex(stableJson(row));
-      await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":runtime.stage==="REJECTED"?"NONE":runtime.stage==="PAID"?"NONE":"SETTLEMENT_READBACK"});
+      await this.recordPendingRuntime(opp,runtime,{state:pendingStateFromRuntimeV1(runtime.stage),last_readback_at:row.at,last_readback_hash:runtime.last_readback_hash,allow_mutation:false,required_action:runtime.stage==="ACCEPTED"?"SETTLEMENT_READBACK":["REJECTED","EXPIRED","PAID"].includes(runtime.stage)?"NONE":"SETTLEMENT_READBACK"});
       runtimes[oppId] = runtime;
       reads.unshift(row);
     }
