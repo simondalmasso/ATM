@@ -3293,7 +3293,7 @@ var ATMBrain = class extends DurableObject {
     const runtimes = await this.taskRuntime(), opps = await this.opportunities(), reads = await this.get("execution_readbacks", []), subRead = await this.taskmarketSubmissionReadback();
     let checked = 0, pending = 0, paid = 0, accepted = 0, rejected = 0;
     for (const [oppId, runtime] of Object.entries(runtimes)) {
-      const wasExpiredNoSubmission = runtime?.stage === "EXPIRED" && runtime?.external_submission_readback === "EXPIRED_NO_SUBMISSION";
+      const wasExpiredNoSubmission = runtime?.source === "DAYDREAMS" && runtime?.stage === "EXPIRED" && runtime?.external_submission_readback === "EXPIRED_NO_SUBMISSION";
       const revalidateExpiredNoSubmission = wasExpiredNoSubmission && !runtime?.expiry_revalidated_at;
       if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "ABORTED"].includes(runtime?.stage) || (runtime?.stage === "EXPIRED" && !revalidateExpiredNoSubmission)) continue;
       if (runtime?.source === "AGENTHANSA") {
