@@ -1,7 +1,33 @@
-# ATM CURRENT CHECKPOINT — ORDER-063 COMPLETE
+# ATM CURRENT CHECKPOINT — ORDER-076 MAIN AUDIT
 
-Updated: 2026-10-08
-Status: ORDER-063 (#90 / PRs #91/#92) COMPLETE, post-merge CI + GitLab mirror parity VERIFIED; docs-only Cloudflare upload/promotion SKIPPED. Single next read-only forensic issue ORDER-064 (#93) OPEN/BLOCKED on authenticated Cloudflare Cron Trigger readback. Production remains 47c029199d904f12ea7ce929b33478db1b3a7546.
+Updated: 2026-10-27  
+Status: Documentation and repository navigation are being refreshed on `docs/order-076-main-hygiene-20261027`. This branch is not canonical main until PR CI passes and the PR is merged.
+
+## Current source and verification truth
+
+- GitHub main: `4be5f1bb56c47d3ae2435f525eadeee6f402fde0`.
+- Exact-head CI: [40157484893](https://github.com/simondalmasso/ATM/actions/runs/40157484893) — SUCCESS.
+- GitLab downstream mirror: [40157484920](https://github.com/simondalmasso/ATM/actions/runs/40157484920) — SUCCESS.
+- Cloudflare exact-SHA deploy and production smoke: [40157502856](https://github.com/simondalmasso/ATM/actions/runs/40157502856) — SUCCESS.
+- Cache-busted production health reports the same SHA as main. Runtime RUNNING does not mean the earning loop is healthy.
+- Latest live read: discovery DEGRADED; 7 sources attempted, 4 healthy, 3 failed; 30 raw opportunities, 0 admitted, 30 rejected.
+- Economic truth: claimed=3, submitted=1, accepted=0, paid=0; settlement watcher pending=1 and write_uncertain_pending=1; withdrawable=0.
+- Watchdog: RECOVERY_REQUIRED at RETRY_WAIT. Stored Taskmarket error reports a legacy signature format, but the current signer source already uses the market-prefixed signature format. Reconcile the exact task/submission read-only before any retry.
+- No paid/settled earnings were observed; owner spend remains zero.
+
+## Current order scope
+
+- Refresh README and ARQ/AUD operational summaries.
+- Add docs/REPOSITORY_MAP.md and report/order076-main-audit.md.
+- Preserve previous checkpoint evidence below as history, not current runtime authority.
+- No runtime, signer, wallet, secrets, payout, scheduler, or spend-policy mutation.
+- No claim, submit, retry, payment, or withdrawal.
+
+## Historical checkpoint archive
+
+The material below is retained from its original date. Old hashes, metrics, and next steps are historical and must not be treated as live state. Consult the current audit report and fresh production endpoints first.
+
+---
 
 ## Canon / invariants
 - GitHub is source and deploy authority: https://github.com/simondalmasso/ATM
