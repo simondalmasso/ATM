@@ -25,7 +25,10 @@ globalThis.fetch = async (url, options = {}) => {
     incomplete_results: false,
     items: [
       { id: 991, number: 17, title: 'Fix parser crash', body: 'Reproduce and fix parser crash. Reward: $250.', html_url: 'https://github.com/example/project/issues/17', state: 'open', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-26T00:00:00Z', labels: [{ name: 'bounty' }] },
-      { id: 992, number: 18, title: 'Document setup', body: 'Please improve setup documentation.', html_url: 'https://github.com/example/project/issues/18', state: 'open', created_at: '2026-10-02T00:00:00Z', updated_at: '2026-10-25T00:00:00Z', labels: [] }
+      { id: 992, number: 18, title: 'Document setup', body: 'Please improve setup documentation.', html_url: 'https://github.com/example/project/issues/18', state: 'open', created_at: '2026-10-02T00:00:00Z', updated_at: '2026-10-25T00:00:00Z', labels: [] },
+      { id: 991, number: 17, title: 'Duplicate issue', body: 'duplicate id must be ignored', html_url: 'https://github.com/example/project/issues/17', state: 'open' },
+      { id: 993, number: 19, title: 'Wrong host', body: 'Ignore external lookalikes', html_url: 'https://github.evil.example/example/project/issues/19', state: 'open' },
+      { id: 994, number: 20, title: 'Pull request', body: 'Not an issue', html_url: 'https://github.com/example/project/pull/20', state: 'open' }
     ]
   }), { status: 200, headers: { 'content-type': 'application/json' } });
 };
