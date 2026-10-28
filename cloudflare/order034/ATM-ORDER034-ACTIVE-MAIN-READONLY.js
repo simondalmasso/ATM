@@ -1883,9 +1883,20 @@ function detectBlockers({ source, title, description, raw }) {
 }
 __name(detectBlockers, "detectBlockers");
 __name2(detectBlockers, "detectBlockers");
+function superteamPrizeV1(raw = {}) {
+  if (raw?._detail_hydrated !== true) return { amount: null, semantics: "DETAIL_UNVERIFIED", blocker: "SUPERTEAM_DETAIL_UNVERIFIED" };
+  const compensationType = String(raw?.compensationType || "fixed").toLowerCase();
+  const winnersAnnounced = raw?.isWinnersAnnounced === true || !!raw?.winnersAnnouncedAt;
+  if (compensationType !== "fixed" && !winnersAnnounced) return { amount: null, semantics: "NON_FIXED_UNANNOUNCED", blocker: "SUPERTEAM_REWARD_NOT_FIXED" };
+  const rewards = raw?.rewards && typeof raw.rewards === "object" && !Array.isArray(raw.rewards) ? Object.values(raw.rewards).map(n).filter((v) => Number.isFinite(v) && v > 0) : [];
+  if (rewards.length) return { amount: Math.max(...rewards), semantics: rewards.length > 1 ? "MAX_INDIVIDUAL_PRIZE" : "INDIVIDUAL_PRIZE", blocker: null };
+  const amount = n(raw?.rewardAmount);
+  if (Number.isFinite(amount) && amount > 0 && (compensationType === "fixed" || winnersAnnounced)) return { amount, semantics: winnersAnnounced ? "ANNOUNCED_INDIVIDUAL_PRIZE" : "FIXED_INDIVIDUAL_PRIZE", blocker: null };
+  return { amount: null, semantics: "REWARD_UNKNOWN", blocker: "SUPERTEAM_REWARD_SEMANTICS_UNVERIFIED" };
+}
 function normalize(source, raw) {
   if (source === "AGENTBOUNTIES") return normalizeAgentBounties(raw);
-  let id, title, description, payout, currency, url, status, agentAllowed = true, createdAt, deadline;
+  let id, title, description, payout, currency, url, status, agentAllowed = true, createdAt, deadline, rewardSemantics = null, rewardBlocker = null;
   if (source === "DAYDREAMS") {
     id = raw.id;
     description = String(raw.description || "");
@@ -1900,7 +1911,10 @@ function normalize(source, raw) {
     id = raw.id;
     title = raw.title;
     description = stripHtml(raw.description || "");
-    payout = n(raw.rewardAmount);
+    const prize = superteamPrizeV1(raw);
+    payout = prize.amount;
+    rewardSemantics = prize.semantics;
+    rewardBlocker = prize.blocker;
     currency = raw.token || "USD";
     url = `https://superteam.fun/earn/listing/${raw.slug}`;
     status = raw.status;
@@ -1952,7 +1966,8 @@ function normalize(source, raw) {
   const blockers = detectBlockers({ source, title, description, raw });
   if (source === "DAYDREAMS" && Number(raw?.chainId) !== 8453) blockers.push("TASKMARKET_NETWORK_UNSUPPORTED");
   if (source === "SUPERTEAM" && raw?.agentAccess === "AGENT_ALLOWED" && !description) blockers.push("REQUIREMENTS_NOT_HYDRATED");
-  const estimatedNet = usdLike(currency) ? Math.max(0, payout) : null;
+  if (source === "SUPERTEAM" && rewardBlocker) blockers.push(rewardBlocker);
+  const estimatedNet = usdLike(currency) && payout !== null && payout !== void 0 && Number.isFinite(Number(payout)) ? Math.max(0, Number(payout)) : null;
   const termsAllow = source === "DAYDREAMS" || source === "AGENTHANSA" || source === "MOLTJOBS" || source === "0XWORK" || source === "SUPERTEAM" && agentAllowed;
   if (!termsAllow) blockers.push("AUTOMATION_NOT_PROVEN_ALLOWED");
   const requiredFields = !!(id && title);
@@ -1974,7 +1989,7 @@ function normalize(source, raw) {
   const taskExecutionSpend = sourceExecutionSpendEvidence(title, description);
   const economicView = source === "DAYDREAMS" ? { ...daydreams, worker_action_cost_usdc: daydreams?.action_cost_usdc ?? null, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches } : { estimated_task_cost_usd: 0, task_execution_spend_required: taskExecutionSpend.required, task_execution_spend_evidence: taskExecutionSpend.matches };
   const blockerContext = { source, raw_id: String(id), title, description, raw, economics: economicView, task_execution_spend: taskExecutionSpend, capability_class: capabilityClass, artifact_profile: artifactProfile, estimated_net_usd: estimatedNet, source_status: status, deadline };
-  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, newcomer_access_proven: source === "AGENTHANSA" ? raw.newcomer_access_proven === true ? true : null : null, argentina_or_global_eligibility_proven: source === "AGENTHANSA" ? raw.argentina_or_global_eligibility_proven === true ? true : null : null, exact_deliverable_and_acceptance_proven: source === "AGENTHANSA" ? raw.exact_deliverable_and_acceptance_proven === true ? true : null : null, competition_known: source === "AGENTHANSA" ? raw.competition_known === true ? true : null : null, deadline_known: Number.isFinite(Date.parse(String(deadline || ""))) ? true : null, payout_readback: source === "AGENTHANSA" ? "AGENTHANSA_PAYOUTS_API_SETTLEMENT_READBACK" : null, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, owner_spend_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost === true : source === "AGENTHANSA" ? !taskExecutionSpend.required && !clean.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x)) : null, payout_path_known: source === "DAYDREAMS" ? Number(raw.chainId) === 8453 : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { task_chain_id: raw.chainId ?? null, reference_code: raw.referenceCode, mode: raw.mode, task_visibility: raw.taskVisibility || null, submission_visibility: raw.submissionVisibility || null, has_access_password: raw.hasAccessPassword === true, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: raw.submissionWindowOpen === true, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
+  return { opportunity_id: `${source}:${id}`, raw_id: String(id), source, title: String(title || "Untitled"), description: clamp(description, 12e3), source_url: url, payout_amount: payout, payout_currency: currency, estimated_net_usd: estimatedNet, source_status: String(status || "UNKNOWN"), created_at: createdAt || null, deadline: deadline || null, freshness_at: now(), task_market: source === "DAYDREAMS" || source === "AGENTHANSA", mode: source === "DAYDREAMS" ? daydreams.mode : null, capability_class: capabilityClass, artifact_profile: artifactProfile, economics: economicView, blocker_details: blockerDetails(clean, blockerContext), eligibility: { no_capital_required: !clean.includes("CAPITAL_REQUIRED") && !clean.includes("BLOCKED_OWNER_SPEND") && !clean.includes("TASK_EXECUTION_SPEND_REQUIRED"), no_kyc_required: !clean.includes("KYC_OR_IDENTITY_REQUIRED"), no_human_identity_required: !clean.some((x) => x.includes("HUMAN")), no_social_post_required: !clean.includes("SOCIAL_OR_PUBLICATION_REQUIRED"), no_outreach_required: !clean.includes("OUTREACH_REQUIRED"), no_wallet_sign_required: !clean.includes("WALLET_SIGN_REQUIRED"), no_github_required: !clean.includes("GITHUB_REQUIRED"), no_paid_api_required: !clean.includes("PAID_API_REQUIRED"), terms_allow_automation: termsAllow, expected_net_usd_positive: estimatedNet > 0, required_fields_available: requiredFields, newcomer_access_proven: source === "AGENTHANSA" ? raw.newcomer_access_proven === true ? true : null : null, argentina_or_global_eligibility_proven: source === "AGENTHANSA" ? raw.argentina_or_global_eligibility_proven === true ? true : null : null, exact_deliverable_and_acceptance_proven: source === "AGENTHANSA" ? raw.exact_deliverable_and_acceptance_proven === true ? true : null : null, competition_known: source === "AGENTHANSA" ? raw.competition_known === true ? true : null : null, deadline_known: Number.isFinite(Date.parse(String(deadline || ""))) ? true : null, payout_readback: source === "AGENTHANSA" ? "AGENTHANSA_PAYOUTS_API_SETTLEMENT_READBACK" : null, safe_mutation_authorized: autoExecutable, estimated_task_cost_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost : true, owner_spend_zero: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost === true : source === "AGENTHANSA" ? !taskExecutionSpend.required && !clean.some((x) => ["CAPITAL_REQUIRED","BLOCKED_OWNER_SPEND","TASK_EXECUTION_SPEND_REQUIRED","PAID_API_REQUIRED","GAS_OR_NETWORK_FEE_REQUIRED","CARD_HOLD_REQUIRED"].includes(x)) : null, payout_path_known: source === "DAYDREAMS" ? Number(raw.chainId) === 8453 : source === "AGENTHANSA" }, blockers: clean, ai_executability: autoExecutable ? "AI_EXECUTABLE" : "BLOCKED", automatic_action_level: source === "DAYDREAMS" ? daydreams?.explicit_zero_cost ? "RUNTIME_PLAN_VERIFY_SUBMIT_ZERO_COST" : "DISCOVER_ONLY" : source === "AGENTHANSA" ? "CLAIM_SUBMIT_IF_AUTO_ELIGIBLE" : "DISCOVER_ONLY", execution_stage: "DISCOVERED", execution_history: [{ stage: "DISCOVERED", at: now(), externally_true: true }], raw_meta: source === "DAYDREAMS" ? { task_chain_id: raw.chainId ?? null, reference_code: raw.referenceCode, mode: raw.mode, task_visibility: raw.taskVisibility || null, submission_visibility: raw.submissionVisibility || null, has_access_password: raw.hasAccessPassword === true, net_reward_atomic: String(raw.netReward || ""), gross_reward_atomic: String(raw.reward || ""), submission_window_open: raw.submissionWindowOpen === true, phase: raw.phase, stake_required: !!raw.stakeRequired, stake_bps: n(raw.stakeBps), requester_actor_type: raw.requesterActorType, pending_actions_hydrated: Array.isArray(raw.pendingActions), worker_pending_actions: daydreams?.pending_action_snapshot || [] } : source === "SUPERTEAM" ? { agentAccess: raw.agentAccess, slug: raw.slug, reward_semantics: rewardSemantics, detail_hydrated: raw._detail_hydrated === true } : source === "MOLTJOBS" ? { templateId: raw.templateId } : source === "AGENTHANSA" ? { category: raw.category, participant_count: raw.participant_count } : source === "0XWORK" ? { category: raw.category, results_based: raw.results_based } : {} };
 }
 __name(normalize, "normalize");
 __name2(normalize, "normalize");
@@ -2042,16 +2057,23 @@ async function discoverSource(id) {
     } else if (id === "SUPERTEAM") {
       const { data } = await fetchJson("https://superteam.fun/api/listings?take=100");
       raws = Array.isArray(data) ? data.filter((x) => String(x.status).toUpperCase() === "OPEN") : [];
-      const hydrated = await Promise.all(raws.map(async (x) => {
-        if (x.agentAccess !== "AGENT_ALLOWED" || !x.slug) return x;
-        try {
-          const { text } = await fetchText(`https://superteam.fun/earn/listing/${encodeURIComponent(x.slug)}`);
-          return { ...x, description: stripHtml(text), _detail_hydrated: true };
-        } catch (e) {
-          return { ...x, _detail_hydrated: false, _detail_error: String(e?.message || e) };
-        }
-      }));
-      raws = hydrated;
+      const hydrated = [];
+      const detailLimit = Math.min(20, raws.length);
+      for (let start = 0; start < detailLimit; start += 5) {
+        const batch = await Promise.all(raws.slice(start, Math.min(detailLimit, start + 5)).map(async (x) => {
+          if (!x.slug) return { ...x, _detail_hydrated: false, _detail_error: "MISSING_SLUG" };
+          try {
+            const { data: detail } = await fetchJson(`https://superteam.fun/api/listings/details/${encodeURIComponent(x.slug)}`, {}, 12000);
+            if (!detail || typeof detail !== "object" || String(detail.id) !== String(x.id) || String(detail.slug) !== String(x.slug)) throw new Error("DETAIL_ID_MISMATCH");
+            const description = stripHtml([detail.description || "", detail.requirements || "", ...(Array.isArray(detail.eligibility) ? detail.eligibility.map((q) => q?.question || "") : [])].filter(Boolean).join(" "));
+            return { ...x, ...detail, description, _detail_hydrated: true };
+          } catch (e) {
+            return { ...x, _detail_hydrated: false, _detail_error: String(e?.message || e) };
+          }
+        }));
+        hydrated.push(...batch);
+      }
+      raws = [...hydrated, ...raws.slice(detailLimit).map((x) => ({ ...x, _detail_hydrated: false, _detail_error: "DETAIL_HYDRATION_LIMIT" }))];
     } else if (id === "MOLTJOBS") {
       const { data } = await fetchJson("https://api.moltjobs.io/v1/jobs?status=OPEN&limit=100");
       raws = Array.isArray(data?.data) ? data.data.filter((x) => String(x.status).toUpperCase() === "OPEN") : [];
