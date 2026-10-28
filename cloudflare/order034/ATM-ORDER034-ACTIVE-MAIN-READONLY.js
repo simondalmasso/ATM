@@ -3294,8 +3294,8 @@ var ATMBrain = class extends DurableObject {
     let checked = 0, pending = 0, paid = 0, accepted = 0, rejected = 0;
     for (const [oppId, runtime] of Object.entries(runtimes)) {
       const wasExpiredNoSubmission = runtime?.source === "DAYDREAMS" && runtime?.stage === "EXPIRED" && runtime?.external_submission_readback === "EXPIRED_NO_SUBMISSION";
-      const revalidateExpiredNoSubmission = wasExpiredNoSubmission && !runtime?.expiry_revalidated_at;
-      if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "ABORTED"].includes(runtime?.stage) || (runtime?.stage === "EXPIRED" && !revalidateExpiredNoSubmission)) continue;
+      const revalidateLegacyTaskmarketTerminal = wasExpiredNoSubmission && !runtime?.taskmarket_schema_revalidated_at;
+      if (!runtime?.submission_id || ["PAID", "REJECTED", "NO_AWARD", "ABORTED"].includes(runtime?.stage) || (runtime?.stage === "EXPIRED" && !revalidateLegacyTaskmarketTerminal)) continue;
       if (runtime?.source === "AGENTHANSA") {
         checked++;
         const opp = opps.find((x) => x.opportunity_id === oppId) || { opportunity_id:oppId, raw_id:runtime.task_id, source:"AGENTHANSA", title:runtime.title || runtime.task_id, estimated_net_usd:0, blockers:[] };
@@ -3348,6 +3348,7 @@ var ATMBrain = class extends DurableObject {
         runtime.terminal = true;
         runtime.expired_at = row.at;
         runtime.expiry_revalidated_at = row.at;
+        runtime.taskmarket_schema_revalidated_at = row.at;
         runtime.expiry_evidence = { source: "TASKMARKET_PUBLIC_READBACK", task_id: String(runtime.task_id), local_submission_id: String(runtime.submission_id), task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), submission_window_open: false, worker_task_submission_present: false, worker_award_present: false, observed_at: row.at, revalidated_at: row.at };
         opp.execution_stage = "EXPIRED";
         if (!wasExpiredNoSubmission) await this.appendTaskEvent(opp, "EXPIRED", { submission_id: runtime.submission_id, external_status: "EXPIRED_NO_SUBMISSION", external_readback: true, reference: runtime.submission_id, task_status: String(task?.status || ""), task_phase: String(task?.phase || ""), expiry_time: String(task.expiryTime), worker_task_submission_present: false, worker_award_present: false });
@@ -3403,6 +3404,7 @@ var ATMBrain = class extends DurableObject {
         runtime.terminal = true;
         runtime.external_submission_readback = "NO_AWARD";
         runtime.no_award_at = row.at;
+        runtime.taskmarket_schema_revalidated_at = row.at;
         runtime.no_award_evidence = { source: "TASKMARKET_PUBLIC_READBACK", task_id: String(runtime.task_id), submission_id: String(runtime.submission_id), task_status: String(task.status), task_phase: String(task.phase), submission_window_open: false, award_count: taskAwards.length, expected_award_count: expectedAwardCount, awards_complete: awardsComplete, worker_award_present: false, observed_at: row.at };
         opp.execution_stage = "NO_AWARD";
         const priorWatchdog = await this.economicWatchdogState();

@@ -16,7 +16,7 @@ The watcher may record `NO_AWARD` only when all are true:
 - the submission window is closed;
 - the task advertises an integer `awardCount` equal to `awards.length`, and that complete array contains no award for the worker. Missing or inconsistent counts remain pending.
 
-Legacy runtimes already marked `EXPIRED` with `external_submission_readback=EXPIRED_NO_SUBMISSION` are rechecked once if they have no `expiry_revalidated_at`. A matching row from the worker-scoped feed can correct the false absence classification; otherwise the existing expiry evidence must still be freshly proven. The one-time marker prevents duplicate terminal event writes.
+Legacy runtimes already marked `EXPIRED` with `external_submission_readback=EXPIRED_NO_SUBMISSION` are rechecked once unless they have the newer `taskmarket_schema_revalidated_at` marker. This marker is separate from `expiry_revalidated_at`, which may have been written by the older feed-schema bug and must not suppress the corrective read. A matching row from the worker-scoped feed can correct the false absence classification; otherwise expiry must still be freshly proven. The separate one-time marker prevents duplicate terminal event writes.
 
 Then it persists the readback evidence, marks runtime/pending state terminal `NO_AWARD`, clears the stale watchdog, and does not create an acceptance or payment receipt. If any evidence is absent or inconsistent, the item remains pending. The local `submission_id` is not claimed to be an external submission ID when the feed does not return one.
 
