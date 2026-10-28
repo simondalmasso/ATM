@@ -14,7 +14,7 @@ The watcher may record `NO_AWARD` only when all are true:
 - the successful worker-scoped feed contains a row with the exact `taskId`;
 - the exact task read succeeds and the task is `completed` / `resolved`;
 - the submission window is closed;
-- the awards field is present as an array and contains no award for the worker.
+- the task advertises an integer `awardCount` equal to `awards.length`, and that complete array contains no award for the worker. Missing or inconsistent counts remain pending.
 
 Legacy runtimes already marked `EXPIRED` with `external_submission_readback=EXPIRED_NO_SUBMISSION` are rechecked once if they have no `expiry_revalidated_at`. A matching row from the worker-scoped feed can correct the false absence classification; otherwise the existing expiry evidence must still be freshly proven. The one-time marker prevents duplicate terminal event writes.
 
