@@ -24,7 +24,12 @@
 | Secret diagnostics | `scripts/secret_doctor.py` |
 | Payout diagnostics | `scripts/payout_doctor.py` |
 | Python tests | `tests/` |
+| Repository-local reverse-engineering skill | `.agents/skills/leanrea/SKILL.md` plus `docs/research/ORDER-081-leanrea-skill-integration.md` |
 | Historical checkpoints/orders | `progress.md`, `report/`, `docs/migration/`, `docs/superpowers/` |
+
+## Optional developer skills
+
+- `.agents/skills/leanrea/SKILL.md` is a lightweight command router for authorized reverse-engineering work. It is documentation-only: not a Worker dependency, opportunity source, adapter, or production agent. Read `docs/research/ORDER-081-leanrea-skill-integration.md` for provenance, license, and ATM-specific safety boundaries.
 
 ## Production surfaces (read-only)
 
