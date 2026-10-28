@@ -75,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
-          test ! -e .gitlab-ci.yml
+          test -f .agents/skills/leanrea/SKILL.md\n          test -f .agents/skills/leanrea/LICENSE\n          test -f docs/research/ORDER-081-leanrea-skill-integration.md\n          grep -Fq '09ba4aa0217f82cd880f855a60b877f59f39b22b' docs/research/ORDER-081-leanrea-skill-integration.md\n          test ! -e .gitlab-ci.yml
           test ! -d src
           test ! -d deploy
           test ! -d prompts
