@@ -23,10 +23,10 @@
 | GitLab downstream mirror | `.github/workflows/mirror-gitlab.yml` |
 | Secret diagnostics | `scripts/secret_doctor.py` |
 | Payout diagnostics | `scripts/payout_doctor.py` |
-| Python tests | `tests/` |
+| Python tests | `tests/` |\n| Repository-local reverse-engineering skill | `.agents/skills/leanrea/SKILL.md` plus `docs/research/ORDER-081-leanrea-skill-integration.md` |
 | Historical checkpoints/orders | `progress.md`, `report/`, `docs/migration/`, `docs/superpowers/` |
 
-## Production surfaces (read-only)
+## Optional developer skills\n\n- `.agents/skills/leanrea/SKILL.md` is a lightweight command router for authorized reverse-engineering work. It is documentation-only: not a Worker dependency, opportunity source, adapter, or production agent. Read `docs/research/ORDER-081-leanrea-skill-integration.md` for provenance, license, and ATM-specific safety boundaries.\n\n## Production surfaces (read-only)
 
 - `/health` — runtime/build identity and dependency health.
 - `/api/status` — discovery, execution, watchdog, signer binding, and settlement watcher summaries.
